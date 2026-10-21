@@ -321,15 +321,14 @@ Save the file and restart your local server (`Ctrl + C` then `npm.cmd run dev`).
 
 Deploying to Vercel makes your website accessible to anyone on the internet at a public address (e.g., `https://shopsphere.vercel.app`).
 
-### Step 1: Push Code to GitHub
-1. Create a free account at [https://github.com](https://github.com).
-2. Create a new GitHub repository named `shopsphere`.
-3. Push your project code to GitHub:
+### Step 1: Push Code to Your GitHub Account (@MOHANKOTHAMASU)
+1. Log in to [https://github.com/MOHANKOTHAMASU](https://github.com/MOHANKOTHAMASU).
+2. Click the **+** (plus icon) in the top right corner and select **New repository**.
+3. Set **Repository name** to: `shopsphere`.
+4. Choose **Public** (or **Private**). Leave *"Add a README file"*, *".gitignore"*, and *"license"* unchecked (because our project already has them).
+5. Click **Create repository**.
+6. Switch to your terminal and push the code (the remote origin `https://github.com/MOHANKOTHAMASU/shopsphere.git` is already set up for you!):
    ```powershell
-   git add .
-   git commit -m "ShopSphere complete e-commerce production release"
-   git branch -M main
-   git remote add origin https://github.com/<your-username>/shopsphere.git
    git push -u origin main
    ```
 
