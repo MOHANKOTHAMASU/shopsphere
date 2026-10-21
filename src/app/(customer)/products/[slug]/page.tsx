@@ -8,6 +8,9 @@ import { PriceDisplay } from '@/components/common/PriceDisplay';
 import { RatingStars } from '@/components/common/RatingStars';
 import { ProductGrid } from '@/components/product/ProductGrid';
 import { ProductReviewsSection } from '@/components/product/ProductReviewsSection';
+import { ProductAlternativesSection } from '@/components/product/ProductAlternativesSection';
+import { getProductAlternativeComparisonAction } from '@/lib/pricing/actions';
+import { generateRealisticCompetitorBenchmarks } from '@/lib/pricing/pricing-engine';
 import {
   ChevronRight,
   ShieldCheck,
@@ -43,14 +46,31 @@ export default async function ProductDetailsPage({ params }: PageProps) {
     notFound();
   }
 
-  // Related products from the same category
-  const relatedResult = await getProducts({
-    categorySlug: product.categorySlug,
-    limit: 6,
-  });
+  // Related products & in-stock alternatives from the same category
+  const [relatedResult, alternativesResult, comparisonResult] = await Promise.all([
+    getProducts({
+      categorySlug: product.categorySlug,
+      limit: 8,
+    }),
+    getProducts({
+      categorySlug: product.categorySlug,
+      inStockOnly: true,
+      limit: 8,
+    }),
+    getProductAlternativeComparisonAction(product.slug),
+  ]);
+
+  const competitorBenchmarks = generateRealisticCompetitorBenchmarks(product);
+
   const relatedProducts = relatedResult.items
     .filter((p) => p.id !== product.id)
     .slice(0, 4);
+
+  const inStockAlternatives = alternativesResult.items
+    .filter((p) => p.id !== product.id && p.stockQuantity > 0)
+    .slice(0, 4);
+
+  const isUnavailable = product.stockQuantity <= 0;
 
   return (
     <div className="py-2 space-y-10">
@@ -184,6 +204,14 @@ export default async function ProductDetailsPage({ params }: PageProps) {
         </div>
       </div>
 
+      {/* Verified Competitor Benchmarks & Compare Alternatives Section */}
+      {comparisonResult.success && comparisonResult.comparison && (
+        <ProductAlternativesSection
+          comparison={comparisonResult.comparison}
+          competitors={competitorBenchmarks}
+        />
+      )}
+
       {/* Specifications & Customer Reviews Section */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Specifications Table (7 cols on lg) */}
@@ -226,18 +254,38 @@ export default async function ProductDetailsPage({ params }: PageProps) {
         </div>
       </div>
 
-      {/* Recommended Related Products */}
-      <div className="my-10">
-        <div className="mb-6">
-          <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">
-            Similar Items
-          </span>
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight mt-0.5">
-            You Might Also Like
-          </h2>
+      {/* Unavailable / In-Stock Alternatives Section */}
+      {isUnavailable && inStockAlternatives.length > 0 && (
+        <div className="my-10 p-6 sm:p-8 bg-amber-50/70 border border-amber-200/80 rounded-3xl space-y-6">
+          <div className="space-y-1">
+            <span className="text-xs font-bold text-amber-700 uppercase tracking-widest bg-amber-100 px-2.5 py-0.5 rounded-md">
+              In-Stock Alternatives
+            </span>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight pt-1">
+              Recommended Alternatives Available Now
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600">
+              This product is currently out of stock. Customers exploring this item also purchase these available {product.category} alternatives:
+            </p>
+          </div>
+          <ProductGrid products={inStockAlternatives} />
         </div>
-        <ProductGrid products={relatedProducts} />
-      </div>
+      )}
+
+      {/* Recommended Related Products */}
+      {relatedProducts.length > 0 && (
+        <div className="my-10">
+          <div className="mb-6">
+            <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">
+              Similar Items
+            </span>
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight mt-0.5">
+              You Might Also Like
+            </h2>
+          </div>
+          <ProductGrid products={relatedProducts} />
+        </div>
+      )}
     </div>
   );
 }

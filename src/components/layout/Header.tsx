@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   ShoppingCart,
@@ -28,9 +28,14 @@ export function Header() {
   const { totalItems, subtotal } = useCart();
   const { totalWishlistItems } = useWishlist();
 
+  const [mounted, setMounted] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
   const firstName = displayName.split(' ')[0];
@@ -242,10 +247,10 @@ export function Header() {
               <Link
                 href="/wishlist"
                 className="relative p-2 rounded-xl text-slate-700 hover:text-indigo-600 hover:bg-slate-100 transition-colors"
-                aria-label={`Wishlist with ${totalWishlistItems} items`}
+                aria-label={`Wishlist with ${mounted ? totalWishlistItems : 0} items`}
               >
                 <Heart className="w-5 h-5" />
-                {totalWishlistItems > 0 && (
+                {mounted && totalWishlistItems > 0 && (
                   <span className="absolute -top-1 -right-1 bg-rose-500 text-white font-bold text-[10px] w-5 h-5 rounded-full flex items-center justify-center shadow-sm">
                     {totalWishlistItems}
                   </span>
@@ -256,11 +261,11 @@ export function Header() {
               <Link
                 href="/cart"
                 className="flex items-center gap-2.5 p-2 px-3 rounded-xl bg-slate-900 hover:bg-indigo-700 text-white transition-all shadow-sm group"
-                aria-label={`Shopping cart with ${totalItems} items`}
+                aria-label={`Shopping cart with ${mounted ? totalItems : 0} items`}
               >
                 <div className="relative">
                   <ShoppingCart className="w-5 h-5 text-amber-400" />
-                  {totalItems > 0 && (
+                  {mounted && totalItems > 0 && (
                     <span className="absolute -top-2 -right-2 bg-rose-500 text-white font-extrabold text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
                       {totalItems}
                     </span>
@@ -271,7 +276,7 @@ export function Header() {
                     Cart
                   </span>
                   <span className="text-xs font-bold text-white">
-                    {subtotal > 0 ? formatCurrency(subtotal) : '₹0'}
+                    {mounted && subtotal > 0 ? formatCurrency(subtotal) : '₹0'}
                   </span>
                 </div>
               </Link>

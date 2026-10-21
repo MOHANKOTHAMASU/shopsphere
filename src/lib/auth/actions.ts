@@ -9,6 +9,8 @@ import { sanitizeRedirectPath } from '@/lib/security/redirects';
 import { checkRateLimit } from '@/lib/security/rate-limit';
 
 import { DEMO_USERS, DEMO_COOKIE_NAME, type DemoUserSession } from './demo-users';
+import { memoryCustomers, memoryAddresses } from '@/lib/admin/store';
+import { CustomerSummary } from '@/types/ecommerce';
 
 export type { DemoUserSession };
 
@@ -89,14 +91,36 @@ export async function signInDemoAction(role: 'customer' | 'admin' = 'customer'):
   };
 }
 
+function maskEmail(email: string): string {
+  const parts = email.split('@');
+  if (parts.length !== 2) return email;
+  const [user, domain] = parts;
+  if (user.length <= 2) {
+    return `${user[0]}*@${domain}`;
+  }
+  return `${user[0]}***${user[user.length - 1]}@${domain}`;
+}
+
 /**
  * Server Action: Customer Registration (Sign Up)
  */
 export async function signUpAction(formData: FormData): Promise<AuthActionResult> {
   const fullName = (formData.get('fullName') as string) || '';
   const email = (formData.get('email') as string) || '';
+  const phone = (formData.get('phone') as string) || '';
   const password = (formData.get('password') as string) || '';
   const confirmPassword = (formData.get('confirmPassword') as string) || '';
+  const street =
+    (formData.get('street') as string) || (formData.get('addressLine') as string) || '';
+  const city = (formData.get('city') as string) || '';
+  const state = (formData.get('state') as string) || '';
+  const postalCode =
+    (formData.get('postalCode') as string) || (formData.get('pinCode') as string) || '';
+  const country = (formData.get('country') as string) || 'India';
+  const agreedToTerms =
+    formData.get('agreedToTerms') === 'true' ||
+    formData.get('agreedToTerms') === 'on' ||
+    formData.get('agreeTerms') === 'on';
 
   const cleanEmail = email.trim().toLowerCase();
 
@@ -110,7 +134,20 @@ export async function signUpAction(formData: FormData): Promise<AuthActionResult
   }
 
   // Validate on the server
-  const validation = validateSignupData({ fullName, email, password, confirmPassword });
+  const validation = validateSignupData({
+    fullName,
+    email,
+    phone: phone || undefined,
+    password,
+    confirmPassword,
+    street: street || undefined,
+    city: city || undefined,
+    state: state || undefined,
+    postalCode: postalCode || undefined,
+    country,
+    agreedToTerms,
+  });
+
   if (!validation.isValid) {
     return {
       success: false,
@@ -121,15 +158,62 @@ export async function signUpAction(formData: FormData): Promise<AuthActionResult
 
   // Graceful fallback for Demo / Dev Mode when Supabase keys are not set
   if (!isSupabaseConfigured()) {
+    // Duplicate email check
+    const existing = memoryCustomers.find((c) => c.email.toLowerCase() === cleanEmail);
+    if (existing) {
+      return {
+        success: false,
+        message: 'An account with this email address already exists. Please sign in instead.',
+      };
+    }
+
+    const newUserId = `usr-cust-${Date.now()}`;
+    const newCustomer: CustomerSummary = {
+      id: newUserId,
+      fullName: fullName.trim(),
+      email: cleanEmail,
+      maskedEmail: maskEmail(cleanEmail),
+      phone: phone.trim() || '+91 98765 43210',
+      role: 'customer',
+      ordersCount: 0,
+      totalSpent: 0,
+      status: 'active',
+      isVerified: true,
+      createdAt: new Date().toISOString(),
+    };
+    memoryCustomers.unshift(newCustomer);
+
+    // Save initial delivery address into memory store
+    if (street.trim() || city.trim()) {
+      memoryAddresses.push({
+        id: `addr-${Date.now()}`,
+        userId: newUserId,
+        fullName: fullName.trim(),
+        phone: phone.trim() || '+91 98765 43210',
+        street: street.trim() || 'Main Street',
+        city: city.trim() || 'Bengaluru',
+        state: state.trim() || 'Karnataka',
+        postalCode: postalCode.trim() || '560001',
+        country: country.trim() || 'India',
+        isDefault: true,
+        type: 'Home',
+      });
+    }
+
     const demoUser: DemoUserSession = {
-      id: `usr-demo-${Date.now()}`,
-      email: email.trim().toLowerCase(),
+      id: newUserId,
+      email: cleanEmail,
       full_name: fullName.trim(),
       role: 'customer',
-      phone: '+91 98765 43210',
+      phone: phone.trim() || undefined,
     };
+
     await setDemoUserSession(demoUser);
     safeRevalidate('/', 'layout');
+    safeRevalidate('/admin/customers', 'page');
+    safeRevalidate('/admin/users', 'page');
+    safeRevalidate('/account', 'page');
+
     return {
       success: true,
       message: 'Account registered successfully! Welcome to ShopSphere.',
@@ -139,20 +223,64 @@ export async function signUpAction(formData: FormData): Promise<AuthActionResult
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
-    email,
+    email: cleanEmail,
     password,
     options: {
       data: {
-        full_name: fullName,
+        full_name: fullName.trim(),
+        phone: phone.trim(),
       },
     },
   });
 
   if (error) {
+    if (
+      error.message.toLowerCase().includes('already registered') ||
+      error.message.toLowerCase().includes('already exists')
+    ) {
+      return {
+        success: false,
+        message: 'An account with this email address already exists. Please sign in instead.',
+      };
+    }
     return {
       success: false,
       message: error.message,
     };
+  }
+
+  if (data?.user) {
+    // Save address if provided
+    if (street.trim() && city.trim() && postalCode.trim()) {
+      try {
+        await supabase.from('addresses').insert({
+          user_id: data.user.id,
+          full_name: fullName.trim(),
+          phone: phone.trim(),
+          street: street.trim(),
+          city: city.trim(),
+          state: state.trim(),
+          postal_code: postalCode.trim(),
+          country: country.trim() || 'India',
+          is_default: true,
+          type: 'Home',
+        });
+      } catch {
+        // Safe if non-fatal
+      }
+    }
+
+    // Update profile phone if needed
+    if (phone.trim()) {
+      try {
+        await supabase.from('profiles').update({
+          phone: phone.trim(),
+          full_name: fullName.trim(),
+        }).eq('id', data.user.id);
+      } catch {
+        // Safe if non-fatal
+      }
+    }
   }
 
   // If user identity is created and email confirmation is required:
@@ -160,11 +288,14 @@ export async function signUpAction(formData: FormData): Promise<AuthActionResult
     return {
       success: true,
       message:
-        'Registration successful! Please check your email inbox to confirm your ShopSphere account before signing in.',
+        'Registration successful! Please check your email inbox to verify your email address before signing in.',
     };
   }
 
-  revalidatePath('/', 'layout');
+  safeRevalidate('/', 'layout');
+  safeRevalidate('/admin/customers', 'page');
+  safeRevalidate('/admin/users', 'page');
+
   return {
     success: true,
     message: 'Welcome to ShopSphere! Your account has been created.',
@@ -202,18 +333,22 @@ export async function signInAction(formData: FormData): Promise<AuthActionResult
 
   // Graceful fallback for Demo / Dev Mode when Supabase keys are not set
   if (!isSupabaseConfigured()) {
-    const cleanEmail = email.trim().toLowerCase();
-    const isStoreAdmin = cleanEmail.includes('admin');
-    const baseUser = isStoreAdmin ? DEMO_USERS.admin : DEMO_USERS.customer;
+    const requestedRole = (formData.get('role') as string) || '';
+    const isStoreAdmin =
+      requestedRole === 'admin' ||
+      redirectParam.startsWith('/admin') ||
+      cleanEmail.includes('admin') ||
+      cleanEmail === 'kmvsubbarao28@gmail.com';
+    const foundCustomer = memoryCustomers.find((c) => c.email.toLowerCase() === cleanEmail);
 
     const demoUser: DemoUserSession = {
-      id: baseUser.id,
+      id: isStoreAdmin ? DEMO_USERS.admin.id : (foundCustomer?.id || `usr-cust-${Date.now()}`),
       email: cleanEmail,
       full_name: isStoreAdmin
-        ? baseUser.full_name
-        : (cleanEmail.split('@')[0].replace(/[._-]/g, ' ') || 'Demo Customer'),
+        ? (cleanEmail === 'kmvsubbarao28@gmail.com' ? 'K.M.V. Subbarao (Admin)' : DEMO_USERS.admin.full_name)
+        : (foundCustomer?.fullName || cleanEmail.split('@')[0].replace(/[._-]/g, ' ') || 'Demo Customer'),
       role: isStoreAdmin ? 'admin' : 'customer',
-      phone: baseUser.phone,
+      phone: foundCustomer?.phone || (isStoreAdmin ? DEMO_USERS.admin.phone : '+91 98765 43210'),
     };
 
     await setDemoUserSession(demoUser);
@@ -413,12 +548,24 @@ export async function updateProfileAction(formData: FormData): Promise<AuthActio
       role: existing?.role || 'customer',
     };
     await setDemoUserSession(updated);
+
+    // Sync memory customer record so admin immediately sees updated details
+    const custIdx = memoryCustomers.findIndex(
+      (c) => c.id === updated.id || c.email === updated.email
+    );
+    if (custIdx !== -1) {
+      memoryCustomers[custIdx].fullName = fullName.trim();
+      if (phone.trim()) memoryCustomers[custIdx].phone = phone.trim();
+    }
+
     safeRevalidate('/account', 'page');
     safeRevalidate('/account/profile', 'page');
+    safeRevalidate('/admin/customers', 'page');
+    safeRevalidate('/admin/users', 'page');
 
     return {
       success: true,
-      message: 'Profile information updated successfully (Demo Mode)!',
+      message: 'Profile information updated successfully!',
     };
   }
 

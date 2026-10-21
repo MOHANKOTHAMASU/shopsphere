@@ -4,6 +4,7 @@ import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { Database } from '@/lib/supabase/types';
 import { CartItem, CartValidationResult, OrderSummary, Product } from '@/types/ecommerce';
 import { DEVELOPMENT_SEED_PRODUCTS } from '@/data/seed-products';
+import { memoryProducts } from '@/lib/admin/store';
 
 type ProductRow = Database['public']['Tables']['products']['Row'];
 type ProductVariantRow = Database['public']['Tables']['product_variants']['Row'];
@@ -114,8 +115,9 @@ async function getVerifiedProductAndVariant(
     }
   }
 
-  // Resilient fallback over local seed products
-  const seed = DEVELOPMENT_SEED_PRODUCTS.find((p) => p.id === productId || p.slug === productId);
+  // Resilient fallback over active memory products (or seed items)
+  const productPool = memoryProducts.length > 0 ? memoryProducts : DEVELOPMENT_SEED_PRODUCTS;
+  const seed = productPool.find((p) => p.id === productId || p.slug === productId);
   if (!seed) {
     return {
       product: null,

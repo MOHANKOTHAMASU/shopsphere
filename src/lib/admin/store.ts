@@ -10,6 +10,8 @@ import {
   Category,
   CouponRecord,
   CustomerSummary,
+  Address,
+  AdminAuditLog,
 } from '@/types/ecommerce';
 
 // Active Products repository (deep copy of seed products)
@@ -64,7 +66,7 @@ export const memoryCoupons: CouponRecord[] = [
   },
 ];
 
-// Active Customers repository
+// Active Customers repository (with status and verification details)
 export const memoryCustomers: CustomerSummary[] = [
   {
     id: 'usr-customer-01',
@@ -75,6 +77,8 @@ export const memoryCustomers: CustomerSummary[] = [
     role: 'customer',
     ordersCount: 2,
     totalSpent: 53480,
+    status: 'active',
+    isVerified: true,
     lastOrderDate: new Date(Date.now() - 3600000 * 24).toISOString(),
     createdAt: new Date(Date.now() - 3600000 * 24 * 60).toISOString(),
   },
@@ -87,8 +91,10 @@ export const memoryCustomers: CustomerSummary[] = [
     role: 'customer',
     ordersCount: 1,
     totalSpent: 8495,
+    status: 'active',
+    isVerified: true,
     lastOrderDate: new Date(Date.now() - 3600000 * 12).toISOString(),
-    createdAt: new Date(Date.now() - 3600000 * 24 * 45).toISOString(),
+    createdAt: new Date(Date.now() - 3600000 * 24 * 5).toISOString(), // Within last 7 days
   },
   {
     id: 'usr-customer-03',
@@ -99,8 +105,10 @@ export const memoryCustomers: CustomerSummary[] = [
     role: 'customer',
     ordersCount: 1,
     totalSpent: 3248,
+    status: 'active',
+    isVerified: false, // Unverified demonstration account
     lastOrderDate: new Date(Date.now() - 3600000 * 4).toISOString(),
-    createdAt: new Date(Date.now() - 3600000 * 24 * 30).toISOString(),
+    createdAt: new Date(Date.now() - 3600000 * 8).toISOString(), // Registered today!
   },
   {
     id: 'usr-demo-customer',
@@ -111,7 +119,41 @@ export const memoryCustomers: CustomerSummary[] = [
     role: 'customer',
     ordersCount: 1,
     totalSpent: 26990,
+    status: 'active',
+    isVerified: true,
     lastOrderDate: new Date().toISOString(),
     createdAt: new Date(Date.now() - 3600000 * 24 * 10).toISOString(),
   },
 ];
+
+// Active Customer Delivery Addresses repository
+export const memoryAddresses: Address[] = [
+  {
+    id: 'addr-default-mock',
+    userId: 'usr-demo-customer',
+    fullName: 'Rahul Sharma',
+    phone: '+91 98765 43210',
+    street: '42, Brigade Metropolis, Whitefield Main Road',
+    apartment: 'Tower B, Flat 804',
+    city: 'Bengaluru',
+    state: 'Karnataka',
+    postalCode: '560048',
+    country: 'India',
+    isDefault: true,
+    type: 'Home',
+  },
+];
+
+// Active Admin Audit Logs repository
+export const memoryAuditLogs: AdminAuditLog[] = [
+  {
+    id: 'log-001',
+    adminId: 'usr-demo-admin',
+    adminEmail: 'admin@shopsphere.dev',
+    action: 'VIEW_CUSTOMER_DIRECTORY',
+    resourceType: 'customers',
+    details: { reason: 'System initialization and compliance verification' },
+    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+  },
+];
+

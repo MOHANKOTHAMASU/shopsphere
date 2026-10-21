@@ -13,6 +13,7 @@ import {
 } from '@/types/ecommerce';
 import { DEVELOPMENT_SEED_PRODUCTS } from '@/data/seed-products';
 import { clearServerCartAction } from '@/lib/cart/actions';
+import { memoryProducts } from '@/lib/admin/store';
 
 type OrderRow = Database['public']['Tables']['orders']['Row'];
 type OrderItemRow = Database['public']['Tables']['order_items']['Row'];
@@ -23,7 +24,7 @@ interface OrderWithItemsRow extends OrderRow {
 }
 
 import { idempotencyStore, inMemoryOrders } from '@/lib/orders/store';
-import { memoryProducts } from '@/lib/admin/store';
+import { getDemoUserAction } from '@/lib/auth/actions';
 
 /**
  * 1. Validate Coupon Code on the Server
@@ -105,7 +106,8 @@ export async function validateCouponAction(
 
 function findSeedProduct(idOrSlug: string) {
   const normalized = idOrSlug.trim().toLowerCase();
-  return DEVELOPMENT_SEED_PRODUCTS.find(
+  const source = memoryProducts.length > 0 ? memoryProducts : DEVELOPMENT_SEED_PRODUCTS;
+  return source.find(
     (p) =>
       p.id.toLowerCase() === normalized ||
       p.slug.toLowerCase() === normalized ||
@@ -162,6 +164,15 @@ export async function createOrderAction(payload: {
       if (user) {
         userId = user.id;
         supabaseClient = supabase;
+      }
+    } catch {
+      // ignore
+    }
+  } else {
+    try {
+      const demo = await getDemoUserAction();
+      if (demo) {
+        userId = demo.id;
       }
     } catch {
       // ignore
@@ -415,6 +426,17 @@ export async function createOrderAction(payload: {
     idempotencyStore.set(idempotencyKey, { timestamp: Date.now(), order: finalOrder });
   }
 
+  // Symmetrically decrement memoryProducts stock in dev/sandbox mode
+  if (!isSupabaseConfigured()) {
+    for (const item of verifiedLineItems) {
+      const p = memoryProducts.find((x) => x.id === item.productId || x.slug === item.productId);
+      if (p) {
+        p.stockQuantity = Math.max(0, p.stockQuantity - item.quantity);
+        p.isAvailable = p.stockQuantity > 0;
+      }
+    }
+  }
+
   return { success: true, order: finalOrder };
 }
 
@@ -488,6 +510,19 @@ export async function getCustomerOrdersAction(): Promise<{
     } catch {
       // fallback
     }
+  }
+
+  try {
+    const demoUser = await getDemoUserAction();
+    if (demoUser) {
+      if (demoUser.role === 'admin') {
+        return { success: true, orders: inMemoryOrders };
+      }
+      const filtered = inMemoryOrders.filter((o) => o.userId === demoUser.id);
+      return { success: true, orders: filtered };
+    }
+  } catch {
+    // fallback
   }
 
   return { success: true, orders: inMemoryOrders };

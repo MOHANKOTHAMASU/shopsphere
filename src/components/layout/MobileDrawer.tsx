@@ -19,6 +19,8 @@ import {
   Package,
   Settings,
   MapPin,
+  BookOpen,
+  Watch,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { DEVELOPMENT_SEED_CATEGORIES } from '@/data/seed-categories';
@@ -31,6 +33,9 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   Sparkles: <Sparkles className="w-4 h-4 text-pink-500" />,
   Dumbbell: <Dumbbell className="w-4 h-4 text-cyan-500" />,
   Footprints: <Footprints className="w-4 h-4 text-orange-500" />,
+  BookOpen: <BookOpen className="w-4 h-4 text-blue-500" />,
+  ShoppingBag: <ShoppingBag className="w-4 h-4 text-emerald-600" />,
+  Watch: <Watch className="w-4 h-4 text-purple-500" />,
 };
 
 interface MobileDrawerProps {

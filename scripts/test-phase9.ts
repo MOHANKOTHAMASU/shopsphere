@@ -15,7 +15,7 @@ import {
   clearDemoUserSession,
 } from '../src/lib/auth/actions';
 import { DEMO_USERS } from '../src/lib/auth/demo-users';
-import { assertAdmin, verifyAdminSession } from '../src/lib/auth/admin-guard';
+import { assertAdmin } from '../src/lib/auth/admin-guard';
 import {
   getAdminDashboardMetricsAction,
   createProductAction,
@@ -26,13 +26,9 @@ import { revalidateCartAction } from '../src/lib/cart/actions';
 import {
   createOrderAction,
   cancelOrderAction,
-  getOrderDetailsAction,
   validateCouponAction,
 } from '../src/lib/orders/actions';
-import {
-  verifyRazorpayWebhookSignature,
-  verifyRazorpayPaymentSignatureAction,
-} from '../src/lib/payments/razorpay';
+import { verifyRazorpayWebhookSignature } from '../src/lib/payments/razorpay';
 import {
   checkRateLimit,
   clearAllRateLimits,
@@ -173,12 +169,11 @@ async function runPhase9Audit() {
     {
       productId: targetProd.id,
       quantity: 2,
-      // Client attempts to tamper with the price (claims price is ₹1 instead of real price)
       unitPrice: 1,
     },
-  ];
+  ] as unknown as Parameters<typeof revalidateCartAction>[0];
 
-  const cartValidation = await revalidateCartAction(tamperedCart as any);
+  const cartValidation = await revalidateCartAction(tamperedCart);
   assert(cartValidation.isValid, 'Server validates cart against genuine database records');
   assert(
     cartValidation.items[0].unitPrice === targetProd.price,
@@ -197,11 +192,10 @@ async function runPhase9Audit() {
     {
       productId: targetProd.id,
       quantity: 99999, // Exceeds stock
-      unitPrice: targetProd.price,
     },
   ];
 
-  const oversellValidation = await revalidateCartAction(oversellCart as any);
+  const oversellValidation = await revalidateCartAction(oversellCart);
   assert(
     oversellValidation.hasChanges || oversellValidation.warnings.length > 0,
     'Cart validation flags quantity exceeding available stock'
@@ -248,6 +242,7 @@ async function runPhase9Audit() {
   assert(couponValidationFestive.valid, 'Validates FESTIVE20 coupon (20% off for order >= ₹5,000)');
 
   // Server order creation
+  const orderIdempotencyKey = `idemp-key-${Date.now()}`;
   const validOrderRes = await createOrderAction({
     items: [
       {
@@ -267,7 +262,7 @@ async function runPhase9Audit() {
     },
     paymentMethod: 'cod',
     couponCode: 'SHOPSPHERE10',
-    idempotencyKey: `idemp-key-${Date.now()}`,
+    idempotencyKey: orderIdempotencyKey,
   });
   assert(validOrderRes.success, 'Successfully creates order with verified total and unique order number');
   assert(Boolean(validOrderRes.order?.orderNumber.startsWith('ORD-')), 'Unique order number assigned');
@@ -292,7 +287,7 @@ async function runPhase9Audit() {
         country: 'India',
       },
       paymentMethod: 'cod',
-      idempotencyKey: (validOrderRes as any).idempotencyKey || `idemp-key-reuse`,
+      idempotencyKey: orderIdempotencyKey,
     });
     assert(
       duplicateOrderRes.success,

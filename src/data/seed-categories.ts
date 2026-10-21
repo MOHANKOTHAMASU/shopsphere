@@ -4,71 +4,97 @@ import { Category } from '@/types/ecommerce';
  * -----------------------------------------------------------------------------
  * DEVELOPMENT SEED DATA: CATEGORIES
  * -----------------------------------------------------------------------------
- * Clearly labelled seed categories for Phase 1 UI/UX preview and prototyping.
- * These match the database schema defined in supabase/migrations/20261020000000_init_schema.sql
- * and will be loaded dynamically from Supabase in subsequent phases.
+ * 8 Major Categories for ShopSphere Marketplace:
+ * 1. Electronics
+ * 2. Fashion & Clothing
+ * 3. Home & Kitchen
+ * 4. Beauty & Personal Care
+ * 5. Books & Stationery
+ * 6. Sports & Fitness
+ * 7. Grocery & Daily Essentials
+ * 8. Accessories
  * -----------------------------------------------------------------------------
  */
 
 export const DEVELOPMENT_SEED_CATEGORIES: Category[] = [
   {
     id: 'cat-electronics',
-    name: 'Electronics & Gadgets',
+    name: 'Electronics',
     slug: 'electronics',
-    description: 'Smartphones, premium headphones, laptops, and smart home tech.',
-    imageUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80',
-    itemCount: 42,
+    description: 'Flagship headphones, smartwatches, laptops, audio systems, and smart gadgets.',
+    imageUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80',
+    itemCount: 52,
     featured: true,
     iconName: 'Headphones',
   },
   {
     id: 'cat-fashion',
-    name: 'Fashion & Apparel',
+    name: 'Fashion & Clothing',
     slug: 'fashion',
-    description: 'Trendy clothing, street wear, premium footwear, and accessories.',
-    imageUrl: 'https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=600&q=80',
-    itemCount: 88,
+    description: 'Designer shirts, denim, outerwear, formal attire, and everyday comfort wear.',
+    imageUrl: 'https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=800&q=80',
+    itemCount: 52,
     featured: true,
     iconName: 'Shirt',
   },
   {
-    id: 'cat-home-living',
-    name: 'Home & Living',
-    slug: 'home-living',
-    description: 'Modern furniture, ambient lighting, kitchenware, and luxury decor.',
-    imageUrl: 'https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&w=600&q=80',
-    itemCount: 35,
+    id: 'cat-home-kitchen',
+    name: 'Home & Kitchen',
+    slug: 'home-kitchen',
+    description: 'Artisanal cookware, appliances, dinnerware, espresso makers, and living decor.',
+    imageUrl: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=800&q=80',
+    itemCount: 52,
     featured: true,
     iconName: 'Home',
   },
   {
-    id: 'cat-beauty-wellness',
-    name: 'Beauty & Wellness',
-    slug: 'beauty-wellness',
-    description: 'Organic skincare, luxury fragrances, grooming, and personal care.',
-    imageUrl: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=600&q=80',
-    itemCount: 29,
+    id: 'cat-beauty',
+    name: 'Beauty & Personal Care',
+    slug: 'beauty',
+    description: 'Dermatological skincare, nourishing serums, grooming kits, and organic wellness.',
+    imageUrl: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=800&q=80',
+    itemCount: 52,
     featured: true,
     iconName: 'Sparkles',
   },
   {
-    id: 'cat-sports-fitness',
-    name: 'Sports & Outdoors',
-    slug: 'sports-fitness',
-    description: 'Gym equipment, outdoor gear, fitness trackers, and athletic shoes.',
-    imageUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=600&q=80',
-    itemCount: 24,
+    id: 'cat-books',
+    name: 'Books & Stationery',
+    slug: 'books',
+    description: 'Bestselling non-fiction, programming manuals, executive notebooks, and fine pens.',
+    imageUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80',
+    itemCount: 52,
+    featured: true,
+    iconName: 'BookOpen',
+  },
+  {
+    id: 'cat-sports',
+    name: 'Sports & Fitness',
+    slug: 'sports',
+    description: 'Weights, yoga accessories, endurance athletic gear, and home gym equipment.',
+    imageUrl: 'https://images.unsplash.com/photo-1517838277536-f5f99be501cd?auto=format&fit=crop&w=800&q=80',
+    itemCount: 52,
     featured: true,
     iconName: 'Dumbbell',
   },
   {
-    id: 'cat-footwear',
-    name: 'Footwear & Sneakers',
-    slug: 'footwear',
-    description: 'Running shoes, casual sneakers, formal shoes, and luxury boots.',
-    imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80',
-    itemCount: 31,
+    id: 'cat-grocery',
+    name: 'Grocery & Daily Essentials',
+    slug: 'grocery',
+    description: 'Farm-fresh organic pantry essentials, single-origin coffees, and dry fruits.',
+    imageUrl: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80',
+    itemCount: 52,
     featured: true,
-    iconName: 'Footprints',
+    iconName: 'ShoppingBag',
+  },
+  {
+    id: 'cat-accessories',
+    name: 'Accessories',
+    slug: 'accessories',
+    description: 'Polarized sunglasses, genuine leather wallets, chronographs, and urban travel bags.',
+    imageUrl: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80',
+    itemCount: 52,
+    featured: true,
+    iconName: 'Watch',
   },
 ];

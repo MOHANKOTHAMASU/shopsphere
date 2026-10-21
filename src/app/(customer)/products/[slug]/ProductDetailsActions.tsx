@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShoppingBag, Zap, Heart, Check, Minus, Plus, Layers } from 'lucide-react';
+import { ShoppingBag, Zap, Heart, Check, Minus, Plus, Layers, AlertCircle } from 'lucide-react';
 import { Product, ProductVariant } from '@/types/ecommerce';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
@@ -165,6 +165,18 @@ export function ProductDetailsActions({ product }: ProductDetailsActionsProps) {
           </span>
         )}
       </div>
+
+      {isOutOfStock && (
+        <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 text-xs font-semibold flex items-start gap-2.5 shadow-xs">
+          <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-bold">Currently Out of Stock</p>
+            <p className="text-[11px] text-rose-600 font-normal mt-0.5">
+              This product is temporarily unavailable and cannot be purchased. Please explore the similar in-stock alternatives shown below.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Action Buttons Row */}
       <div className="flex flex-col sm:flex-row items-center gap-3">

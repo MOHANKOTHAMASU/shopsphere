@@ -21,24 +21,26 @@ const LOCAL_STORAGE_KEY = 'shopsphere_wishlist';
 
 export function WishlistProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const [items, setItems] = useState<Product[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (saved) {
-          return JSON.parse(saved);
-        }
-      } catch {
-        // ignore JSON errors
-      }
-    }
-    return [];
-  });
-
+  const [items, setItems] = useState<Product[]>([]);
+  const isLoadedRef = useRef(false);
   const syncedUserRef = useRef<string | null>(null);
+
+  // Hydration-safe initial load from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (saved) {
+        setItems(JSON.parse(saved));
+      }
+    } catch {
+      // ignore JSON errors
+    }
+    isLoadedRef.current = true;
+  }, []);
 
   // Sync to localStorage
   useEffect(() => {
+    if (!isLoadedRef.current) return;
     try {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(items));
     } catch {

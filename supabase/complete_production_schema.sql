@@ -43,9 +43,17 @@ $$;
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-    INSERT INTO public.profiles (id, full_name, role)
-    VALUES (new.id, new.raw_user_meta_data->>'full_name', 'customer')
-    ON CONFLICT (id) DO NOTHING;
+    INSERT INTO public.profiles (id, full_name, phone, role)
+    VALUES (
+        new.id,
+        new.raw_user_meta_data->>'full_name',
+        new.raw_user_meta_data->>'phone',
+        'customer'
+    )
+    ON CONFLICT (id) DO UPDATE SET
+        full_name = COALESCE(EXCLUDED.full_name, public.profiles.full_name),
+        phone = COALESCE(EXCLUDED.phone, public.profiles.phone),
+        updated_at = timezone('utc'::text, now());
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -54,6 +62,22 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Trigger: Prevent unauthorized privilege escalation (customers changing their own role)
+CREATE OR REPLACE FUNCTION public.protect_profile_role()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.role <> OLD.role AND NOT public.is_admin() THEN
+        NEW.role := OLD.role; -- Silently prevent role escalation
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_protect_profile_role ON public.profiles;
+CREATE TRIGGER trg_protect_profile_role
+    BEFORE UPDATE ON public.profiles
+    FOR EACH ROW EXECUTE FUNCTION public.protect_profile_role();
 
 -- =============================================================================
 -- 2. CATEGORIES
@@ -390,10 +414,11 @@ ALTER TABLE public.coupons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_audit_logs ENABLE ROW LEVEL SECURITY;
 
--- Profiles Policies
+-- Profiles Policies: Unauthenticated visitors CANNOT access private customer records
 DROP POLICY IF EXISTS "Public profiles are viewable by everyone" ON public.profiles;
-CREATE POLICY "Public profiles are viewable by everyone" ON public.profiles
-    FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Users can view permitted profile data" ON public.profiles;
+CREATE POLICY "Users can view permitted profile data" ON public.profiles
+    FOR SELECT USING (auth.uid() = id OR public.is_admin());
 
 DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 CREATE POLICY "Users can update own profile" ON public.profiles

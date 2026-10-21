@@ -78,9 +78,16 @@ function LoginFormContent() {
 
         {/* Error Alert */}
         {errorMessage && (
-          <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-2 text-xs text-rose-800 font-semibold">
-            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-            <span>{errorMessage}</span>
+          <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl space-y-2">
+            <div className="flex items-start gap-2 text-xs text-rose-800 font-semibold">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              <span>{errorMessage}</span>
+            </div>
+            {errorMessage.toLowerCase().includes('verify') && (
+              <p className="text-[11px] text-rose-700 bg-rose-100/60 p-2 rounded-lg font-normal leading-relaxed">
+                💡 <strong>Verification Tip:</strong> Check your inbox and spam folder for the confirmation email. Once confirmed, you can sign in immediately.
+              </p>
+            )}
           </div>
         )}
 

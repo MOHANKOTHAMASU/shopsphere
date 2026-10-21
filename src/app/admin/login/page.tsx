@@ -3,43 +3,57 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ShieldAlert, Lock, Mail, ArrowRight, ArrowLeft, KeyRound, CheckCircle, Zap } from 'lucide-react';
-import { signInDemoAction } from '@/lib/auth/actions';
+import { ShieldAlert, Lock, Mail, ArrowRight, ArrowLeft, CheckCircle, Zap, AlertCircle, Info } from 'lucide-react';
+import { signInAction, signInDemoAction } from '@/lib/auth/actions';
 
 export default function AdminLoginPage() {
   const router = useRouter();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [securityPin, setSecurityPin] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
 
     try {
-      await signInDemoAction('admin');
-      setIsLoading(false);
-      setSuccess(true);
-      setTimeout(() => {
-        router.push('/admin/dashboard');
-      }, 700);
-    } catch {
+      const formData = new FormData();
+      formData.append('email', email);
+      formData.append('password', password);
+      formData.append('redirect', '/admin/dashboard');
+      formData.append('role', 'admin');
+
+      const result = await signInAction(formData);
+      if (result.success) {
+        setSuccess(true);
+        setTimeout(() => {
+          window.location.href = result.redirectTo || '/admin/dashboard';
+        }, 400);
+      } else {
+        setError(result.message || 'Invalid admin credentials. Please try again.');
+      }
+    } catch (err: unknown) {
+      setError((err as Error).message);
+    } finally {
       setIsLoading(false);
     }
   };
 
   const handleQuickDemoAdmin = async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      await signInDemoAction('admin');
+      const result = await signInDemoAction('admin');
       setSuccess(true);
       setTimeout(() => {
-        router.push('/admin/dashboard');
-      }, 500);
-    } catch {
+        window.location.href = result.redirectTo || '/admin/dashboard';
+      }, 400);
+    } catch (err: unknown) {
+      setError((err as Error).message);
       setIsLoading(false);
     }
   };
@@ -85,7 +99,7 @@ export default function AdminLoginPage() {
               <span>Developer Quick Access</span>
             </div>
             <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">
-              DEMO
+              LOCAL SANDBOX
             </span>
           </div>
           <p className="text-[11px] text-slate-400 leading-relaxed">
@@ -101,6 +115,13 @@ export default function AdminLoginPage() {
             <span>1-Click Sign In as Store Admin</span>
           </button>
         </div>
+
+        {error && (
+          <div className="p-3 bg-rose-950/60 border border-rose-800 rounded-xl flex items-start gap-2 text-xs text-rose-300 font-medium">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+            <span>{error}</span>
+          </div>
+        )}
 
         {success && (
           <div className="p-3 bg-emerald-950/60 border border-emerald-800 rounded-xl flex items-center gap-2 text-xs text-emerald-300 font-semibold">
@@ -151,18 +172,15 @@ export default function AdminLoginPage() {
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-              <span>Security 2FA PIN (Optional for Dev Preview)</span>
-              <KeyRound className="w-3.5 h-3.5 text-slate-500" />
-            </label>
-            <input
-              type="text"
-              placeholder="e.g. 948201"
-              value={securityPin}
-              onChange={(e) => setSecurityPin(e.target.value)}
-              className="w-full h-11 px-4 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white font-mono placeholder-slate-600 focus:outline-none focus:border-amber-500"
-            />
+          {/* Clean 2FA Explanatory Callout (No fake input) */}
+          <div className="p-3 bg-slate-950/80 border border-slate-800/80 rounded-xl flex items-start gap-2.5 text-[11px] text-slate-400">
+            <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+            <div className="space-y-0.5">
+              <span className="font-bold text-slate-300">Two-Factor Authentication (2FA)</span>
+              <p>
+                2FA TOTP (Google Authenticator) is managed in production via Supabase MFA. In local development sandbox mode, no security PIN is required.
+              </p>
+            </div>
           </div>
 
           <button
@@ -183,7 +201,7 @@ export default function AdminLoginPage() {
 
         <div className="pt-4 border-t border-slate-800/80 text-center">
           <p className="text-[11px] text-slate-500">
-            For password reset or role provisioning, contact the Lead Security Engineer.
+            To authorize new store administrators in production, run <code className="text-amber-400">npm run promote:admin</code> from the server console.
           </p>
         </div>
       </div>

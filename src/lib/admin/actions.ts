@@ -26,6 +26,7 @@ import {
   AdminAuditLog,
   CreateProductInput,
   CreateCategoryInput,
+  AdminUserMetrics,
 } from '@/types/ecommerce';
 
 function safeRevalidate(path: string, type?: 'page' | 'layout') {
@@ -300,6 +301,7 @@ export async function createProductAction(input: CreateProductInput): Promise<{
     safeRevalidate('/admin/inventory');
     safeRevalidate('/admin/dashboard');
     safeRevalidate('/products');
+    safeRevalidate('/');
 
     return { success: true, product: newProduct };
   } catch (err: unknown) {
@@ -385,6 +387,7 @@ export async function updateProductAction(
     safeRevalidate('/admin/dashboard');
     safeRevalidate('/products');
     safeRevalidate(`/products/${updatedProduct.slug}`);
+    safeRevalidate('/');
 
     return { success: true, product: updatedProduct };
   } catch (err: unknown) {
@@ -419,6 +422,7 @@ export async function deleteProductAction(productId: string): Promise<{
     safeRevalidate('/admin/inventory');
     safeRevalidate('/admin/dashboard');
     safeRevalidate('/products');
+    safeRevalidate('/');
 
     return { success: true, message: `Product "${removed.title}" has been successfully removed.` };
   } catch (err: unknown) {
@@ -466,6 +470,200 @@ export async function updateInventoryAction(
     return { success: true, stock: newStock, newStock };
   } catch (err: unknown) {
     return { success: false, error: (err as Error).message };
+  }
+}
+
+/**
+ * Bulk CSV Product Import Action
+ * Validates each row strictly, rejects SKU conflicts, ensures valid category slugs,
+ * and inserts new products without overwriting existing data.
+ */
+export async function bulkImportProductsCsvAction(csvContent: string): Promise<{
+  success: boolean;
+  importedCount?: number;
+  errors?: string[];
+  message?: string;
+}> {
+  try {
+    const admin = await assertAdmin();
+
+    if (!csvContent || !csvContent.trim()) {
+      return { success: false, errors: ['CSV content cannot be empty.'] };
+    }
+
+    const lines = csvContent
+      .trim()
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0);
+
+    if (lines.length < 2) {
+      return { success: false, errors: ['CSV must contain a header row and at least one data row.'] };
+    }
+
+    // Parse header
+    const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
+    const expectedHeaders = ['title', 'brand', 'categoryslug', 'price', 'compareatprice', 'stockquantity', 'sku', 'description', 'thumbnail'];
+    
+    // Check required header presence
+    const missingHeaders = ['title', 'brand', 'categoryslug', 'price', 'sku'].filter(
+      (req) => !headers.includes(req)
+    );
+    if (missingHeaders.length > 0) {
+      return {
+        success: false,
+        errors: [`Missing required CSV headers: ${missingHeaders.join(', ')}. Expected headers: ${expectedHeaders.join(', ')}`],
+      };
+    }
+
+    const titleIdx = headers.indexOf('title');
+    const brandIdx = headers.indexOf('brand');
+    const catSlugIdx = headers.indexOf('categoryslug');
+    const priceIdx = headers.indexOf('price');
+    const compareIdx = headers.indexOf('compareatprice');
+    const stockIdx = headers.indexOf('stockquantity');
+    const skuIdx = headers.indexOf('sku');
+    const descIdx = headers.indexOf('description');
+    const thumbIdx = headers.indexOf('thumbnail');
+
+    const validCategories = ['electronics', 'fashion', 'home-kitchen', 'beauty', 'books', 'sports', 'grocery', 'accessories'];
+    const rowErrors: string[] = [];
+    const parsedProducts: Product[] = [];
+    const seenSkusInCsv = new Set<string>();
+
+    for (let i = 1; i < lines.length; i++) {
+      const lineNum = i + 1;
+      const rawCols = lines[i].split(',').map((c) => c.trim().replace(/^"|"$/g, ''));
+
+      const title = rawCols[titleIdx] || '';
+      const brand = rawCols[brandIdx] || 'ShopSphere Brand';
+      const categorySlug = (rawCols[catSlugIdx] || '').toLowerCase();
+      const rawPrice = rawCols[priceIdx] || '';
+      const rawCompare = compareIdx !== -1 ? rawCols[compareIdx] : '';
+      const rawStock = stockIdx !== -1 ? rawCols[stockIdx] : '10';
+      const sku = (rawCols[skuIdx] || '').toUpperCase();
+      const description = descIdx !== -1 && rawCols[descIdx] ? rawCols[descIdx] : `${title} manufactured by ${brand}. Genuine verified merchandise with manufacturer warranty.`;
+      const thumbnail = thumbIdx !== -1 && rawCols[thumbIdx] ? rawCols[thumbIdx] : 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80';
+
+      // Validation
+      if (!title || title.length < 3) {
+        rowErrors.push(`Row ${lineNum}: Product title must be at least 3 characters.`);
+      }
+
+      if (!validCategories.includes(categorySlug)) {
+        rowErrors.push(`Row ${lineNum}: Invalid categorySlug "${categorySlug}". Valid options: ${validCategories.join(', ')}.`);
+      }
+
+      const price = parseFloat(rawPrice);
+      if (isNaN(price) || price <= 0) {
+        rowErrors.push(`Row ${lineNum}: Price must be a positive number (found "${rawPrice}").`);
+      }
+
+      const stock = parseInt(rawStock, 10);
+      if (isNaN(stock) || stock < 0) {
+        rowErrors.push(`Row ${lineNum}: Stock quantity must be 0 or greater (found "${rawStock}").`);
+      }
+
+      if (!sku || sku.length < 3) {
+        rowErrors.push(`Row ${lineNum}: SKU must be at least 3 characters.`);
+      } else if (seenSkusInCsv.has(sku)) {
+        rowErrors.push(`Row ${lineNum}: Duplicate SKU "${sku}" within the CSV file.`);
+      } else if (memoryProducts.some((p) => p.sku === sku)) {
+        rowErrors.push(`Row ${lineNum}: SKU "${sku}" already exists in the catalog.`);
+      } else {
+        seenSkusInCsv.add(sku);
+      }
+
+      if (rowErrors.length === 0) {
+        const compareAtPrice = rawCompare && !isNaN(parseFloat(rawCompare)) ? parseFloat(rawCompare) : Math.round(price * 1.15);
+        const discountPercent = compareAtPrice > price ? Math.round(((compareAtPrice - price) / compareAtPrice) * 100) : 0;
+        const slug = `${title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}-${sku.toLowerCase()}`;
+
+        const categoryNameMap: Record<string, string> = {
+          electronics: 'Electronics',
+          fashion: 'Fashion & Clothing',
+          'home-kitchen': 'Home & Kitchen',
+          beauty: 'Beauty & Personal Care',
+          books: 'Books & Stationery',
+          sports: 'Sports & Fitness',
+          grocery: 'Grocery & Daily Essentials',
+          accessories: 'Accessories',
+        };
+
+        parsedProducts.push({
+          id: `prod-csv-${Date.now()}-${i}`,
+          slug,
+          title,
+          brand,
+          category: categoryNameMap[categorySlug] || 'General',
+          categorySlug,
+          description,
+          shortDescription: description.slice(0, 120),
+          price,
+          compareAtPrice,
+          discountPercent,
+          rating: 4.5,
+          reviewCount: 1,
+          stockQuantity: stock,
+          isAvailable: stock > 0,
+          sku,
+          thumbnail,
+          images: [thumbnail],
+          tags: [categorySlug, brand.toLowerCase(), 'imported'],
+          features: ['Authentic verified merchandise', 'Official Warranty'],
+          specifications: [
+            {
+              group: 'General',
+              attributes: [
+                { name: 'Brand', value: brand },
+                { name: 'SKU', value: sku },
+                { name: 'Category', value: categoryNameMap[categorySlug] || categorySlug },
+              ],
+            },
+          ],
+        });
+      }
+    }
+
+    if (rowErrors.length > 0) {
+      return {
+        success: false,
+        errors: rowErrors,
+        message: `Validation failed with ${rowErrors.length} error(s). No products were imported.`,
+      };
+    }
+
+    // Insert all validated products
+    for (const prod of parsedProducts) {
+      memoryProducts.unshift(prod);
+    }
+
+    await logAdminAuditAction({
+      adminEmail: admin.adminEmail,
+      action: 'PRODUCT_BULK_CSV_IMPORT',
+      resourceType: 'product_batch',
+      details: {
+        importedCount: parsedProducts.length,
+        skus: parsedProducts.map((p) => p.sku),
+      },
+    });
+
+    safeRevalidate('/admin/products');
+    safeRevalidate('/admin/inventory');
+    safeRevalidate('/admin/dashboard');
+    safeRevalidate('/products');
+    safeRevalidate('/');
+
+    return {
+      success: true,
+      importedCount: parsedProducts.length,
+      message: `Successfully imported ${parsedProducts.length} new products into the catalog!`,
+    };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      errors: [(err as Error).message],
+    };
   }
 }
 
@@ -755,18 +953,189 @@ export async function updateOrderStatusAction(
 }
 
 // -----------------------------------------------------------------------------
-// 5. CUSTOMER LISTING ACTIONS (With Masked / Restricted PII)
+// 5. CUSTOMER LISTING & USER MANAGEMENT ACTIONS (With Masked / Restricted PII)
 // -----------------------------------------------------------------------------
 
-export async function getAdminCustomersAction(search?: string): Promise<{
+export async function getAdminUserMetricsAction(): Promise<{
   success: boolean;
-  customers: CustomerSummary[];
+  metrics: AdminUserMetrics;
   error?: string;
 }> {
   try {
     await assertAdmin();
 
-    let list = memoryCustomers.map((c) => ({
+    const now = Date.now();
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const startOfTodayMs = startOfToday.getTime();
+    const sevenDaysAgoMs = now - 7 * 24 * 60 * 60 * 1000;
+
+    let totalCustomers = 0;
+    let newToday = 0;
+    let newLast7Days = 0;
+    let verifiedCount = 0;
+    let unverifiedCount = 0;
+    let activeCount = 0;
+    let suspendedCount = 0;
+
+    if (isSupabaseConfigured()) {
+      try {
+        const supabase = await createClient();
+        const { data: profiles, error } = await supabase
+          .from('profiles')
+          .select('id, created_at, role')
+          .eq('role', 'customer');
+
+        if (!error && profiles) {
+          totalCustomers = profiles.length;
+          for (const p of profiles) {
+            const createdMs = new Date(p.created_at).getTime();
+            if (createdMs >= startOfTodayMs) newToday++;
+            if (createdMs >= sevenDaysAgoMs) newLast7Days++;
+            verifiedCount++;
+            activeCount++;
+          }
+        }
+      } catch {
+        // Fallback to memory
+      }
+    } else {
+      totalCustomers = memoryCustomers.length;
+      for (const c of memoryCustomers) {
+        const createdMs = new Date(c.createdAt).getTime();
+        if (createdMs >= startOfTodayMs) newToday++;
+        if (createdMs >= sevenDaysAgoMs) newLast7Days++;
+        if (c.isVerified) verifiedCount++;
+        else unverifiedCount++;
+        if (c.status === 'suspended') suspendedCount++;
+        else activeCount++;
+      }
+    }
+
+    const metrics: AdminUserMetrics = {
+      totalCustomers,
+      newToday,
+      newLast7Days,
+      verifiedCount,
+      unverifiedCount,
+      activeCount,
+      suspendedCount,
+    };
+
+    return { success: true, metrics };
+  } catch (err: unknown) {
+    return {
+      success: false,
+      metrics: {
+        totalCustomers: 0,
+        newToday: 0,
+        newLast7Days: 0,
+        verifiedCount: 0,
+        unverifiedCount: 0,
+        activeCount: 0,
+        suspendedCount: 0,
+      },
+      error: (err as Error).message,
+    };
+  }
+}
+
+export async function getAdminCustomersAction(
+  search?: string,
+  options?: { status?: string; page?: number; limit?: number }
+): Promise<{
+  success: boolean;
+  customers: CustomerSummary[];
+  total: number;
+  page: number;
+  totalPages: number;
+  metrics: AdminUserMetrics;
+  error?: string;
+}> {
+  try {
+    const admin = await assertAdmin();
+
+    const page = Math.max(1, options?.page || 1);
+    const limit = Math.max(1, options?.limit || 10);
+    const statusFilter = options?.status || 'all';
+
+    // Log admin inspection for audit compliance
+    await logAdminAuditAction({
+      adminEmail: admin.adminEmail,
+      action: 'VIEW_CUSTOMER_DIRECTORY',
+      resourceType: 'customers',
+      details: { search: search || 'all', statusFilter, page },
+    });
+
+    let rawList: CustomerSummary[] = [];
+
+    if (isSupabaseConfigured()) {
+      try {
+        const supabase = await createClient();
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, full_name, phone, role, created_at, updated_at')
+          .eq('role', 'customer')
+          .order('created_at', { ascending: false });
+
+        if (!error && data) {
+          rawList = data.map((p) => ({
+            id: p.id,
+            fullName: p.full_name || 'Customer',
+            email: 'customer@hidden.supabase',
+            maskedEmail: 'c*****@hidden.auth',
+            phone: p.phone || undefined,
+            role: 'customer',
+            ordersCount: 0,
+            totalSpent: 0,
+            status: 'active',
+            isVerified: true,
+            createdAt: p.created_at,
+          }));
+        }
+      } catch {
+        rawList = memoryCustomers;
+      }
+    } else {
+      rawList = memoryCustomers;
+    }
+
+    // Compute metrics
+    const now = Date.now();
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const startOfTodayMs = startOfToday.getTime();
+    const sevenDaysAgoMs = now - 7 * 24 * 60 * 60 * 1000;
+
+    let newToday = 0;
+    let newLast7Days = 0;
+    let verifiedCount = 0;
+    let unverifiedCount = 0;
+    let activeCount = 0;
+    let suspendedCount = 0;
+
+    for (const c of rawList) {
+      const createdMs = new Date(c.createdAt).getTime();
+      if (createdMs >= startOfTodayMs) newToday++;
+      if (createdMs >= sevenDaysAgoMs) newLast7Days++;
+      if (c.isVerified) verifiedCount++;
+      else unverifiedCount++;
+      if (c.status === 'suspended') suspendedCount++;
+      else activeCount++;
+    }
+
+    const metrics: AdminUserMetrics = {
+      totalCustomers: rawList.length,
+      newToday,
+      newLast7Days,
+      verifiedCount,
+      unverifiedCount,
+      activeCount,
+      suspendedCount,
+    };
+
+    // Filter by search
+    let filtered = rawList.map((c) => ({
       ...c,
       email: maskEmail(c.email),
       maskedEmail: maskEmail(c.email),
@@ -774,17 +1143,50 @@ export async function getAdminCustomersAction(search?: string): Promise<{
 
     if (search && search.trim()) {
       const q = search.toLowerCase().trim();
-      list = list.filter(
+      filtered = filtered.filter(
         (c) =>
           c.fullName.toLowerCase().includes(q) ||
           c.email.toLowerCase().includes(q) ||
-          c.phone?.includes(q)
+          c.phone?.includes(q) ||
+          c.id.toLowerCase().includes(q)
       );
     }
 
-    return { success: true, customers: list };
+    // Filter by status
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((c) => c.status === statusFilter);
+    }
+
+    const total = filtered.length;
+    const totalPages = Math.ceil(total / limit) || 1;
+    const paginated = filtered.slice((page - 1) * limit, page * limit);
+
+    return {
+      success: true,
+      customers: paginated,
+      total,
+      page,
+      totalPages,
+      metrics,
+    };
   } catch (err: unknown) {
-    return { success: false, customers: [], error: (err as Error).message };
+    return {
+      success: false,
+      customers: [],
+      total: 0,
+      page: 1,
+      totalPages: 1,
+      metrics: {
+        totalCustomers: 0,
+        newToday: 0,
+        newLast7Days: 0,
+        verifiedCount: 0,
+        unverifiedCount: 0,
+        activeCount: 0,
+        suspendedCount: 0,
+      },
+      error: (err as Error).message,
+    };
   }
 }
 

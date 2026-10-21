@@ -2,11 +2,13 @@
 
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { Address } from '@/types/ecommerce';
+import { memoryAddresses } from '@/lib/admin/store';
+import { getDemoUserAction } from '@/lib/auth/actions';
 
 const FALLBACK_DEFAULT_ADDRESS: Address = {
   id: 'addr-default-mock',
-  userId: 'mock-user-id',
-  fullName: 'Rahul Verma',
+  userId: 'usr-demo-customer',
+  fullName: 'Rahul Sharma',
   phone: '+91 98765 43210',
   street: '42, Brigade Metropolis, Whitefield Main Road',
   apartment: 'Tower B, Flat 804',
@@ -26,7 +28,20 @@ export async function getAddressesAction(): Promise<{
   addresses: Address[];
 }> {
   if (!isSupabaseConfigured()) {
-    return { success: true, addresses: [FALLBACK_DEFAULT_ADDRESS] };
+    const demoUser = await getDemoUserAction();
+    const currentUserId = demoUser?.id || 'usr-demo-customer';
+
+    const userAddresses = memoryAddresses.filter(
+      (a) => a.userId === currentUserId || a.userId === 'usr-demo-customer'
+    );
+
+    if (userAddresses.length === 0) {
+      const defaultAddr = { ...FALLBACK_DEFAULT_ADDRESS, userId: currentUserId };
+      memoryAddresses.push(defaultAddr);
+      return { success: true, addresses: [defaultAddr] };
+    }
+
+    return { success: true, addresses: userAddresses };
   }
 
   try {
@@ -47,7 +62,6 @@ export async function getAddressesAction(): Promise<{
       .order('created_at', { ascending: false });
 
     if (error || !data || data.length === 0) {
-      // Auto-initialize default address if user has none
       return { success: true, addresses: [{ ...FALLBACK_DEFAULT_ADDRESS, userId: user.id }] };
     }
 
@@ -92,7 +106,13 @@ export async function saveAddressAction(addressData: {
   address?: Address;
   error?: string;
 }> {
-  if (!addressData.fullName || !addressData.phone || !addressData.street || !addressData.city || !addressData.postalCode) {
+  if (
+    !addressData.fullName ||
+    !addressData.phone ||
+    !addressData.street ||
+    !addressData.city ||
+    !addressData.postalCode
+  ) {
     return { success: false, error: 'Please provide all required address fields.' };
   }
 
@@ -199,10 +219,40 @@ export async function saveAddressAction(addressData: {
     }
   }
 
-  // Fallback memory return
-  const fallbackAddress: Address = {
-    id: addressData.id || `addr-${Date.now()}`,
-    userId: 'guest-user',
+  // Fallback memory persistence
+  const demoUser = await getDemoUserAction();
+  const currentUserId = demoUser?.id || 'usr-demo-customer';
+
+  if (isDefault) {
+    memoryAddresses.forEach((a) => {
+      if (a.userId === currentUserId) a.isDefault = false;
+    });
+  }
+
+  if (addressData.id) {
+    const existingIndex = memoryAddresses.findIndex((a) => a.id === addressData.id);
+    if (existingIndex !== -1) {
+      const updatedAddr: Address = {
+        ...memoryAddresses[existingIndex],
+        fullName: addressData.fullName,
+        phone: addressData.phone,
+        street: addressData.street,
+        apartment: addressData.apartment,
+        city: addressData.city,
+        state: addressData.state,
+        postalCode: addressData.postalCode,
+        country,
+        isDefault,
+        type,
+      };
+      memoryAddresses[existingIndex] = updatedAddr;
+      return { success: true, address: updatedAddr };
+    }
+  }
+
+  const newAddress: Address = {
+    id: `addr-${Date.now()}`,
+    userId: currentUserId,
     fullName: addressData.fullName,
     phone: addressData.phone,
     street: addressData.street,
@@ -215,7 +265,8 @@ export async function saveAddressAction(addressData: {
     type,
   };
 
-  return { success: true, address: fallbackAddress };
+  memoryAddresses.push(newAddress);
+  return { success: true, address: newAddress };
 }
 
 /**
@@ -236,5 +287,12 @@ export async function deleteAddressAction(addressId: string): Promise<{ success:
       // ignore
     }
   }
+
+  // Memory store deletion
+  const index = memoryAddresses.findIndex((a) => a.id === addressId);
+  if (index !== -1) {
+    memoryAddresses.splice(index, 1);
+  }
+
   return { success: true };
 }

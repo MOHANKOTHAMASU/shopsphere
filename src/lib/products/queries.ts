@@ -8,14 +8,11 @@ import {
   ProductReview,
   ProductSpecification,
 } from '@/types/ecommerce';
-import {
-  DEVELOPMENT_SEED_PRODUCTS,
-  getSeedProductBySlug,
-  getFeaturedSeedProducts,
-  getBestSellerSeedProducts,
-  getDealSeedProducts,
-} from '@/data/seed-products';
+import { DEVELOPMENT_SEED_PRODUCTS } from '@/data/seed-products';
 import { DEVELOPMENT_SEED_CATEGORIES } from '@/data/seed-categories';
+import { memoryProducts, memoryCategories } from '@/lib/admin/store';
+import { PriceTier } from '@/types/pricing';
+import { getPriceTier, getCategoryThresholds } from '@/data/category-thresholds';
 
 type ProductRow = Database['public']['Tables']['products']['Row'];
 type CategoryRow = Database['public']['Tables']['categories']['Row'];
@@ -40,7 +37,8 @@ export interface ProductQueryOptions {
   minRating?: number;
   inStockOnly?: boolean;
   dealsOnly?: boolean;
-  sortBy?: 'featured' | 'price-low' | 'price-high' | 'rating' | 'discount' | 'newest' | 'popularity';
+  priceTier?: PriceTier;
+  sortBy?: 'featured' | 'price-low' | 'price-high' | 'rating' | 'discount' | 'newest' | 'popularity' | 'best-value';
   page?: number;
   limit?: number;
 }
@@ -61,6 +59,7 @@ export async function getProducts(
     minRating,
     inStockOnly,
     dealsOnly,
+    priceTier,
     sortBy = 'featured',
     page = 1,
     limit = 8,
@@ -99,6 +98,18 @@ export async function getProducts(
         dbQuery = dbQuery.eq('is_deal', true);
       }
 
+      // Price Tier bounds
+      if (priceTier) {
+        const thresholds = getCategoryThresholds(categorySlug);
+        if (priceTier === 'budget') {
+          dbQuery = dbQuery.lte('price', thresholds.budgetMax);
+        } else if (priceTier === 'mid-range') {
+          dbQuery = dbQuery.gt('price', thresholds.budgetMax).lte('price', thresholds.midRangeMax);
+        } else if (priceTier === 'premium') {
+          dbQuery = dbQuery.gt('price', thresholds.midRangeMax);
+        }
+      }
+
       if (typeof minPrice === 'number' && minPrice > 0) {
         dbQuery = dbQuery.gte('price', minPrice);
       }
@@ -134,6 +145,10 @@ export async function getProducts(
           break;
         case 'popularity':
           dbQuery = dbQuery.order('review_count', { ascending: false }).order('rating', { ascending: false });
+          break;
+        case 'best-value':
+          // Best-value prioritizes high rating and strong discount
+          dbQuery = dbQuery.order('rating', { ascending: false }).order('discount_percent', { ascending: false });
           break;
         case 'featured':
         default:
@@ -215,15 +230,23 @@ export async function getProducts(
     }
   }
 
-  // 2. Resilient local fallback filter & pagination over verified seed data
+  // 2. Resilient local fallback filter & pagination over verified active memoryProducts
+  const productSource = memoryProducts.length > 0 ? memoryProducts : DEVELOPMENT_SEED_PRODUCTS;
   const STABLE_BASE_EPOCH = 1760000000000;
-  let filtered = DEVELOPMENT_SEED_PRODUCTS.map((p, idx) => ({
+  let filtered = productSource.map((p, idx) => ({
     ...p,
     createdAt: p.createdAt || new Date(STABLE_BASE_EPOCH - idx * 86400000).toISOString(),
   }));
 
   if (categorySlug && categorySlug !== 'all') {
-    filtered = filtered.filter((p) => p.categorySlug === categorySlug);
+    const norm = categorySlug.toLowerCase();
+    filtered = filtered.filter((p) => {
+      if (p.categorySlug === norm) return true;
+      if ((norm === 'home-living' || norm === 'home-kitchen') && (p.categorySlug === 'home-living' || p.categorySlug === 'home-kitchen')) return true;
+      if ((norm === 'beauty-wellness' || norm === 'beauty') && (p.categorySlug === 'beauty-wellness' || p.categorySlug === 'beauty')) return true;
+      if ((norm === 'sports-fitness' || norm === 'sports') && (p.categorySlug === 'sports-fitness' || p.categorySlug === 'sports')) return true;
+      return false;
+    });
   }
 
   if (query && query.trim()) {
@@ -264,6 +287,10 @@ export async function getProducts(
     filtered = filtered.filter((p) => p.stockQuantity > 0);
   }
 
+  if (priceTier) {
+    filtered = filtered.filter((p) => getPriceTier(p.price, p.categorySlug) === priceTier);
+  }
+
   // Sorting
   filtered.sort((a, b) => {
     switch (sortBy) {
@@ -282,6 +309,12 @@ export async function getProducts(
         );
       case 'popularity':
         return (b.reviewCount * b.rating) - (a.reviewCount * a.rating);
+      case 'best-value': {
+        // Value formula: (rating * (1 + discount/100)) / (price^0.25)
+        const valA = (a.rating * (1 + a.discountPercent / 100)) / Math.pow(Math.max(a.price, 100), 0.25);
+        const valB = (b.rating * (1 + b.discountPercent / 100)) / Math.pow(Math.max(b.price, 100), 0.25);
+        return valB - valA;
+      }
       case 'featured':
       default:
         if (a.isFeatured !== b.isFeatured) {
@@ -387,8 +420,9 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
     }
   }
 
-  const seed = getSeedProductBySlug(slug);
-  return seed || null;
+  const productSource = memoryProducts.length > 0 ? memoryProducts : DEVELOPMENT_SEED_PRODUCTS;
+  const found = productSource.find((p) => p.slug === slug || p.id === slug);
+  return found || null;
 }
 
 /**
@@ -420,7 +454,7 @@ export async function getCategories(): Promise<Category[]> {
     }
   }
 
-  return DEVELOPMENT_SEED_CATEGORIES;
+  return memoryCategories.length > 0 ? memoryCategories : DEVELOPMENT_SEED_CATEGORIES;
 }
 
 /**
@@ -428,7 +462,9 @@ export async function getCategories(): Promise<Category[]> {
  */
 export async function getFeaturedProducts(limit = 8): Promise<Product[]> {
   const result = await getProducts({ sortBy: 'featured', limit });
-  return result.items.length > 0 ? result.items : getFeaturedSeedProducts();
+  if (result.items.length > 0) return result.items;
+  const source = memoryProducts.length > 0 ? memoryProducts : DEVELOPMENT_SEED_PRODUCTS;
+  return source.filter((p) => p.isFeatured).slice(0, limit);
 }
 
 /**
@@ -436,7 +472,9 @@ export async function getFeaturedProducts(limit = 8): Promise<Product[]> {
  */
 export async function getDealProducts(limit = 4): Promise<Product[]> {
   const result = await getProducts({ dealsOnly: true, limit });
-  return result.items.length > 0 ? result.items : getDealSeedProducts();
+  if (result.items.length > 0) return result.items;
+  const source = memoryProducts.length > 0 ? memoryProducts : DEVELOPMENT_SEED_PRODUCTS;
+  return source.filter((p) => p.isDealOfTheDay || p.discountPercent >= 15).slice(0, limit);
 }
 
 /**
@@ -444,7 +482,9 @@ export async function getDealProducts(limit = 4): Promise<Product[]> {
  */
 export async function getBestSellerProducts(limit = 8): Promise<Product[]> {
   const result = await getProducts({ sortBy: 'rating', limit });
-  return result.items.length > 0 ? result.items : getBestSellerSeedProducts();
+  if (result.items.length > 0) return result.items;
+  const source = memoryProducts.length > 0 ? memoryProducts : DEVELOPMENT_SEED_PRODUCTS;
+  return source.filter((p) => p.isBestSeller).slice(0, limit);
 }
 
 /**
@@ -478,7 +518,7 @@ export async function getSearchSuggestions(query: string): Promise<{
   // Get active products
   const productPool = isSupabaseConfigured()
     ? (await getProducts({ query: clean, limit: 10 })).items
-    : DEVELOPMENT_SEED_PRODUCTS;
+    : (memoryProducts.length > 0 ? memoryProducts : DEVELOPMENT_SEED_PRODUCTS);
 
   const matchingProducts = productPool
     .filter(
@@ -513,7 +553,8 @@ export async function getSearchSuggestions(query: string): Promise<{
 export async function getAvailableBrands(
   categorySlug?: string
 ): Promise<{ name: string; count: number }[]> {
-  const all = DEVELOPMENT_SEED_PRODUCTS.filter(
+  const source = memoryProducts.length > 0 ? memoryProducts : DEVELOPMENT_SEED_PRODUCTS;
+  const all = source.filter(
     (p) => !categorySlug || categorySlug === 'all' || p.categorySlug === categorySlug
   );
 

@@ -9,6 +9,7 @@ interface ProductsPageProps {
     q?: string;
     brand?: string;
     sort?: string;
+    tier?: string;
     page?: string;
     minPrice?: string;
     maxPrice?: string;
@@ -56,6 +57,9 @@ async function CatalogServerLoader({ searchParams }: ProductsPageProps) {
   const query = params.q ? params.q.trim() : undefined;
   const brand = params.brand && params.brand !== 'all' ? params.brand.trim() : undefined;
   const sortBy = (params.sort || 'featured') as ProductSortOption;
+  const priceTier = (params.tier && ['budget', 'mid-range', 'premium'].includes(params.tier)
+    ? params.tier
+    : undefined) as 'budget' | 'mid-range' | 'premium' | undefined;
   const page = params.page ? parseInt(params.page, 10) || 1 : 1;
   const minPrice = params.minPrice ? Number(params.minPrice) : undefined;
   const maxPrice = params.maxPrice ? Number(params.maxPrice) : undefined;
@@ -70,8 +74,9 @@ async function CatalogServerLoader({ searchParams }: ProductsPageProps) {
       query,
       brand,
       sortBy,
+      priceTier,
       page,
-      limit: 6, // 6 items per page for clean pagination demonstration
+      limit: 12, // 12 items per page for balanced grid display
       minPrice,
       maxPrice,
       minRating,

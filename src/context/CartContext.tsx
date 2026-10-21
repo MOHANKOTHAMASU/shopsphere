@@ -46,26 +46,29 @@ const LOCAL_STORAGE_KEY = 'shopsphere_cart';
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const [items, setItems] = useState<CartItem[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (saved) {
-          return JSON.parse(saved);
-        }
-      } catch {
-        // ignore JSON parse error
-      }
-    }
-    return [];
-  });
+  const [items, setItems] = useState<CartItem[]>([]);
+  const isLoadedRef = useRef(false);
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [warnings, setWarnings] = useState<string[]>([]);
   const hasMergedUserRef = useRef<string | null>(null);
 
+  // Hydration-safe initial load from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (saved) {
+        setItems(JSON.parse(saved));
+      }
+    } catch {
+      // ignore JSON parse error
+    }
+    isLoadedRef.current = true;
+  }, []);
+
   // Sync to localStorage whenever items change
   useEffect(() => {
+    if (!isLoadedRef.current) return;
     try {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(items));
     } catch {

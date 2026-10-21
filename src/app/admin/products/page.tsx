@@ -13,6 +13,7 @@ import {
   ExternalLink,
   AlertCircle,
   CheckCircle,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { getAdminProductsAction, deleteProductAction, getAdminCategoriesAction } from '@/lib/admin/actions';
 import { Product, Category } from '@/types/ecommerce';
@@ -90,13 +91,22 @@ export default function AdminProductsPage() {
           </p>
         </div>
 
-        <Link
-          href="/admin/products/new"
-          className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add New Product</span>
-        </Link>
+        <div className="flex items-center gap-2.5">
+          <Link
+            href="/admin/products/import"
+            className="px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 hover:bg-slate-800 text-white text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-xs shrink-0"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-amber-400" />
+            <span>Import CSV</span>
+          </Link>
+          <Link
+            href="/admin/products/new"
+            className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add New Product</span>
+          </Link>
+        </div>
       </div>
 
       {/* Status Alerts */}

@@ -15,6 +15,7 @@ import {
   BarChart3,
   ArrowLeft,
   Sparkles,
+  Scale,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -24,10 +25,11 @@ export function AdminSidebar() {
   const links = [
     { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard },
     { label: 'Products', href: '/admin/products', icon: Package },
+    { label: 'Pricing & Benchmarks', href: '/admin/pricing', icon: Scale },
     { label: 'Categories', href: '/admin/categories', icon: FolderTree },
     { label: 'Inventory & Stock', href: '/admin/inventory', icon: Warehouse },
     { label: 'Orders', href: '/admin/orders', icon: ShoppingBag },
-    { label: 'Customers', href: '/admin/customers', icon: Users },
+    { label: 'Users & Customers', href: '/admin/users', icon: Users },
     { label: 'Coupons', href: '/admin/coupons', icon: Tag },
     { label: 'Reviews', href: '/admin/reviews', icon: Star },
     { label: 'Reports & Audits', href: '/admin/reports', icon: BarChart3 },
@@ -54,7 +56,10 @@ export function AdminSidebar() {
       <nav className="flex-1 p-4 space-y-1">
         {links.map((link) => {
           const Icon = link.icon;
-          const isActive = pathname === link.href || pathname.startsWith(link.href + '/');
+          const isActive =
+            pathname === link.href ||
+            pathname.startsWith(link.href + '/') ||
+            (link.href === '/admin/users' && pathname.startsWith('/admin/customers'));
 
           return (
             <Link

@@ -330,6 +330,18 @@ export interface CustomerSummary {
   totalSpent: number;
   lastOrderDate?: string;
   createdAt: string;
+  status?: 'active' | 'suspended' | 'pending';
+  isVerified?: boolean;
+}
+
+export interface AdminUserMetrics {
+  totalCustomers: number;
+  newToday: number;
+  newLast7Days: number;
+  verifiedCount: number;
+  unverifiedCount: number;
+  activeCount: number;
+  suspendedCount: number;
 }
 
 export interface ReviewRecord {

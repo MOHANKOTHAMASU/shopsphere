@@ -9,6 +9,7 @@ import { useWishlist } from '@/context/WishlistContext';
 import { PriceDisplay } from '@/components/common/PriceDisplay';
 import { RatingStars } from '@/components/common/RatingStars';
 import { Badge } from '@/components/common/Badge';
+import { getPriceTier } from '@/data/category-thresholds';
 
 interface ProductCardProps {
   product: Product;
@@ -21,6 +22,7 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
 
   const [isAdded, setIsAdded] = useState(false);
   const favorited = isInWishlist(product.id);
+  const priceTier = getPriceTier(product.price, product.categorySlug);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -60,6 +62,16 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
             <Badge variant="info" size="sm" className="shadow-xs font-bold bg-blue-600 text-white border-none">
               ★ Best Seller
             </Badge>
+          )}
+          {priceTier === 'budget' && !product.isDealOfTheDay && !product.isBestSeller && (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-600 text-white shadow-xs">
+              Affordable
+            </span>
+          )}
+          {priceTier === 'premium' && !product.isDealOfTheDay && !product.isBestSeller && (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-950 text-amber-300 border border-amber-400/40 shadow-xs">
+              ★ Premium
+            </span>
           )}
         </div>
 

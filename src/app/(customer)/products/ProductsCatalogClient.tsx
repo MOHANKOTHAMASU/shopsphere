@@ -18,7 +18,10 @@ import {
   Search,
   Sparkles,
   Layers,
+  Tag,
 } from 'lucide-react';
+import { getCategoryThresholds, getBudgetFilterRanges } from '@/data/category-thresholds';
+import { PriceTier } from '@/types/pricing';
 
 interface ProductsCatalogClientProps {
   result: PaginatedResult<Product>;
@@ -29,6 +32,7 @@ interface ProductsCatalogClientProps {
     q?: string;
     brand?: string;
     sort?: string;
+    tier?: string;
     page?: string;
     minPrice?: string;
     maxPrice?: string;
@@ -52,6 +56,9 @@ export function ProductsCatalogClient({
   const activeQuery = searchParams.q || '';
   const activeBrand = searchParams.brand || 'all';
   const activeSort = searchParams.sort || 'featured';
+  const activeTier = (searchParams.tier && ['budget', 'mid-range', 'premium'].includes(searchParams.tier)
+    ? searchParams.tier
+    : 'all') as PriceTier | 'all';
   const activePage = Number(searchParams.page) || 1;
   const activeMinRating = searchParams.minRating ? Number(searchParams.minRating) : 0;
   const activeDealsOnly = searchParams.deals === 'true';
@@ -62,6 +69,8 @@ export function ProductsCatalogClient({
   const [localMaxPrice, setLocalMaxPrice] = useState<number>(activeMaxPrice);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState<boolean>(false);
 
+  const budgetFilterRanges = getBudgetFilterRanges(activeCategory);
+
   // Helper to build URL with updated search params
   const updateParams = (newParams: Record<string, string | number | boolean | null | undefined>) => {
     const params = new URLSearchParams();
@@ -71,6 +80,7 @@ export function ProductsCatalogClient({
     if (activeQuery) params.set('q', activeQuery);
     if (activeBrand && activeBrand !== 'all') params.set('brand', activeBrand);
     if (activeSort && activeSort !== 'featured') params.set('sort', activeSort);
+    if (activeTier && activeTier !== 'all') params.set('tier', activeTier);
     if (activeMinRating > 0) params.set('minRating', String(activeMinRating));
     if (activeDealsOnly) params.set('deals', 'true');
     if (activeInStockOnly) params.set('inStock', 'true');
@@ -85,6 +95,8 @@ export function ProductsCatalogClient({
         params.delete('cat');
       } else if (key === 'brand' && val === 'all') {
         params.delete('brand');
+      } else if (key === 'tier' && val === 'all') {
+        params.delete('tier');
       } else if (key === 'sort' && val === 'featured') {
         params.delete('sort');
       } else if (key === 'maxPrice' && Number(val) >= 200000) {
@@ -129,6 +141,7 @@ export function ProductsCatalogClient({
   const hasActiveFilters =
     activeCategory !== 'all' ||
     (activeBrand !== 'all' && activeBrand !== '') ||
+    activeTier !== 'all' ||
     activeQuery.length > 0 ||
     activeDealsOnly ||
     activeInStockOnly ||
@@ -207,6 +220,7 @@ export function ProductsCatalogClient({
                 className="h-10 pl-3 pr-8 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none shadow-xs cursor-pointer"
               >
                 <option value="featured">Featured / Best Match</option>
+                <option value="best-value">Best Value (Top Rating & Savings)</option>
                 <option value="popularity">Most Popular (Reviews & Rating)</option>
                 <option value="newest">Newest Arrivals</option>
                 <option value="price-low">Price: Low to High</option>
@@ -217,6 +231,50 @@ export function ProductsCatalogClient({
               <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Quick Budget Tier Selector: Customer Budget Selection Before/While Browsing */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-slate-900 text-white rounded-2xl shadow-sm">
+        <div className="flex items-center gap-2">
+          <Tag className="w-4 h-4 text-amber-400" />
+          <span className="text-xs font-bold tracking-wide uppercase">Shop by Budget:</span>
+          <span className="text-xs text-slate-400 hidden md:inline">
+            Calibrated for {currentCategoryObj?.name || 'All Categories'}
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            onClick={() => updateParams({ tier: 'all', page: 1 })}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTier === 'all'
+                ? 'bg-white text-slate-950 shadow-xs'
+                : 'text-slate-300 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            All Budgets
+          </button>
+          {budgetFilterRanges.map((range) => {
+            const isSelected = activeTier === range.tier;
+            return (
+              <button
+                key={range.tier}
+                type="button"
+                onClick={() => updateParams({ tier: isSelected ? 'all' : range.tier, page: 1 })}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  isSelected
+                    ? 'bg-amber-400 text-slate-950 shadow-xs font-black'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/60'
+                }`}
+              >
+                <span>{range.label}</span>
+                <span className={`text-[10px] font-mono ${isSelected ? 'text-slate-800' : 'text-slate-400'}`}>
+                  ({range.rangeText})
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -234,6 +292,20 @@ export function ProductsCatalogClient({
                 type="button"
                 onClick={() => updateParams({ cat: 'all', page: 1 })}
                 className="hover:text-indigo-900 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </span>
+          )}
+
+          {activeTier !== 'all' && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 font-bold border border-amber-300">
+              <Tag className="w-3 h-3 text-amber-600" />
+              <span className="capitalize">Tier: {activeTier}</span>
+              <button
+                type="button"
+                onClick={() => updateParams({ tier: 'all', page: 1 })}
+                className="hover:text-amber-950 cursor-pointer"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -460,6 +532,47 @@ export function ProductsCatalogClient({
               </div>
             </div>
           )}
+
+          {/* Price Tiers (Category-Calibrated) */}
+          <div className="pt-4 border-t border-slate-100">
+            <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">
+              <Tag className="w-3.5 h-3.5 text-amber-500" />
+              <span>Price Tiers</span>
+            </h4>
+            <div className="space-y-1">
+              <button
+                type="button"
+                onClick={() => updateParams({ tier: 'all', page: 1 })}
+                className={`w-full text-left px-3 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center justify-between cursor-pointer ${
+                  activeTier === 'all'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <span>All Tiers</span>
+              </button>
+              {budgetFilterRanges.map((range) => {
+                const isSelected = activeTier === range.tier;
+                return (
+                  <button
+                    key={range.tier}
+                    type="button"
+                    onClick={() => updateParams({ tier: isSelected ? 'all' : range.tier, page: 1 })}
+                    className={`w-full text-left px-3 py-1.5 rounded-xl text-xs transition-all flex items-center justify-between cursor-pointer ${
+                      isSelected
+                        ? 'bg-amber-100 text-amber-900 font-bold border border-amber-300'
+                        : 'text-slate-600 hover:bg-slate-50 font-medium'
+                    }`}
+                  >
+                    <span>{range.label}</span>
+                    <span className="text-[10px] font-mono text-slate-400">
+                      {range.rangeText}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           {/* Price Range Slider */}
           <div className="pt-4 border-t border-slate-100">
@@ -724,6 +837,44 @@ export function ProductsCatalogClient({
                   </select>
                 </div>
               )}
+
+              {/* Price Tier Selection */}
+              <div>
+                <h4 className="text-xs font-bold text-slate-800 mb-2 flex items-center gap-1.5">
+                  <Tag className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Price Tier</span>
+                </h4>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => updateParams({ tier: 'all', page: 1 })}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold ${
+                      activeTier === 'all'
+                        ? 'bg-slate-900 text-white'
+                        : 'bg-slate-50 text-slate-600 border border-slate-200'
+                    }`}
+                  >
+                    All Tiers
+                  </button>
+                  {budgetFilterRanges.map((range) => {
+                    const isSelected = activeTier === range.tier;
+                    return (
+                      <button
+                        key={range.tier}
+                        type="button"
+                        onClick={() => updateParams({ tier: isSelected ? 'all' : range.tier, page: 1 })}
+                        className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold ${
+                          isSelected
+                            ? 'bg-amber-400 text-slate-950 font-black'
+                            : 'bg-slate-50 text-slate-600 border border-slate-200'
+                        }`}
+                      >
+                        {range.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
               {/* Price Slider */}
               <div>
