@@ -20,19 +20,11 @@ import {
   AlertTriangle,
   CheckCircle2,
   TrendingDown,
-  ShieldAlert,
   Search,
-  Filter,
-  RefreshCw,
-  Clock,
   History,
   ExternalLink,
-  ChevronRight,
-  DollarSign,
   Tag,
-  ArrowUpDown,
   X,
-  Check,
 } from 'lucide-react';
 
 interface PricingDashboardClientProps {
@@ -68,7 +60,6 @@ export function PricingDashboardClient({
   // Modal / Inline edit state for supplier cost
   const [editingCostId, setEditingCostId] = useState<string | null>(null);
   const [costInput, setCostInput] = useState<string>('');
-  const [targetMarginInput, setTargetMarginInput] = useState<string>('22');
   const [statusMessage, setStatusMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   const showNotification = (text: string, type: 'success' | 'error' = 'success') => {
@@ -169,7 +160,7 @@ export function PricingDashboardClient({
   // Handler: Save Supplier Cost
   const handleSaveSupplierCost = async (productId: string) => {
     const cost = parseFloat(costInput);
-    const margin = parseFloat(targetMarginInput) || 22;
+    const margin = 22;
     if (isNaN(cost) || cost <= 0) {
       showNotification('Please enter a valid positive supplier cost in INR.', 'error');
       return;
@@ -221,9 +212,16 @@ export function PricingDashboardClient({
           <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
             Competitive Pricing Dashboard
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Indian market benchmarks, cost floors, and strict admin approval guardrails. Selling prices never change automatically.
-          </p>
+          <div className="flex flex-wrap items-center gap-2 mt-1">
+            <p className="text-xs sm:text-sm text-slate-400">
+              Indian market benchmarks, cost floors, and strict admin approval guardrails. Selling prices never change automatically.
+            </p>
+            {adminEmail && (
+              <span className="text-[11px] text-amber-400/90 bg-amber-950/50 border border-amber-500/30 px-2 py-0.5 rounded-full shrink-0 font-mono">
+                Admin: {adminEmail}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Tab Switcher */}

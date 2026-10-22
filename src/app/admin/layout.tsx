@@ -4,6 +4,10 @@ import { AdminShell } from '@/components/admin/AdminShell';
 export const metadata = {
   title: 'ShopSphere Admin Portal',
   description: 'Manage products, categories, orders, customers, and platform settings',
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function AdminLayout({

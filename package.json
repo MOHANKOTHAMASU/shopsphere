@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:audit": "npx tsx scripts/test-phase9.ts",
+    "test:audit": "npx tsx scripts/test-complete-audit.ts",
     "promote:admin": "npx tsx scripts/promote-admin.ts"
   },
   "dependencies": {
@@ -28,5 +28,8 @@
     "eslint-config-next": "16.4.2",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "optionalDependencies": {
+    "lightningcss-win32-x64-msvc": "^1.32.0"
   }
 }

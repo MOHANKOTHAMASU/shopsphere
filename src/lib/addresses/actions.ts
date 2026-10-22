@@ -3,7 +3,6 @@
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { Address } from '@/types/ecommerce';
 import { memoryAddresses } from '@/lib/admin/store';
-import { getDemoUserAction } from '@/lib/auth/actions';
 import { getAuthenticatedCaller } from '@/lib/auth/admin-guard';
 
 /**
@@ -105,6 +104,13 @@ export async function saveAddressAction(addressData: {
   const country = addressData.country || 'India';
   const type = addressData.type || 'Home';
   const isDefault = !!addressData.isDefault;
+
+  if (country === 'India' && !/^[1-9][0-9]{5}$/.test(addressData.postalCode.trim())) {
+    return {
+      success: false,
+      error: 'Please enter a valid 6-digit Indian PIN code (e.g. 560001).',
+    };
+  }
 
   if (isSupabaseConfigured()) {
     try {

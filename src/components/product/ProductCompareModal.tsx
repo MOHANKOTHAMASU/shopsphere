@@ -6,10 +6,9 @@
 'use client';
 
 import React from 'react';
-import Link from 'next/link';
 import { ProductAlternativeComparison } from '@/types/pricing';
 import { useCart } from '@/context/CartContext';
-import { X, Check, ShoppingBag, ShieldCheck, Star, Scale, ExternalLink } from 'lucide-react';
+import { X, Check, ShoppingBag, ShieldCheck, Star, Scale } from 'lucide-react';
 import { Product } from '@/types/ecommerce';
 
 interface ProductCompareModalProps {

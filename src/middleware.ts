@@ -22,6 +22,9 @@ const PUBLIC_PATHS = new Set([
   '/shipping',
   '/returns',
   '/refunds',
+  '/track',
+  '/robots.txt',
+  '/sitemap.xml',
 ]);
 
 export async function middleware(request: NextRequest) {

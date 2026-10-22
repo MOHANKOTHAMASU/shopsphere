@@ -69,7 +69,10 @@ export function SearchAutocomplete({
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          setRecentSearches(parsed.slice(0, 6));
+          const items = parsed.slice(0, 6);
+          queueMicrotask(() => {
+            setRecentSearches(items);
+          });
         }
       }
     } catch {
@@ -117,13 +120,15 @@ export function SearchAutocomplete({
   useEffect(() => {
     const trimmed = query.trim();
     if (trimmed.length < 2) {
-      setSuggestions({ products: [], categories: [], query: '' });
-      setIsLoading(false);
-      return;
+      const resetTimer = setTimeout(() => {
+        setSuggestions({ products: [], categories: [], query: '' });
+        setIsLoading(false);
+      }, 0);
+      return () => clearTimeout(resetTimer);
     }
 
-    setIsLoading(true);
     const timer = setTimeout(async () => {
+      setIsLoading(true);
       try {
         const data = await fetchSearchSuggestionsAction(trimmed);
         setSuggestions(data);

@@ -15,7 +15,10 @@ const geistMono = Geist_Mono({
   subsets: ['latin'],
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://shopsphere.in';
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: 'ShopSphere | Next-Gen E-Commerce Experience',
     template: '%s | ShopSphere',
@@ -32,6 +35,35 @@ export const metadata: Metadata = {
     'ShopSphere',
   ],
   authors: [{ name: 'ShopSphere Engineering Team' }],
+  openGraph: {
+    title: 'ShopSphere | Next-Gen E-Commerce Experience',
+    description:
+      'ShopSphere is India’s premier e-commerce destination for curated electronics, designer fashion, luxury home decor, and authentic lifestyle goods.',
+    url: siteUrl,
+    siteName: 'ShopSphere',
+    locale: 'en_IN',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ShopSphere | Next-Gen E-Commerce Experience',
+    description:
+      'Discover millions of curated products with authentic warranty and fast delivery on ShopSphere.',
+  },
+  alternates: {
+    canonical: '/',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
 };
 
 export const viewport: Viewport = {

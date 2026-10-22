@@ -29,12 +29,32 @@ export async function generateMetadata({ params }: PageProps) {
   const product = await getProductBySlug(slug);
 
   if (!product) {
-    return { title: 'Product Not Found | ShopSphere' };
+    return {
+      title: 'Product Not Found | ShopSphere',
+      robots: { index: false, follow: false },
+    };
   }
+
+  const images = product.images && product.images.length > 0 ? product.images : [product.thumbnail];
 
   return {
     title: `${product.title} | ShopSphere`,
-    description: product.shortDescription,
+    description: product.shortDescription || product.description,
+    openGraph: {
+      title: product.title,
+      description: product.shortDescription || product.description,
+      images: images.map((url) => ({ url, alt: product.title })),
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: product.title,
+      description: product.shortDescription || product.description,
+      images,
+    },
+    alternates: {
+      canonical: `/products/${product.slug}`,
+    },
   };
 }
 

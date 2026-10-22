@@ -12,6 +12,7 @@ import {
   CouponValidation,
 } from '@/types/ecommerce';
 import { DEVELOPMENT_SEED_PRODUCTS } from '@/data/seed-products';
+import { COMPLETE_SEED_PRODUCTS_400 } from '@/data/seed-products-data';
 import { clearServerCartAction } from '@/lib/cart/actions';
 import { memoryProducts } from '@/lib/admin/store';
 
@@ -24,7 +25,6 @@ interface OrderWithItemsRow extends OrderRow {
 }
 
 import { idempotencyStore, inMemoryOrders } from '@/lib/orders/store';
-import { getDemoUserAction } from '@/lib/auth/actions';
 import { getAuthenticatedCaller } from '@/lib/auth/admin-guard';
 
 /**
@@ -108,12 +108,25 @@ export async function validateCouponAction(
 function findSeedProduct(idOrSlug: string) {
   const normalized = idOrSlug.trim().toLowerCase();
   const source = memoryProducts.length > 0 ? memoryProducts : DEVELOPMENT_SEED_PRODUCTS;
-  return source.find(
+  const match = source.find(
     (p) =>
       p.id.toLowerCase() === normalized ||
       p.slug.toLowerCase() === normalized ||
       p.id.replace(/-0+/, '-').toLowerCase() === normalized.replace(/-0+/, '-')
   );
+  if (match) return match;
+
+  const baseMatch = COMPLETE_SEED_PRODUCTS_400.find(
+    (p) =>
+      p.id.toLowerCase() === normalized ||
+      p.slug.toLowerCase() === normalized ||
+      p.id.replace(/-0+/, '-').toLowerCase() === normalized.replace(/-0+/, '-')
+  );
+  if (baseMatch) {
+    const unified = source.find((p) => p.slug === baseMatch.slug);
+    return unified || baseMatch;
+  }
+  return undefined;
 }
 
 /**

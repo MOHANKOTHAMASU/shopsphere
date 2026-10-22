@@ -15,7 +15,6 @@ import {
 } from './pricing-engine';
 import { memoryProducts } from '@/lib/admin/store';
 import { DEVELOPMENT_SEED_PRODUCTS } from '@/data/seed-products';
-import { getPriceTier } from '@/data/category-thresholds';
 import { Product } from '@/types/ecommerce';
 
 // Persistent in-memory storage for admin pricing overrides

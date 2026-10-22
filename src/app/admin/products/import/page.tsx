@@ -15,9 +15,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   ArrowLeft,
-  X,
   FileCheck,
-  Check,
 } from 'lucide-react';
 import { bulkImportProductsCsvAction } from '@/lib/admin/actions';
 

@@ -14,7 +14,7 @@ import {
   updateSupplierCost,
   PricingDashboardFilterOptions,
 } from './store';
-import { ProductAlternativeComparison, PriceTier } from '@/types/pricing';
+import { ProductAlternativeComparison } from '@/types/pricing';
 import { getProducts, getProductBySlug } from '@/lib/products/queries';
 import { getPriceTier } from '@/data/category-thresholds';
 import { generateRealisticCompetitorBenchmarks } from './pricing-engine';

@@ -17,7 +17,6 @@ import {
   RotateCcw,
   Layers,
   Heart,
-  Bookmark,
   ArrowLeft,
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';

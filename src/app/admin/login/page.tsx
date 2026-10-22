@@ -2,12 +2,10 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { ShieldAlert, Lock, Mail, ArrowRight, ArrowLeft, CheckCircle, Zap, AlertCircle, Info } from 'lucide-react';
 import { signInAction, signInDemoAction } from '@/lib/auth/actions';
 
 export default function AdminLoginPage() {
-  const router = useRouter();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

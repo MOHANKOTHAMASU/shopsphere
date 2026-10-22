@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -80,7 +80,7 @@ function RegisterFormContent() {
   const [city, setCity] = useState('');
   const [state, setState] = useState('Karnataka');
   const [postalCode, setPostalCode] = useState('');
-  const [country, setCountry] = useState('India');
+  const [country] = useState('India');
 
   // Terms and Submission
   const [agreedToTerms, setAgreedToTerms] = useState(false);

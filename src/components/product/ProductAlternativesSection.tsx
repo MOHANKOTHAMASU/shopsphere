@@ -17,7 +17,6 @@ import {
   Check,
   ShieldCheck,
   ExternalLink,
-  ChevronRight,
   TrendingDown,
   Info,
   Clock,
@@ -139,9 +138,6 @@ export function ProductAlternativesSection({
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6">
           {competitors.map((comp) => {
             const isAvailable = comp.verificationStatus !== 'unavailable';
-            const isCheaper = isAvailable && comp.sellingPrice < currentProduct.price;
-            const isMatch = isAvailable && comp.sellingPrice === currentProduct.price;
-            const isHigher = isAvailable && comp.sellingPrice > currentProduct.price;
 
             return (
               <div

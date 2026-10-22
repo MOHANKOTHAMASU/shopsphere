@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -14,8 +14,6 @@ import {
   AlertCircle,
   Truck,
   MapPin,
-  ShieldCheck,
-  RotateCcw,
   ArrowRight,
 } from 'lucide-react';
 import { Product, ProductVariant } from '@/types/ecommerce';
@@ -51,25 +49,58 @@ export function ProductDetailsActions({ product }: ProductDetailsActionsProps) {
 
   const favorited = isInWishlist(product.id);
 
-  // Load saved PIN from localStorage
-  useEffect(() => {
-    try {
-      const savedPin = localStorage.getItem(PIN_STORAGE_KEY);
-      if (savedPin) {
-        setPinCode(savedPin);
-        checkPinCode(savedPin);
-      }
-    } catch {
-      // Ignore
-    }
-  }, []);
-
   // Active pricing and stock
   const currentPrice = selectedVariant ? selectedVariant.price : product.price;
   const currentStock = selectedVariant ? selectedVariant.stockQuantity : product.stockQuantity;
   const currentSku = selectedVariant ? selectedVariant.sku : product.sku;
   const isOutOfStock = currentStock <= 0;
   const subtotal = currentPrice * quantity;
+
+  const checkPinCode = useCallback((codeToCheck?: string) => {
+    const code = (codeToCheck !== undefined ? codeToCheck : pinCode).trim();
+    if (!/^[1-9][0-9]{5}$/.test(code)) {
+      setPinResult({
+        status: 'error',
+        message: 'Please enter a valid 6-digit Indian PIN code (e.g., 560001, 110001).',
+      });
+      return;
+    }
+
+    try {
+      localStorage.setItem(PIN_STORAGE_KEY, code);
+    } catch {
+      // Ignore
+    }
+
+    // Dynamic delivery estimate based on date
+    const d = new Date();
+    d.setDate(d.getDate() + 3);
+    const day = d.toLocaleDateString('en-IN', { weekday: 'long' });
+    const date = d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+
+    setPinResult({
+      status: 'success',
+      message: `Delivery available to ${code}`,
+      deliveryDate: `${day}, ${date}`,
+      shippingCharge: currentPrice >= 499 ? 'FREE' : '₹49',
+      codAvailable: true,
+    });
+  }, [pinCode, currentPrice]);
+
+  // Load saved PIN from localStorage
+  useEffect(() => {
+    try {
+      const savedPin = localStorage.getItem(PIN_STORAGE_KEY);
+      if (savedPin) {
+        queueMicrotask(() => {
+          setPinCode(savedPin);
+          checkPinCode(savedPin);
+        });
+      }
+    } catch {
+      // Ignore
+    }
+  }, [checkPinCode]);
 
   const handleQuantityChange = (delta: number) => {
     setQuantity((prev) => {
@@ -103,37 +134,6 @@ export function ProductDetailsActions({ product }: ProductDetailsActionsProps) {
       selectedVariant?.attributes
     );
     router.push('/cart');
-  };
-
-  const checkPinCode = (codeToCheck?: string) => {
-    const code = (codeToCheck !== undefined ? codeToCheck : pinCode).trim();
-    if (!/^[1-9][0-9]{5}$/.test(code)) {
-      setPinResult({
-        status: 'error',
-        message: 'Please enter a valid 6-digit Indian PIN code (e.g., 560001, 110001).',
-      });
-      return;
-    }
-
-    try {
-      localStorage.setItem(PIN_STORAGE_KEY, code);
-    } catch {
-      // Ignore
-    }
-
-    // Dynamic delivery estimate based on date
-    const d = new Date();
-    d.setDate(d.getDate() + 3);
-    const day = d.toLocaleDateString('en-IN', { weekday: 'long' });
-    const date = d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
-
-    setPinResult({
-      status: 'success',
-      message: `Delivery available to ${code}`,
-      deliveryDate: `${day}, ${date}`,
-      shippingCharge: currentPrice >= 499 ? 'FREE' : '₹49',
-      codAvailable: true,
-    });
   };
 
   return (

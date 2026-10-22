@@ -20,7 +20,7 @@ import {
   Layers,
   Tag,
 } from 'lucide-react';
-import { getCategoryThresholds, getBudgetFilterRanges } from '@/data/category-thresholds';
+import { getBudgetFilterRanges } from '@/data/category-thresholds';
 import { PriceTier } from '@/types/pricing';
 
 interface ProductsCatalogClientProps {
