@@ -84,9 +84,18 @@ function LoginFormContent() {
               <span>{errorMessage}</span>
             </div>
             {errorMessage.toLowerCase().includes('verify') && (
-              <p className="text-[11px] text-rose-700 bg-rose-100/60 p-2 rounded-lg font-normal leading-relaxed">
-                💡 <strong>Verification Tip:</strong> Check your inbox and spam folder for the confirmation email. Once confirmed, you can sign in immediately.
-              </p>
+              <div className="text-[11px] text-rose-700 bg-rose-100/60 p-2.5 rounded-lg font-normal leading-relaxed space-y-1.5">
+                <p>
+                  💡 <strong>Delivery Notice:</strong> If email verification is delayed by provider quota limits, you can verify your account and set a new password instantly using our 6-digit OTP code.
+                </p>
+                <Link
+                  href="/auth/forgot-password"
+                  className="text-indigo-700 font-bold hover:underline inline-flex items-center gap-1"
+                >
+                  <span>Verify and reset via 6-digit OTP</span>
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
+              </div>
             )}
           </div>
         )}

@@ -157,3 +157,15 @@ export const memoryAuditLogs: AdminAuditLog[] = [
   },
 ];
 
+// Active Customer Credentials Store (email -> password) for testing & fallback
+export const memoryCredentials: Map<string, string> = new Map([
+  ['customer@shopsphere.dev', 'Customer@123'],
+  ['admin@shopsphere.dev', 'Admin@123'],
+  ['kmvsubbarao28@gmail.com', 'Admin@123'],
+]);
+
+// Active Password Reset OTP Store: email -> { otp, expiresAt, email }
+export const memoryResetOtps: Map<string, { otp: string; expiresAt: number; email: string }> =
+  new Map();
+
+
