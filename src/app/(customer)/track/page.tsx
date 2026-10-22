@@ -58,7 +58,7 @@ function OrderTrackerContent() {
       } else {
         setOrder(null);
         setErrorMessage(
-          `No order found matching "${clean}". Please verify your order confirmation SMS/email or try "ORD-20261020-0001".`
+          res.error || `No order found matching "${clean}". Please verify your order number in your Order History.`
         );
       }
     } catch {

@@ -4,65 +4,38 @@ import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { Address } from '@/types/ecommerce';
 import { memoryAddresses } from '@/lib/admin/store';
 import { getDemoUserAction } from '@/lib/auth/actions';
-
-const FALLBACK_DEFAULT_ADDRESS: Address = {
-  id: 'addr-default-mock',
-  userId: 'usr-demo-customer',
-  fullName: 'Rahul Sharma',
-  phone: '+91 98765 43210',
-  street: '42, Brigade Metropolis, Whitefield Main Road',
-  apartment: 'Tower B, Flat 804',
-  city: 'Bengaluru',
-  state: 'Karnataka',
-  postalCode: '560048',
-  country: 'India',
-  isDefault: true,
-  type: 'Home',
-};
+import { getAuthenticatedCaller } from '@/lib/auth/admin-guard';
 
 /**
  * Fetch saved delivery addresses for the authenticated customer
+ * Strictly prevents customer-to-customer address visibility
  */
 export async function getAddressesAction(): Promise<{
   success: boolean;
   addresses: Address[];
 }> {
+  const caller = await getAuthenticatedCaller();
+  if (!caller) {
+    return { success: false, addresses: [] };
+  }
+
   if (!isSupabaseConfigured()) {
-    const demoUser = await getDemoUserAction();
-    const currentUserId = demoUser?.id || 'usr-demo-customer';
-
-    const userAddresses = memoryAddresses.filter(
-      (a) => a.userId === currentUserId || a.userId === 'usr-demo-customer'
-    );
-
-    if (userAddresses.length === 0) {
-      const defaultAddr = { ...FALLBACK_DEFAULT_ADDRESS, userId: currentUserId };
-      memoryAddresses.push(defaultAddr);
-      return { success: true, addresses: [defaultAddr] };
-    }
-
+    const userAddresses = memoryAddresses.filter((a) => a.userId === caller.userId);
     return { success: true, addresses: userAddresses };
   }
 
   try {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return { success: true, addresses: [] };
-    }
 
     const { data, error } = await supabase
       .from('addresses')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', caller.userId)
       .order('is_default', { ascending: false })
       .order('created_at', { ascending: false });
 
     if (error || !data || data.length === 0) {
-      return { success: true, addresses: [{ ...FALLBACK_DEFAULT_ADDRESS, userId: user.id }] };
+      return { success: true, addresses: [] };
     }
 
     const addresses: Address[] = data.map((row) => ({
@@ -82,7 +55,8 @@ export async function getAddressesAction(): Promise<{
 
     return { success: true, addresses };
   } catch {
-    return { success: true, addresses: [FALLBACK_DEFAULT_ADDRESS] };
+    const userAddresses = memoryAddresses.filter((a) => a.userId === caller.userId);
+    return { success: true, addresses: userAddresses };
   }
 }
 
@@ -106,6 +80,11 @@ export async function saveAddressAction(addressData: {
   address?: Address;
   error?: string;
 }> {
+  const caller = await getAuthenticatedCaller();
+  if (!caller) {
+    return { success: false, error: 'Authentication required to save delivery addresses.' };
+  }
+
   if (
     !addressData.fullName ||
     !addressData.phone ||
@@ -123,15 +102,11 @@ export async function saveAddressAction(addressData: {
   if (isSupabaseConfigured()) {
     try {
       const supabase = await createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
 
-      if (user) {
-        if (isDefault) {
-          // If setting this address as default, unset other addresses
-          await supabase.from('addresses').update({ is_default: false }).eq('user_id', user.id);
-        }
+      if (isDefault) {
+        // If setting this address as default, unset other addresses
+        await supabase.from('addresses').update({ is_default: false }).eq('user_id', caller.userId);
+      }
 
         if (addressData.id && !addressData.id.startsWith('addr-default-mock')) {
           // Update existing
@@ -150,7 +125,7 @@ export async function saveAddressAction(addressData: {
               type,
             })
             .eq('id', addressData.id)
-            .eq('user_id', user.id)
+            .eq('user_id', caller.userId)
             .select()
             .single();
 
@@ -178,7 +153,7 @@ export async function saveAddressAction(addressData: {
           const { data, error } = await supabase
             .from('addresses')
             .insert({
-              user_id: user.id,
+              user_id: caller.userId,
               full_name: addressData.fullName,
               phone: addressData.phone,
               street: addressData.street,
@@ -213,15 +188,13 @@ export async function saveAddressAction(addressData: {
             };
           }
         }
-      }
     } catch {
       // ignore
     }
   }
 
-  // Fallback memory persistence
-  const demoUser = await getDemoUserAction();
-  const currentUserId = demoUser?.id || 'usr-demo-customer';
+  // Fallback memory persistence with strict caller ownership
+  const currentUserId = caller.userId;
 
   if (isDefault) {
     memoryAddresses.forEach((a) => {
@@ -232,6 +205,9 @@ export async function saveAddressAction(addressData: {
   if (addressData.id) {
     const existingIndex = memoryAddresses.findIndex((a) => a.id === addressData.id);
     if (existingIndex !== -1) {
+      if (memoryAddresses[existingIndex].userId !== currentUserId) {
+        return { success: false, error: 'Unauthorized: You do not have permission to modify this address.' };
+      }
       const updatedAddr: Address = {
         ...memoryAddresses[existingIndex],
         fullName: addressData.fullName,
@@ -271,26 +247,29 @@ export async function saveAddressAction(addressData: {
 
 /**
  * Delete a saved delivery address
+ * Strictly verifies ownership before deleting
  */
-export async function deleteAddressAction(addressId: string): Promise<{ success: boolean }> {
+export async function deleteAddressAction(addressId: string): Promise<{ success: boolean; error?: string }> {
+  const caller = await getAuthenticatedCaller();
+  if (!caller) {
+    return { success: false, error: 'Authentication required to delete addresses.' };
+  }
+
   if (isSupabaseConfigured()) {
     try {
       const supabase = await createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (user) {
-        await supabase.from('addresses').delete().eq('id', addressId).eq('user_id', user.id);
-      }
+      await supabase.from('addresses').delete().eq('id', addressId).eq('user_id', caller.userId);
     } catch {
       // ignore
     }
   }
 
-  // Memory store deletion
+  // Memory store deletion with strict ownership check
   const index = memoryAddresses.findIndex((a) => a.id === addressId);
   if (index !== -1) {
+    if (memoryAddresses[index].userId !== caller.userId) {
+      return { success: false, error: 'Unauthorized: You do not have permission to delete this address.' };
+    }
     memoryAddresses.splice(index, 1);
   }
 

@@ -24,6 +24,70 @@ export interface VerifiedAdmin {
   adminName: string;
 }
 
+export interface AuthenticatedCaller {
+  userId: string;
+  email: string;
+  name: string;
+  role: 'customer' | 'admin';
+}
+
+/**
+ * Retrieve the current authenticated user session on the server
+ * Checks Supabase Auth first, then falls back to verified demo cookie session
+ */
+export async function getAuthenticatedCaller(): Promise<AuthenticatedCaller | null> {
+  if (isSupabaseConfigured()) {
+    try {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role, full_name')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        const role = profile?.role === 'admin' ? 'admin' : 'customer';
+        return {
+          userId: user.id,
+          email: user.email || '',
+          name: profile?.full_name || (user.user_metadata?.full_name as string) || 'Customer',
+          role,
+        };
+      }
+    } catch {
+      // Fall through to demo cookie session
+    }
+  }
+
+  const demo = await getDemoUserAction();
+  if (demo && demo.id) {
+    return {
+      userId: demo.id,
+      email: demo.email,
+      name: demo.full_name,
+      role: demo.role,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Asserts that the caller has a valid authenticated session.
+ * Throws a descriptive error if the visitor is unauthenticated.
+ */
+export async function assertAuthenticatedUser(): Promise<AuthenticatedCaller> {
+  const caller = await getAuthenticatedCaller();
+  if (!caller) {
+    throw new Error('Unauthorized: Authentication required to access this resource.');
+  }
+  return caller;
+}
+
 /**
  * Server-side security guard that strictly asserts administrative privileges.
  * Throws a descriptive error if the caller is not an authenticated administrator.

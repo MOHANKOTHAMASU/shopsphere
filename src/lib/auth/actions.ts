@@ -57,6 +57,7 @@ export async function setDemoUserSession(user: DemoUserSession): Promise<void> {
       maxAge: 60 * 60 * 24 * 7, // 7 days
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
     });
   } catch {
     // Safe in standalone test scripts
@@ -337,9 +338,18 @@ export async function signInAction(formData: FormData): Promise<AuthActionResult
     const isStoreAdmin =
       requestedRole === 'admin' ||
       redirectParam.startsWith('/admin') ||
-      cleanEmail.includes('admin') ||
+      cleanEmail === 'admin@shopsphere.dev' ||
       cleanEmail === 'kmvsubbarao28@gmail.com';
+
     const foundCustomer = memoryCustomers.find((c) => c.email.toLowerCase() === cleanEmail);
+
+    // Enforce credential verification: only registered customers or admin can sign in
+    if (!isStoreAdmin && !foundCustomer && cleanEmail !== 'customer@shopsphere.dev') {
+      return {
+        success: false,
+        message: 'Invalid email or password. Please verify and try again.',
+      };
+    }
 
     const demoUser: DemoUserSession = {
       id: isStoreAdmin ? DEMO_USERS.admin.id : (foundCustomer?.id || `usr-cust-${Date.now()}`),
@@ -354,7 +364,7 @@ export async function signInAction(formData: FormData): Promise<AuthActionResult
     await setDemoUserSession(demoUser);
     safeRevalidate('/', 'layout');
 
-    const fallbackDest = isStoreAdmin ? '/admin/dashboard' : '/account';
+    const fallbackDest = isStoreAdmin ? '/admin/dashboard' : '/';
     const destination = sanitizeRedirectPath(redirectParam, fallbackDest);
 
     return {
@@ -371,13 +381,7 @@ export async function signInAction(formData: FormData): Promise<AuthActionResult
   });
 
   if (error) {
-    // Provide clean, friendly error messages
-    if (error.message.includes('Invalid login credentials')) {
-      return {
-        success: false,
-        message: 'Invalid email or password. Please verify and try again.',
-      };
-    }
+    // Provide generic, safe error messages without revealing email presence
     if (error.message.includes('Email not confirmed')) {
       return {
         success: false,
@@ -386,13 +390,13 @@ export async function signInAction(formData: FormData): Promise<AuthActionResult
     }
     return {
       success: false,
-      message: error.message,
+      message: 'Invalid email or password. Please verify and try again.',
     };
   }
 
   safeRevalidate('/', 'layout');
 
-    const destination = sanitizeRedirectPath(redirectParam, '/account');
+  const destination = sanitizeRedirectPath(redirectParam, '/');
 
   return {
     success: true,
@@ -416,7 +420,7 @@ export async function signOutAction(): Promise<void> {
   }
   safeRevalidate('/', 'layout');
   try {
-    redirect('/');
+    redirect('/auth/login');
   } catch {
     // Next.js redirect throws special control error
   }

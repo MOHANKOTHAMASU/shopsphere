@@ -25,6 +25,7 @@ interface OrderWithItemsRow extends OrderRow {
 
 import { idempotencyStore, inMemoryOrders } from '@/lib/orders/store';
 import { getDemoUserAction } from '@/lib/auth/actions';
+import { getAuthenticatedCaller } from '@/lib/auth/admin-guard';
 
 /**
  * 1. Validate Coupon Code on the Server
@@ -152,28 +153,17 @@ export async function createOrderAction(payload: {
     }
   }
 
-  let userId = 'guest-customer';
+  const caller = await getAuthenticatedCaller();
+  if (!caller) {
+    return { success: false, error: 'Authentication required. Please sign in to place an order.' };
+  }
+  const userId = caller.userId;
   let supabaseClient: SupabaseServerClient | null = null;
 
   if (isSupabaseConfigured()) {
     try {
       const supabase = await createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        userId = user.id;
-        supabaseClient = supabase;
-      }
-    } catch {
-      // ignore
-    }
-  } else {
-    try {
-      const demo = await getDemoUserAction();
-      if (demo) {
-        userId = demo.id;
-      }
+      supabaseClient = supabase;
     } catch {
       // ignore
     }
@@ -442,27 +432,31 @@ export async function createOrderAction(payload: {
 
 /**
  * 3. Fetch Customer Orders History
+ * Strictly returns only orders belonging to the authenticated caller
  */
 export async function getCustomerOrdersAction(): Promise<{
   success: boolean;
   orders: Order[];
+  error?: string;
 }> {
+  const caller = await getAuthenticatedCaller();
+  if (!caller) {
+    return { success: false, orders: [], error: 'Authentication required to view order history.' };
+  }
+
   if (isSupabaseConfigured()) {
     try {
       const supabase = await createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        return { success: true, orders: inMemoryOrders };
-      }
-
-      const { data, error } = await supabase
+      let query = supabase
         .from('orders')
         .select('*, order_items(*)')
-        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
+
+      if (caller.role !== 'admin') {
+        query = query.eq('user_id', caller.userId);
+      }
+
+      const { data, error } = await query;
 
       if (!error && data && data.length > 0) {
         const orders: Order[] = (data as unknown as OrderWithItemsRow[]).map((row) => {
@@ -512,38 +506,40 @@ export async function getCustomerOrdersAction(): Promise<{
     }
   }
 
-  try {
-    const demoUser = await getDemoUserAction();
-    if (demoUser) {
-      if (demoUser.role === 'admin') {
-        return { success: true, orders: inMemoryOrders };
-      }
-      const filtered = inMemoryOrders.filter((o) => o.userId === demoUser.id);
-      return { success: true, orders: filtered };
-    }
-  } catch {
-    // fallback
+  if (caller.role === 'admin') {
+    return { success: true, orders: inMemoryOrders };
   }
-
-  return { success: true, orders: inMemoryOrders };
+  const filtered = inMemoryOrders.filter((o) => o.userId === caller.userId);
+  return { success: true, orders: filtered };
 }
 
 /**
  * 4. Fetch Single Order Details
+ * Strictly verifies that the authenticated caller owns the order (or is admin)
  */
 export async function getOrderDetailsAction(orderIdOrNumber: string): Promise<{
   success: boolean;
   order?: Order;
   error?: string;
 }> {
+  const caller = await getAuthenticatedCaller();
+  if (!caller) {
+    return { success: false, error: 'Authentication required to view order details.' };
+  }
+
   if (isSupabaseConfigured()) {
     try {
       const supabase = await createClient();
-      const { data, error } = await supabase
+      let query = supabase
         .from('orders')
         .select('*, order_items(*)')
-        .or(`id.eq.${orderIdOrNumber},order_number.eq.${orderIdOrNumber}`)
-        .maybeSingle();
+        .or(`id.eq.${orderIdOrNumber},order_number.eq.${orderIdOrNumber}`);
+
+      if (caller.role !== 'admin') {
+        query = query.eq('user_id', caller.userId);
+      }
+
+      const { data, error } = await query.maybeSingle();
 
       if (!error && data) {
         const row = data as unknown as OrderWithItemsRow;
@@ -596,6 +592,9 @@ export async function getOrderDetailsAction(orderIdOrNumber: string): Promise<{
     (o) => o.id === orderIdOrNumber || o.orderNumber === orderIdOrNumber
   );
   if (match) {
+    if (caller.role !== 'admin' && match.userId !== caller.userId) {
+      return { success: false, error: 'Unauthorized: You do not have permission to view this order.' };
+    }
     return { success: true, order: match };
   }
 
@@ -604,7 +603,7 @@ export async function getOrderDetailsAction(orderIdOrNumber: string): Promise<{
 
 /**
  * 5. Cancel Order with Cancellation Rules & Stock Restoration
- * Rule: Only 'pending' or 'confirmed' orders can be cancelled (before shipping).
+ * Strictly verifies caller ownership before executing cancellation
  */
 export async function cancelOrderAction(
   orderId: string,
@@ -614,9 +613,17 @@ export async function cancelOrderAction(
   message?: string;
   error?: string;
 }> {
+  const caller = await getAuthenticatedCaller();
+  if (!caller) {
+    return { success: false, error: 'Authentication required to cancel orders.' };
+  }
+
   // Check memory store
   const memOrder = inMemoryOrders.find((o) => o.id === orderId || o.orderNumber === orderId);
   if (memOrder) {
+    if (caller.role !== 'admin' && memOrder.userId !== caller.userId) {
+      return { success: false, error: 'Unauthorized: You do not have permission to cancel this order.' };
+    }
     if (memOrder.status === 'cancelled') {
       return { success: false, error: 'Order is already cancelled.' };
     }
@@ -648,9 +655,6 @@ export async function cancelOrderAction(
   if (isSupabaseConfigured()) {
     try {
       const supabase = await createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
 
       const { data: orderData, error } = await supabase
         .from('orders')
@@ -665,7 +669,7 @@ export async function cancelOrderAction(
       const order = orderData as unknown as OrderWithItemsRow;
 
       // Security check: Only order owner or admin can cancel
-      if (user && order.user_id && order.user_id !== user.id) {
+      if (caller.role !== 'admin' && order.user_id && order.user_id !== caller.userId) {
         return { success: false, error: 'Unauthorized to cancel this order.' };
       }
 
