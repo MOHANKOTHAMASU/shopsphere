@@ -12,6 +12,9 @@ import {
   ArrowLeft,
   AlertTriangle,
   RotateCcw,
+  FileText,
+  Truck,
+  LifeBuoy,
 } from 'lucide-react';
 import { getOrderDetailsAction, cancelOrderAction } from '@/lib/orders/actions';
 import {
@@ -170,47 +173,78 @@ export default function OrderDetailsPage() {
     );
   }
 
-  // Delivery Stages
-  const stages: Array<{ key: OrderStatus; label: string }> = [
-    { key: 'pending', label: 'Order Placed' },
-    { key: 'confirmed', label: 'Confirmed' },
+  // Delivery Stages: 7-stage visual tracker as specified in prompt
+  const stages: Array<{ key: string; label: string }> = [
+    { key: 'placed', label: 'Order Placed' },
+    { key: 'payment', label: 'Payment Confirmed' },
     { key: 'processing', label: 'Processing' },
+    { key: 'packed', label: 'Packed' },
     { key: 'shipped', label: 'Shipped' },
+    { key: 'out_for_delivery', label: 'Out for Delivery' },
     { key: 'delivered', label: 'Delivered' },
   ];
 
-  const stageOrder: Record<OrderStatus, number> = {
-    pending: 0,
-    confirmed: 1,
-    processing: 2,
-    shipped: 3,
-    delivered: 4,
-    cancelled: -1,
+  const getStageIndex = (status: OrderStatus, payStatus: string): number => {
+    if (status === 'cancelled') return -1;
+    if (status === 'delivered') return 6;
+    if (status === 'shipped') return 4;
+    if (status === 'processing') return 2;
+    if (status === 'confirmed' || payStatus === 'paid') return 1;
+    return 0;
   };
 
-  const currentStageIndex = stageOrder[order.status] ?? 0;
+  const currentStageIndex = getStageIndex(order.status, order.paymentStatus);
   const isCancellable = order.status === 'pending' || order.status === 'confirmed';
 
   return (
     <div className="space-y-6">
-      {/* Top Navigation */}
-      <div className="flex items-center justify-between">
+      {/* Top Navigation & Action Buttons */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
           href="/account/orders"
           className="text-xs font-bold text-slate-600 hover:text-indigo-600 flex items-center gap-1 transition-colors"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Back to Order History</span>
+          <span>Back to All Orders</span>
         </Link>
 
-        {isCancellable && (
-          <button
-            onClick={() => setShowCancelModal(true)}
-            className="px-3.5 py-1.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs transition-colors cursor-pointer"
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Download Invoice */}
+          <Link
+            href={`/account/orders/${order.id}/invoice`}
+            className="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs"
           >
-            Cancel Order
-          </button>
-        )}
+            <FileText className="w-3.5 h-3.5 text-indigo-600" />
+            <span>Download Invoice</span>
+          </Link>
+
+          {/* Track Order */}
+          <Link
+            href={`/track?orderId=${encodeURIComponent(order.orderNumber)}`}
+            className="px-3.5 py-1.5 rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs transition-colors flex items-center gap-1.5"
+          >
+            <Truck className="w-3.5 h-3.5" />
+            <span>Track Package</span>
+          </Link>
+
+          {/* Support */}
+          <Link
+            href={`/support?orderNumber=${encodeURIComponent(order.orderNumber)}`}
+            className="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors flex items-center gap-1.5"
+          >
+            <LifeBuoy className="w-3.5 h-3.5 text-blue-500" />
+            <span>Need Help?</span>
+          </Link>
+
+          {isCancellable && (
+            <button
+              onClick={() => setShowCancelModal(true)}
+              className="px-3.5 py-1.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs transition-colors cursor-pointer"
+            >
+              Cancel Order
+            </button>
+          )}
+        </div>
       </div>
 
       {cancelMessage && (
@@ -283,7 +317,7 @@ export default function OrderDetailsPage() {
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-6">
               Delivery Tracker
             </h3>
-            <div className="grid grid-cols-5 gap-2 relative">
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 relative">
               {stages.map((stage, idx) => {
                 const isPassed = currentStageIndex >= idx;
                 const isCurrent = currentStageIndex === idx;

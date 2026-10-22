@@ -1,5 +1,10 @@
 'use client';
 
+// -----------------------------------------------------------------------------
+// src/components/layout/Header.tsx
+// ShopSphere Omnipresent Navigation Header (Desktop, Tablet & Mobile)
+// -----------------------------------------------------------------------------
+
 import React, { useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import {
@@ -15,6 +20,9 @@ import {
   LogOut,
   MapPin,
   Settings,
+  Award,
+  Tag,
+  LifeBuoy,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
@@ -47,6 +55,7 @@ export function Header() {
     <>
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Main Navigation Row */}
           <div className="flex items-center justify-between h-20 gap-4">
             {/* Mobile Menu Button */}
             <button
@@ -88,7 +97,7 @@ export function Header() {
                 <button
                   onClick={() => setIsAccountOpen(!isAccountOpen)}
                   onBlur={() => setTimeout(() => setIsAccountOpen(false), 250)}
-                  className="flex items-center gap-2 p-2 rounded-xl text-slate-700 hover:text-indigo-600 hover:bg-slate-100 transition-colors"
+                  className="flex items-center gap-2 p-2 rounded-xl text-slate-700 hover:text-indigo-600 hover:bg-slate-100 transition-colors cursor-pointer"
                   aria-label="Account menu"
                   aria-expanded={isAccountOpen}
                 >
@@ -144,6 +153,27 @@ export function Header() {
                             My Orders
                           </Link>
                           <Link
+                            href="/rewards"
+                            className="flex items-center gap-2.5 px-4 py-2 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
+                          >
+                            <Award className="w-4 h-4 text-amber-500" />
+                            <span>Rewards & SuperCoins</span>
+                          </Link>
+                          <Link
+                            href="/offers"
+                            className="flex items-center gap-2.5 px-4 py-2 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
+                          >
+                            <Tag className="w-4 h-4 text-indigo-500" />
+                            <span>Coupons & Offers</span>
+                          </Link>
+                          <Link
+                            href="/wishlist"
+                            className="flex items-center gap-2.5 px-4 py-2 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
+                          >
+                            <Heart className="w-4 h-4 text-rose-500" />
+                            My Wishlist
+                          </Link>
+                          <Link
                             href="/account/profile"
                             className="flex items-center gap-2.5 px-4 py-2 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
                           >
@@ -158,11 +188,11 @@ export function Header() {
                             Delivery Addresses
                           </Link>
                           <Link
-                            href="/wishlist"
+                            href="/support"
                             className="flex items-center gap-2.5 px-4 py-2 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
                           >
-                            <Heart className="w-4 h-4 text-slate-400" />
-                            My Wishlist
+                            <LifeBuoy className="w-4 h-4 text-blue-500" />
+                            <span>24/7 Customer Support</span>
                           </Link>
                         </div>
 
@@ -188,7 +218,7 @@ export function Header() {
                               href="/auth/login"
                               className="flex-1 text-center py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors"
                             >
-                              Sign In
+                              Sign In (Mobile / Email)
                             </Link>
                             <Link
                               href="/auth/register"
@@ -208,18 +238,32 @@ export function Header() {
                             My Orders
                           </Link>
                           <Link
+                            href="/rewards"
+                            className="flex items-center gap-2.5 px-4 py-2 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
+                          >
+                            <Award className="w-4 h-4 text-amber-500" />
+                            Rewards Club
+                          </Link>
+                          <Link
+                            href="/offers"
+                            className="flex items-center gap-2.5 px-4 py-2 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
+                          >
+                            <Tag className="w-4 h-4 text-indigo-500" />
+                            Offers & Coupons
+                          </Link>
+                          <Link
                             href="/wishlist"
                             className="flex items-center gap-2.5 px-4 py-2 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
                           >
-                            <Heart className="w-4 h-4 text-slate-400" />
+                            <Heart className="w-4 h-4 text-rose-500" />
                             My Wishlist
                           </Link>
                           <Link
-                            href="/products"
+                            href="/support"
                             className="flex items-center gap-2.5 px-4 py-2 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
                           >
-                            <Layers className="w-4 h-4 text-slate-400" />
-                            Browse Catalog
+                            <LifeBuoy className="w-4 h-4 text-blue-500" />
+                            Customer Support — 24/7
                           </Link>
                         </div>
 
@@ -249,7 +293,7 @@ export function Header() {
               >
                 <Heart className="w-5 h-5" />
                 {mounted && totalWishlistItems > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white font-bold text-[10px] w-5 h-5 rounded-full flex items-center justify-center shadow-sm">
+                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white font-bold text-[10px] w-5 h-5 rounded-full flex items-center justify-center shadow-xs">
                     {totalWishlistItems}
                   </span>
                 )}
@@ -258,7 +302,7 @@ export function Header() {
               {/* Shopping Cart Link */}
               <Link
                 href="/cart"
-                className="flex items-center gap-2.5 p-2 px-3 rounded-xl bg-slate-900 hover:bg-indigo-700 text-white transition-all shadow-sm group"
+                className="flex items-center gap-2.5 p-2 px-3 rounded-xl bg-slate-900 hover:bg-indigo-700 text-white transition-all shadow-xs group"
                 aria-label={`Shopping cart with ${mounted ? totalItems : 0} items`}
               >
                 <div className="relative">
@@ -281,11 +325,78 @@ export function Header() {
             </div>
           </div>
 
+          {/* Sub-Navigation Bar (Desktop & Tablet) */}
+          <nav className="hidden lg:flex items-center justify-between border-t border-slate-100 py-2.5 text-xs font-semibold text-slate-700">
+            <div className="flex items-center space-x-6">
+              <Link
+                href="/"
+                className="hover:text-indigo-600 transition-colors"
+              >
+                Home
+              </Link>
+              <Link
+                href="/products"
+                className="flex items-center gap-1.5 hover:text-indigo-600 transition-colors font-bold text-slate-900"
+              >
+                <Layers className="w-4 h-4 text-indigo-600" />
+                <span>All Categories</span>
+              </Link>
+              <Link
+                href="/rewards"
+                className="flex items-center gap-1.5 hover:text-amber-600 transition-colors text-slate-800"
+              >
+                <Award className="w-4 h-4 text-amber-500" />
+                <span>Rewards</span>
+              </Link>
+              <Link
+                href="/offers"
+                className="flex items-center gap-1.5 hover:text-indigo-600 transition-colors text-slate-800"
+              >
+                <Tag className="w-4 h-4 text-indigo-500" />
+                <span>Offers</span>
+                <span className="bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase tracking-wider">
+                  Hot
+                </span>
+              </Link>
+              <Link
+                href={user ? '/account/orders' : '/auth/login?redirect=/account/orders'}
+                className="flex items-center gap-1.5 hover:text-indigo-600 transition-colors"
+              >
+                <Package className="w-4 h-4 text-slate-500" />
+                <span>My Orders</span>
+              </Link>
+              <Link
+                href="/wishlist"
+                className="flex items-center gap-1.5 hover:text-indigo-600 transition-colors"
+              >
+                <Heart className="w-4 h-4 text-rose-500" />
+                <span>Wishlist</span>
+              </Link>
+              <Link
+                href={user ? '/account' : '/auth/login?redirect=/account'}
+                className="flex items-center gap-1.5 hover:text-indigo-600 transition-colors"
+              >
+                <User className="w-4 h-4 text-slate-500" />
+                <span>My Account</span>
+              </Link>
+            </div>
+
+            <div className="flex items-center space-x-4 text-slate-600">
+              <Link
+                href="/support"
+                className="flex items-center gap-1.5 hover:text-indigo-600 transition-colors font-bold text-slate-800"
+              >
+                <LifeBuoy className="w-4 h-4 text-indigo-600" />
+                <span>Customer Support — 24/7</span>
+              </Link>
+            </div>
+          </nav>
+
           {/* Mobile Search Bar Row with Live Suggestions */}
           <div className="md:hidden pb-3">
             <SearchAutocomplete
               showCategoryDropdown={false}
-              placeholder="Search products, brands, categories..."
+              placeholder="Search 400+ products, brands, categories..."
             />
           </div>
         </div>

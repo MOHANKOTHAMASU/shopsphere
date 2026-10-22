@@ -35,6 +35,25 @@ export function NavigationRibbon() {
             <span>Best Sellers</span>
           </Link>
 
+          {/* Offers Tab */}
+          <Link
+            href="/offers"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 font-bold transition-colors border border-purple-500/20"
+          >
+            <span>Offers</span>
+            <span className="bg-rose-500 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full uppercase">
+              Hot
+            </span>
+          </Link>
+
+          {/* Rewards Club Tab */}
+          <Link
+            href="/rewards"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md hover:bg-slate-800 text-amber-300 hover:text-amber-200 transition-colors font-semibold"
+          >
+            <span>Rewards</span>
+          </Link>
+
           {/* Category Links */}
           {DEVELOPMENT_SEED_CATEGORIES.slice(0, 5).map((category) => (
             <Link

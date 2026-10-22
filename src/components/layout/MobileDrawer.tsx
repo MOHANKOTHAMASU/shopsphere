@@ -21,6 +21,7 @@ import {
   MapPin,
   BookOpen,
   Watch,
+  Tag,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { DEVELOPMENT_SEED_CATEGORIES } from '@/data/seed-categories';
@@ -177,12 +178,44 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
                 All Products
               </Link>
               <Link
+                href="/rewards"
+                onClick={onClose}
+                className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-indigo-600"
+              >
+                <Sparkles className="w-4 h-4 text-amber-500" />
+                Rewards & SuperCoins
+              </Link>
+              <Link
+                href="/offers"
+                onClick={onClose}
+                className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-indigo-600"
+              >
+                <Tag className="w-4 h-4 text-indigo-500" />
+                Offers & Coupons
+              </Link>
+              <Link
                 href="/account/orders"
                 onClick={onClose}
                 className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-indigo-600"
               >
                 <Package className="w-4 h-4 text-slate-400" />
-                Order History
+                My Orders
+              </Link>
+              <Link
+                href="/wishlist"
+                onClick={onClose}
+                className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-indigo-600"
+              >
+                <Heart className="w-4 h-4 text-rose-500" />
+                My Wishlist
+              </Link>
+              <Link
+                href="/support"
+                onClick={onClose}
+                className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-indigo-600"
+              >
+                <Headphones className="w-4 h-4 text-blue-500" />
+                Customer Support — 24/7
               </Link>
               <Link
                 href="/account/profile"
@@ -199,14 +232,6 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
               >
                 <MapPin className="w-4 h-4 text-slate-400" />
                 Delivery Addresses
-              </Link>
-              <Link
-                href="/wishlist"
-                onClick={onClose}
-                className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-indigo-600"
-              >
-                <Heart className="w-4 h-4 text-rose-500" />
-                My Wishlist
               </Link>
               <Link
                 href="/cart"

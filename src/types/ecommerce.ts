@@ -332,6 +332,8 @@ export interface CustomerSummary {
   createdAt: string;
   status?: 'active' | 'suspended' | 'pending';
   isVerified?: boolean;
+  gender?: string;
+  dateOfBirth?: string;
 }
 
 export interface AdminUserMetrics {

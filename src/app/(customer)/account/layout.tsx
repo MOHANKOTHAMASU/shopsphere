@@ -12,6 +12,9 @@ import {
   LogOut,
   ChevronRight,
   ShieldCheck,
+  Award,
+  Tag,
+  LifeBuoy,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
@@ -26,8 +29,11 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
   const navLinks = [
     { label: 'Overview', href: '/account', icon: User, exact: true },
     { label: 'My Orders', href: '/account/orders', icon: Package },
+    { label: 'Rewards & SuperCoins', href: '/rewards', icon: Award },
+    { label: 'Coupons & Offers', href: '/offers', icon: Tag },
     { label: 'Profile Settings', href: '/account/profile', icon: Settings },
     { label: 'Saved Addresses', href: '/account/addresses', icon: MapPin },
+    { label: 'Customer Support', href: '/support', icon: LifeBuoy },
     { label: 'My Wishlist', href: '/wishlist', icon: Heart },
   ];
 

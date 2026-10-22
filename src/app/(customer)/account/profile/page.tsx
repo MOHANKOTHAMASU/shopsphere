@@ -30,7 +30,10 @@ export default function ProfileSettingsPage() {
     profile?.full_name || user?.user_metadata?.full_name || ''
   );
   const [phone, setPhone] = useState(profile?.phone || '');
+  const [gender, setGender] = useState('Prefer not to say');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+
   const [profileFeedback, setProfileFeedback] = useState<{
     type: 'success' | 'error';
     message: string;
@@ -181,40 +184,72 @@ export default function ProfileSettingsPage() {
             <p className="text-[11px] text-slate-400 mt-1">Used for OTP and courier tracking SMS</p>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-              Verified Email Address
-            </label>
-            <div className="relative">
-              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="email"
-                disabled
-                value={user?.email || 'customer@shopsphere.in'}
-                className="w-full h-11 pl-10 pr-4 bg-slate-100 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-500 font-mono cursor-not-allowed select-none"
-              />
-            </div>
-            <p className="text-[11px] text-slate-400 mt-1">
-              Primary login identifier bound to your authenticated account.
-            </p>
-          </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Gender
+                </label>
+                <select
+                  name="gender"
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  className="w-full h-11 px-3 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white cursor-pointer"
+                >
+                  <option value="Prefer not to say">Prefer not to say</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
 
-          <button
-            type="submit"
-            disabled={isLoadingProfile}
-            className="py-3 px-6 rounded-xl font-bold text-xs uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200 flex items-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-50"
-          >
-            {isLoadingProfile ? (
-              <span>Saving changes...</span>
-            ) : (
-              <>
-                <Save className="w-4 h-4" />
-                <span>Save Profile Changes</span>
-              </>
-            )}
-          </button>
-        </form>
-      </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Date of Birth <span className="text-slate-400 font-normal">(Optional)</span>
+                </label>
+                <input
+                  type="date"
+                  name="dateOfBirth"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  className="w-full h-11 pl-4 pr-4 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Verified Email Address
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="email"
+                  disabled
+                  value={user?.email || 'customer@shopsphere.in'}
+                  className="w-full h-11 pl-10 pr-4 bg-slate-100 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-500 font-mono cursor-not-allowed select-none"
+                />
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">
+                Primary login identifier bound to your authenticated account.
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoadingProfile}
+              className="py-3 px-6 rounded-xl font-bold text-xs uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200 flex items-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-50"
+            >
+              {isLoadingProfile ? (
+                <span>Saving changes...</span>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>Save Profile Changes</span>
+                </>
+              )}
+            </button>
+          </form>
+        </div>
 
       {/* 2. Security & Password Update Section */}
       <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs space-y-6">

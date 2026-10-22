@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -20,8 +20,10 @@ import {
   AlertCircle,
   Loader2,
   ShieldCheck,
+  Calendar,
 } from 'lucide-react';
 import { signUpAction } from '@/lib/auth/actions';
+import { registerPhoneVerifiedCustomerAction } from '@/lib/auth/phone-actions';
 import { useAuth } from '@/context/AuthContext';
 
 const INDIAN_STATES = [
@@ -44,23 +46,37 @@ const INDIAN_STATES = [
   'Other / International',
 ];
 
+const GENDER_OPTIONS = [
+  'Prefer not to say',
+  'Male',
+  'Female',
+  'Other',
+];
+
 function RegisterFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get('redirect') || '/account';
+  const queryPhone = searchParams.get('phone');
+  const isPhonePreVerified = Boolean(queryPhone);
+
   const { refreshUser } = useAuth();
 
-  // Personal Credentials
+  // Personal Information
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [countryCode, setCountryCode] = useState('+91');
-  const [phoneNumber, setPhoneNumber] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState(queryPhone || '');
+  const [gender, setGender] = useState('Prefer not to say');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   // Delivery Address
   const [street, setStreet] = useState('');
+  const [apartment, setApartment] = useState('');
+  const [landmark, setLandmark] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('Karnataka');
   const [postalCode, setPostalCode] = useState('');
@@ -110,23 +126,35 @@ function RegisterFormContent() {
     setValidationErrors({});
     setSuccessMessage(null);
 
-    const fullPhone = `${countryCode} ${phoneNumber}`.trim();
+    const fullPhone = isPhonePreVerified
+      ? phoneNumber
+      : `${countryCode} ${phoneNumber}`.trim();
 
     const formData = new FormData();
     formData.set('fullName', fullName);
     formData.set('email', email);
     formData.set('phone', fullPhone);
+    formData.set('gender', gender);
+    formData.set('dateOfBirth', dateOfBirth);
     formData.set('password', password);
     formData.set('confirmPassword', confirmPassword);
     formData.set('street', street);
+    formData.set('apartment', apartment);
+    formData.set('landmark', landmark);
     formData.set('city', city);
     formData.set('state', state);
     formData.set('postalCode', postalCode);
     formData.set('country', country);
+    formData.set('redirect', redirectUrl);
     formData.set('agreedToTerms', 'true');
 
     try {
-      const result = await signUpAction(formData);
+      let result;
+      if (isPhonePreVerified) {
+        result = await registerPhoneVerifiedCustomerAction(formData);
+      } else {
+        result = await signUpAction(formData);
+      }
 
       setIsLoading(false);
 
@@ -139,7 +167,7 @@ function RegisterFormContent() {
           setTimeout(() => {
             router.push(result.redirectTo || redirectUrl);
             router.refresh();
-          }, 1500);
+          }, 1200);
         }
       } else {
         if (result.errors) {
@@ -167,9 +195,27 @@ function RegisterFormContent() {
             Create Your Customer Account
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 max-w-md mx-auto">
-            Join ShopSphere for verified member pricing, fast checkout, and real-time order tracking.
+            Join ShopSphere for verified member pricing, fast checkout, reward points, and order tracking.
           </p>
         </div>
+
+        {/* Verified Phone Banner */}
+        {isPhonePreVerified && (
+          <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between text-xs sm:text-sm text-emerald-900 font-semibold">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+              <span>
+                Mobile Number Verified: <strong className="font-mono">{phoneNumber}</strong>
+              </span>
+            </div>
+            <Link
+              href="/auth/login"
+              className="text-xs text-indigo-600 hover:text-indigo-800 underline font-bold"
+            >
+              Change
+            </Link>
+          </div>
+        )}
 
         {/* Success Alert */}
         {successMessage && (
@@ -196,12 +242,12 @@ function RegisterFormContent() {
 
         {/* Registration Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Section 1: Personal Credentials */}
+          {/* Section 1: Personal Information */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-              <User className="w-4 h-4 text-indigo-600" />
-              <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                1. Account Credentials & Contact
+            <div className="border-b border-slate-100 pb-2">
+              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                <User className="w-4 h-4 text-indigo-600" />
+                <span>1. Personal Information</span>
               </h2>
             </div>
 
@@ -217,10 +263,10 @@ function RegisterFormContent() {
                     type="text"
                     name="fullName"
                     required
-                    placeholder="Rahul Sharma"
+                    placeholder="e.g. Rahul Sharma"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className={`w-full h-11 pl-10 pr-4 bg-slate-50 border rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all ${
+                    className={`w-full h-11 pl-10 pr-4 bg-slate-50 border rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all ${
                       validationErrors.fullName ? 'border-rose-400 bg-rose-50/20' : 'border-slate-300'
                     }`}
                   />
@@ -246,7 +292,7 @@ function RegisterFormContent() {
                     placeholder="name@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className={`w-full h-11 pl-10 pr-4 bg-slate-50 border rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all ${
+                    className={`w-full h-11 pl-10 pr-4 bg-slate-50 border rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all ${
                       validationErrors.email ? 'border-rose-400 bg-rose-50/20' : 'border-slate-300'
                     }`}
                   />
@@ -259,40 +305,60 @@ function RegisterFormContent() {
               </div>
             </div>
 
-            {/* Phone with Country Code */}
+            {/* Mobile Number */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Phone Number (with Country Code) <span className="text-rose-500">*</span>
-              </label>
-              <div className="flex gap-2">
-                <select
-                  value={countryCode}
-                  onChange={(e) => setCountryCode(e.target.value)}
-                  className="h-11 px-3 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white cursor-pointer"
-                >
-                  <option value="+91">🇮🇳 +91 (IN)</option>
-                  <option value="+1">🇺🇸 +1 (US)</option>
-                  <option value="+44">🇬🇧 +44 (UK)</option>
-                  <option value="+971">🇦🇪 +971 (UAE)</option>
-                  <option value="+65">🇸🇬 +65 (SG)</option>
-                  <option value="+61">🇦🇺 +61 (AU)</option>
-                </select>
-
-                <div className="relative flex-1">
-                  <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold text-slate-700">
+                  Mobile Number <span className="text-rose-500">*</span>
+                </label>
+                {isPhonePreVerified && (
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                    <span>Verified via OTP</span>
+                  </span>
+                )}
+              </div>
+              {isPhonePreVerified ? (
+                <div className="relative">
+                  <Phone className="w-4 h-4 text-emerald-600 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
-                    type="tel"
-                    name="phone"
-                    required
-                    placeholder="98765 43210"
+                    type="text"
+                    readOnly
                     value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    className={`w-full h-11 pl-10 pr-4 bg-slate-50 border rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all ${
-                      validationErrors.phone ? 'border-rose-400 bg-rose-50/20' : 'border-slate-300'
-                    }`}
+                    className="w-full h-11 pl-10 pr-4 bg-emerald-50/40 border border-emerald-300 rounded-xl text-xs sm:text-sm text-emerald-950 font-bold focus:outline-hidden cursor-not-allowed"
                   />
                 </div>
-              </div>
+              ) : (
+                <div className="flex gap-2">
+                  <select
+                    value={countryCode}
+                    onChange={(e) => setCountryCode(e.target.value)}
+                    className="h-11 px-3 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-900 font-semibold focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white cursor-pointer"
+                  >
+                    <option value="+91">🇮🇳 +91 (IN)</option>
+                    <option value="+1">🇺🇸 +1 (US)</option>
+                    <option value="+44">🇬🇧 +44 (UK)</option>
+                    <option value="+971">🇦🇪 +971 (UAE)</option>
+                    <option value="+65">🇸🇬 +65 (SG)</option>
+                    <option value="+61">🇦🇺 +61 (AU)</option>
+                  </select>
+
+                  <div className="relative flex-1">
+                    <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="tel"
+                      name="phone"
+                      required
+                      placeholder="98765 43210"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      className={`w-full h-11 pl-10 pr-4 bg-slate-50 border rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all ${
+                        validationErrors.phone ? 'border-rose-400 bg-rose-50/20' : 'border-slate-300'
+                      }`}
+                    />
+                  </div>
+                </div>
+              )}
               {validationErrors.phone && (
                 <p className="text-[11px] text-rose-600 mt-1 font-medium">
                   {validationErrors.phone}
@@ -300,112 +366,147 @@ function RegisterFormContent() {
               )}
             </div>
 
-            {/* Password & Confirm Password */}
+            {/* Gender and Date of Birth */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Password <span className="text-rose-500">*</span>
+                  Gender
                 </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    name="password"
-                    required
-                    minLength={8}
-                    placeholder="Min 8 chars, 1 letter, 1 number"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className={`w-full h-11 pl-10 pr-10 bg-slate-50 border rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all ${
-                      validationErrors.password ? 'border-rose-400 bg-rose-50/20' : 'border-slate-300'
-                    }`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-                {/* Strength Meter */}
-                {password && (
-                  <div className="mt-1.5 space-y-1">
-                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden flex gap-1">
-                      {[1, 2, 3, 4].map((step) => (
-                        <div
-                          key={step}
-                          className={`h-full flex-1 transition-all ${
-                            step <= strength.score ? strength.color : 'bg-slate-200'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <p className="text-[10px] text-slate-500 font-medium">{strength.label}</p>
-                  </div>
-                )}
-                {validationErrors.password && (
-                  <p className="text-[11px] text-rose-600 mt-1 font-medium">
-                    {validationErrors.password}
-                  </p>
-                )}
+                <select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  className="w-full h-11 px-3 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white cursor-pointer"
+                >
+                  {GENDER_OPTIONS.map((g) => (
+                    <option key={g} value={g}>
+                      {g}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Confirm Password <span className="text-rose-500">*</span>
+                  Date of Birth <span className="text-slate-400 font-normal">(Optional)</span>
                 </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <Calendar className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                   <input
-                    type={showPassword ? 'text' : 'password'}
-                    name="confirmPassword"
-                    required
-                    minLength={8}
-                    placeholder="Re-enter password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className={`w-full h-11 pl-10 pr-4 bg-slate-50 border rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all ${
-                      validationErrors.confirmPassword
-                        ? 'border-rose-400 bg-rose-50/20'
-                        : 'border-slate-300'
-                    }`}
+                    type="date"
+                    name="dateOfBirth"
+                    value={dateOfBirth}
+                    onChange={(e) => setDateOfBirth(e.target.value)}
+                    className="w-full h-11 pl-10 pr-4 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
                   />
                 </div>
-                {validationErrors.confirmPassword && (
-                  <p className="text-[11px] text-rose-600 mt-1 font-medium">
-                    {validationErrors.confirmPassword}
-                  </p>
-                )}
               </div>
             </div>
+
+            {/* Password (Optional if Phone verified) */}
+            {!isPhonePreVerified && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Password <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      name="password"
+                      required
+                      minLength={8}
+                      placeholder="Min 8 chars"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className={`w-full h-11 pl-10 pr-10 bg-slate-50 border rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all ${
+                        validationErrors.password ? 'border-rose-400 bg-rose-50/20' : 'border-slate-300'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {password && (
+                    <div className="mt-1.5 space-y-1">
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden flex gap-1">
+                        {[1, 2, 3, 4].map((step) => (
+                          <div
+                            key={step}
+                            className={`h-full flex-1 transition-all ${
+                              step <= strength.score ? strength.color : 'bg-slate-200'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-slate-500 font-medium">{strength.label}</p>
+                    </div>
+                  )}
+                  {validationErrors.password && (
+                    <p className="text-[11px] text-rose-600 mt-1 font-medium">
+                      {validationErrors.password}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Confirm Password <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      name="confirmPassword"
+                      required
+                      placeholder="Confirm password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className={`w-full h-11 pl-10 pr-4 bg-slate-50 border rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all ${
+                        validationErrors.confirmPassword
+                          ? 'border-rose-400 bg-rose-50/20'
+                          : 'border-slate-300'
+                      }`}
+                    />
+                  </div>
+                  {validationErrors.confirmPassword && (
+                    <p className="text-[11px] text-rose-600 mt-1 font-medium">
+                      {validationErrors.confirmPassword}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Section 2: Primary Delivery Address */}
+          {/* Section 2: Delivery Address */}
           <div className="space-y-4 pt-2">
-            <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-              <Home className="w-4 h-4 text-indigo-600" />
-              <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                2. Default Delivery Address
+            <div className="border-b border-slate-100 pb-2">
+              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-indigo-600" />
+                <span>2. Default Delivery Address</span>
               </h2>
             </div>
 
-            {/* Address Line / Street */}
+            {/* Address Line 1 */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Address Line (House / Flat, Street, Area) <span className="text-rose-500">*</span>
+                Address Line 1 (House No., Building, Street) <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
-                <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Home className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text"
                   name="street"
                   required
-                  placeholder="Flat 402, Royal Residency, MG Road"
+                  placeholder="e.g. 42, Brigade Road"
                   value={street}
                   onChange={(e) => setStreet(e.target.value)}
-                  className={`w-full h-11 pl-10 pr-4 bg-slate-50 border rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all ${
+                  className={`w-full h-11 pl-10 pr-4 bg-slate-50 border rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all ${
                     validationErrors.street ? 'border-rose-400 bg-rose-50/20' : 'border-slate-300'
                   }`}
                 />
@@ -417,11 +518,42 @@ function RegisterFormContent() {
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {/* City */}
+            {/* Address Line 2 & Landmark */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  City <span className="text-rose-500">*</span>
+                  Address Line 2 <span className="text-slate-400 font-normal">(Optional)</span>
+                </label>
+                <input
+                  type="text"
+                  name="apartment"
+                  placeholder="Flat, Floor, Building Name"
+                  value={apartment}
+                  onChange={(e) => setApartment(e.target.value)}
+                  className="w-full h-11 px-4 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Landmark <span className="text-slate-400 font-normal">(Optional)</span>
+                </label>
+                <input
+                  type="text"
+                  name="landmark"
+                  placeholder="Near Metro, Temple, Park"
+                  value={landmark}
+                  onChange={(e) => setLandmark(e.target.value)}
+                  className="w-full h-11 px-4 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
+                />
+              </div>
+            </div>
+
+            {/* City, State, PIN Code, Country */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  City / District <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
                   <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -429,10 +561,10 @@ function RegisterFormContent() {
                     type="text"
                     name="city"
                     required
-                    placeholder="Bengaluru"
+                    placeholder="e.g. Bengaluru"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    className={`w-full h-11 pl-10 pr-4 bg-slate-50 border rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all ${
+                    className={`w-full h-11 pl-10 pr-4 bg-slate-50 border rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all ${
                       validationErrors.city ? 'border-rose-400 bg-rose-50/20' : 'border-slate-300'
                     }`}
                   />
@@ -444,39 +576,37 @@ function RegisterFormContent() {
                 )}
               </div>
 
-              {/* State */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
                   State <span className="text-rose-500">*</span>
                 </label>
                 <select
                   name="state"
-                  required
                   value={state}
                   onChange={(e) => setState(e.target.value)}
-                  className="w-full h-11 px-3 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white cursor-pointer font-medium"
+                  className="w-full h-11 px-3 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-900 font-semibold focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white cursor-pointer"
                 >
-                  {INDIAN_STATES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
+                  {INDIAN_STATES.map((st) => (
+                    <option key={st} value={st}>
+                      {st}
                     </option>
                   ))}
                 </select>
               </div>
 
-              {/* Postal / PIN Code */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Postal PIN Code <span className="text-rose-500">*</span>
+                  PIN Code / Postal Code <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   name="postalCode"
                   required
-                  placeholder="560001"
+                  placeholder="e.g. 560001 (6 digits)"
+                  maxLength={6}
                   value={postalCode}
-                  onChange={(e) => setPostalCode(e.target.value)}
-                  className={`w-full h-11 px-4 bg-slate-50 border rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all ${
+                  onChange={(e) => setPostalCode(e.target.value.replace(/\D/g, ''))}
+                  className={`w-full h-11 px-4 bg-slate-50 border rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all ${
                     validationErrors.postalCode
                       ? 'border-rose-400 bg-rose-50/20'
                       : 'border-slate-300'
@@ -488,55 +618,42 @@ function RegisterFormContent() {
                   </p>
                 )}
               </div>
-            </div>
 
-            {/* Country */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Country
-              </label>
-              <div className="relative">
-                <Globe className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input
-                  type="text"
-                  name="country"
-                  readOnly
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                  className="w-full h-11 pl-10 pr-4 bg-slate-100 border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-700 font-medium cursor-not-allowed"
-                />
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Country</label>
+                <div className="relative">
+                  <Globe className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    name="country"
+                    readOnly
+                    value={country}
+                    className="w-full h-11 pl-10 pr-4 bg-slate-100 border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-700 font-bold focus:outline-hidden cursor-not-allowed"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Terms & Privacy Consent */}
+          {/* Terms & Conditions */}
           <div className="pt-2">
-            <label className="flex items-start gap-3 text-xs text-slate-600 cursor-pointer select-none">
+            <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="checkbox"
-                required
                 checked={agreedToTerms}
                 onChange={(e) => setAgreedToTerms(e.target.checked)}
-                className="mt-0.5 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                className="w-4 h-4 mt-0.5 rounded text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer"
               />
-              <span className="leading-relaxed">
+              <span className="text-xs text-slate-600 leading-relaxed">
                 I agree to the ShopSphere{' '}
-                <Link
-                  href="/terms"
-                  target="_blank"
-                  className="font-bold text-indigo-600 hover:underline"
-                >
+                <Link href="/terms" className="text-indigo-600 underline font-semibold">
                   Terms of Service
                 </Link>{' '}
                 and{' '}
-                <Link
-                  href="/privacy"
-                  target="_blank"
-                  className="font-bold text-indigo-600 hover:underline"
-                >
+                <Link href="/privacy" className="text-indigo-600 underline font-semibold">
                   Privacy Policy
                 </Link>
-                . I consent to receiving essential order status notifications.
+                , and consent to receiving order updates on my mobile number and email.
               </span>
             </label>
           </div>
@@ -545,12 +662,12 @@ function RegisterFormContent() {
           <button
             type="submit"
             disabled={isLoading || !agreedToTerms}
-            className="w-full py-4 px-6 rounded-2xl font-black text-xs uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs sm:text-sm rounded-xl transition-all shadow-md shadow-indigo-100 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Creating Account & Securing Profile...</span>
+                <span>Creating Your Account...</span>
               </>
             ) : (
               <>
@@ -559,27 +676,17 @@ function RegisterFormContent() {
               </>
             )}
           </button>
-
-          {/* Security Notice */}
-          <div className="flex items-center justify-center gap-2 text-[11px] text-slate-500 pt-1">
-            <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-            <span>256-Bit SSL Encrypted & Zero-Knowledge Credential Security</span>
-          </div>
         </form>
 
-        {/* Footer Navigation */}
-        <div className="pt-6 border-t border-slate-100 text-center space-y-2">
-          <p className="text-xs text-slate-600">
-            Already have a registered account?{' '}
+        {/* Existing Member Footer */}
+        <div className="pt-4 border-t border-slate-100 text-center">
+          <p className="text-xs text-slate-500">
+            Already have a ShopSphere account?{' '}
             <Link
-              href={
-                redirectUrl && redirectUrl !== '/account'
-                  ? `/auth/login?redirect=${encodeURIComponent(redirectUrl)}`
-                  : '/auth/login'
-              }
-              className="font-bold text-indigo-600 hover:underline"
+              href={`/auth/login?redirect=${encodeURIComponent(redirectUrl)}`}
+              className="font-bold text-indigo-600 hover:text-indigo-800"
             >
-              Sign In here &rarr;
+              Sign In Instead
             </Link>
           </p>
         </div>
@@ -592,8 +699,8 @@ export default function RegisterPage() {
   return (
     <Suspense
       fallback={
-        <div className="py-16 text-center text-xs text-slate-500">
-          Loading Registration Form...
+        <div className="py-24 text-center">
+          <div className="inline-block w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
         </div>
       }
     >
