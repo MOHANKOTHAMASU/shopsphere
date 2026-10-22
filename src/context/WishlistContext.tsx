@@ -30,7 +30,8 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (saved) {
-        setItems(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        queueMicrotask(() => setItems(parsed));
       }
     } catch {
       // ignore JSON errors

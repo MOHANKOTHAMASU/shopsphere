@@ -96,6 +96,8 @@ async function runSecurityAudit() {
   const orderRes = await createOrderAction({
     items: [{ productId: 'prod-elec-001', quantity: 1 }],
     shippingAddress: {
+      id: 'addr-a1',
+      userId: customerA.id,
       fullName: 'Customer Alpha',
       phone: '+91 98765 00001',
       street: 'Alpha Street 1',
@@ -151,21 +153,21 @@ async function runSecurityAudit() {
   const orderDetailsAttempt = await getOrderDetailsAction(customerA_OrderId);
   report(
     'Customer B is strictly BLOCKED from viewing Customer A order details',
-    !orderDetailsAttempt.success && orderDetailsAttempt.error?.includes('Unauthorized')
+    !orderDetailsAttempt.success && Boolean(orderDetailsAttempt.error?.includes('Unauthorized'))
   );
 
   // Customer B attempts to directly delete Customer A's address
   const deleteAddrAttempt = await deleteAddressAction(customerA_AddressId);
   report(
     'Customer B is strictly BLOCKED from deleting Customer A delivery address',
-    !deleteAddrAttempt.success && deleteAddrAttempt.error?.includes('Unauthorized')
+    !deleteAddrAttempt.success && Boolean(deleteAddrAttempt.error?.includes('Unauthorized'))
   );
 
   // Customer B attempts to directly cancel Customer A's order
   const cancelOrderAttempt = await cancelOrderAction(customerA_OrderId, 'Malicious cancel attempt');
   report(
     'Customer B is strictly BLOCKED from cancelling Customer A order',
-    !cancelOrderAttempt.success && cancelOrderAttempt.error?.includes('Unauthorized')
+    !cancelOrderAttempt.success && Boolean(cancelOrderAttempt.error?.includes('Unauthorized'))
   );
 
   // --- 5. Customer Blocked from Admin Privileges ---

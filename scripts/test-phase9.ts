@@ -126,6 +126,7 @@ async function runPhase9Audit() {
   const auditSku = `AUDIT-SKU-${Date.now().toString().slice(-6)}`;
   const createProdRes = await createProductAction({
     title: 'Audit Audio Pro Headphones',
+    brand: 'ShopSphere Audio',
     sku: auditSku,
     price: 4999,
     compareAtPrice: 6999,
@@ -140,6 +141,7 @@ async function runPhase9Audit() {
   // Duplicate SKU prevention
   const dupSkuRes = await createProductAction({
     title: 'Duplicate SKU Headphone',
+    brand: 'ShopSphere Audio',
     sku: auditSku,
     price: 3999,
     stockQuantity: 10,
@@ -206,10 +208,11 @@ async function runPhase9Audit() {
       {
         productId: targetProd.id,
         quantity: 99999,
-        unitPrice: targetProd.price,
       },
     ],
     shippingAddress: {
+      id: 'addr-test-1',
+      userId: 'usr-test-1',
       fullName: 'Rahul Verma',
       phone: '+91 98765 43210',
       street: '42 Brigade Road',
@@ -217,6 +220,8 @@ async function runPhase9Audit() {
       state: 'Karnataka',
       postalCode: '560001',
       country: 'India',
+      isDefault: true,
+      type: 'Home',
     },
     paymentMethod: 'cod',
   });
@@ -248,10 +253,11 @@ async function runPhase9Audit() {
       {
         productId: targetProd.id,
         quantity: 1,
-        unitPrice: targetProd.price,
       },
     ],
     shippingAddress: {
+      id: 'addr-test-2',
+      userId: 'usr-test-2',
       fullName: 'Vikram Joshi',
       phone: '+91 98765 11223',
       street: '101 MG Road',
@@ -259,6 +265,8 @@ async function runPhase9Audit() {
       state: 'Maharashtra',
       postalCode: '400001',
       country: 'India',
+      isDefault: true,
+      type: 'Home',
     },
     paymentMethod: 'cod',
     couponCode: 'SHOPSPHERE10',
@@ -274,10 +282,11 @@ async function runPhase9Audit() {
         {
           productId: targetProd.id,
           quantity: 1,
-          unitPrice: targetProd.price,
         },
       ],
       shippingAddress: {
+        id: 'addr-test-3',
+        userId: 'usr-test-3',
         fullName: 'Vikram Joshi',
         phone: '+91 98765 11223',
         street: '101 MG Road',
@@ -285,6 +294,8 @@ async function runPhase9Audit() {
         state: 'Maharashtra',
         postalCode: '400001',
         country: 'India',
+        isDefault: true,
+        type: 'Home',
       },
       paymentMethod: 'cod',
       idempotencyKey: orderIdempotencyKey,

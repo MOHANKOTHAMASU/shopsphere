@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import {
   ShoppingCart,
@@ -23,19 +23,17 @@ import { formatCurrency } from '@/lib/utils';
 import { MobileDrawer } from './MobileDrawer';
 import { SearchAutocomplete } from '@/components/common/SearchAutocomplete';
 
+const emptySubscribe = () => () => {};
+
 export function Header() {
   const { user, profile, signOut } = useAuth();
   const { totalItems, subtotal } = useCart();
   const { totalWishlistItems } = useWishlist();
 
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(emptySubscribe, () => true, () => false);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
   const firstName = displayName.split(' ')[0];

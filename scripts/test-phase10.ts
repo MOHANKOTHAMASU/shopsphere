@@ -122,9 +122,12 @@ async function runPhase10Tests() {
   // 6. Stock limits are enforced
   // ---------------------------------------------------------------------------
   console.log('\n--- Criterion 6: Strict Stock Limits & Overselling Prevention ---');
+  await setDemoUserSession(DEMO_USERS.customer);
   const lowStock = memoryProducts.find((p) => p.stockQuantity > 0 && p.stockQuantity <= 5)!;
   const oversellRes = await createOrderAction({
     shippingAddress: {
+      id: 'addr-p10-1',
+      userId: 'usr-p10-1',
       fullName: 'Test Buyer',
       phone: '+91 9876543210',
       street: '123 Test Road',
@@ -132,12 +135,14 @@ async function runPhase10Tests() {
       state: 'Karnataka',
       postalCode: '560001',
       country: 'India',
+      isDefault: true,
+      type: 'Home',
     },
     paymentMethod: 'cod',
-    items: [{ productId: lowStock.id, quantity: lowStock.stockQuantity + 10 }],
+    items: [{ productId: lowStock.id, quantity: 99999 }],
   });
   assert(
-    oversellRes.success === false && oversellRes.error?.includes('Insufficient stock'),
+    oversellRes.success === false && Boolean(oversellRes.error?.includes('Insufficient stock')),
     'Oversell order is blocked on the server with clear insufficient stock message'
   );
 
@@ -166,6 +171,8 @@ async function runPhase10Tests() {
   const orderRes = await createOrderAction({
     idempotencyKey: `idem-phase10-${Date.now()}`,
     shippingAddress: {
+      id: 'addr-p10-2',
+      userId: 'usr-p10-2',
       fullName: 'Rahul Sharma',
       phone: '+91 98765 43210',
       street: 'MG Road, Indiranagar',
@@ -173,6 +180,8 @@ async function runPhase10Tests() {
       state: 'Karnataka',
       postalCode: '560038',
       country: 'India',
+      isDefault: true,
+      type: 'Home',
     },
     paymentMethod: 'cod',
     items: [{ productId: purchaseItem.id, quantity: 2 }],
@@ -240,6 +249,8 @@ async function runPhase10Tests() {
   // Customer 1 buys the remaining stock
   const cust1Order = await createOrderAction({
     shippingAddress: {
+      id: 'addr-p10-3',
+      userId: 'usr-p10-3',
       fullName: 'Customer One',
       phone: '+91 99999 11111',
       street: 'Lane 1',
@@ -247,6 +258,8 @@ async function runPhase10Tests() {
       state: 'Delhi',
       postalCode: '110001',
       country: 'India',
+      isDefault: true,
+      type: 'Home',
     },
     paymentMethod: 'cod',
     items: [{ productId: limitedItem.id, quantity: remainingStock }],
@@ -257,6 +270,8 @@ async function runPhase10Tests() {
   // Customer 2 tries to buy from now-depleted stock
   const cust2Order = await createOrderAction({
     shippingAddress: {
+      id: 'addr-p10-4',
+      userId: 'usr-p10-4',
       fullName: 'Customer Two',
       phone: '+91 99999 22222',
       street: 'Lane 2',
@@ -264,6 +279,8 @@ async function runPhase10Tests() {
       state: 'Delhi',
       postalCode: '110001',
       country: 'India',
+      isDefault: true,
+      type: 'Home',
     },
     paymentMethod: 'cod',
     items: [{ productId: limitedItem.id, quantity: 1 }],
@@ -305,7 +322,7 @@ async function runPhase10Tests() {
   console.log('\n--- Criterion 16: Admin Login Authentication & Redirection ---');
   const adminFormData = new FormData();
   adminFormData.append('email', 'kmvsubbarao28@gmail.com');
-  adminFormData.append('password', 'AdminPass123!');
+  adminFormData.append('password', 'Admin@123');
   adminFormData.append('redirect', '/admin/dashboard');
   adminFormData.append('role', 'admin');
 
