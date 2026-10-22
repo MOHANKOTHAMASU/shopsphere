@@ -33,15 +33,22 @@ function LoginFormContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [resendStatus, setResendStatus] = useState<string | null>(null);
+  const isLoggedOut = searchParams.get('logout') === 'success';
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [errorMessage, setErrorMessage] = useState<string | null>(
     authErrorCode === 'account-suspended'
       ? 'Your account has been suspended. Please contact customer support for assistance.'
       : authErrorCode === 'auth-code-error'
       ? 'Email confirmation or authorization code expired. Please sign in again.'
+      : authErrorCode === 'session-expired'
+      ? 'Your session has expired. Please sign in again to continue.'
+      : authErrorCode === 'admin-required'
+      ? 'Administrative privileges are required to access that area. Please sign in with an admin account.'
       : null
   );
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(
+    isLoggedOut ? 'You have been signed out successfully. Enter your credentials to sign back in.' : null
+  );
 
   const handleResendVerification = async () => {
     if (!email) {

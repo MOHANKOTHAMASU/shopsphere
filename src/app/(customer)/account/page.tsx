@@ -64,7 +64,7 @@ export default function AccountOverviewPage() {
   const handleSignOut = async () => {
     setIsSigningOut(true);
     await signOutAction();
-    router.push('/');
+    router.push('/auth/login?logout=success');
     router.refresh();
   };
 

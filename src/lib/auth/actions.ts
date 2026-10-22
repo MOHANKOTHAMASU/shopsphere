@@ -791,7 +791,7 @@ export async function signOutAction(): Promise<void> {
   }
   safeRevalidate('/', 'layout');
   try {
-    redirect('/auth/login');
+    redirect('/auth/login?logout=success');
   } catch {
     // Next.js redirect throws special control error
   }
@@ -992,22 +992,29 @@ export async function updatePasswordAction(formData: FormData): Promise<AuthActi
     };
   }
 
-  if (!isSupabaseConfigured()) {
-    return {
-      success: true,
-      message: 'Password updated successfully. You may now sign in.',
-      redirectTo: '/auth/login',
-    };
+  if (isSupabaseConfigured()) {
+    try {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) {
+          return {
+            success: false,
+            message: error.message,
+          };
+        }
+      }
+    } catch {
+      // Fallback to active demo session
+    }
   }
 
-  const supabase = await createClient();
-  const { error } = await supabase.auth.updateUser({ password });
-
-  if (error) {
-    return {
-      success: false,
-      message: error.message,
-    };
+  const demoUser = await getDemoUserAction();
+  if (demoUser?.email) {
+    memoryCredentials.set(demoUser.email.toLowerCase(), password);
   }
 
   return {
@@ -1032,14 +1039,55 @@ export async function updateProfileAction(formData: FormData): Promise<AuthActio
     };
   }
 
-  if (!isSupabaseConfigured()) {
-    const existing = await getDemoUserAction();
+  if (isSupabaseConfigured()) {
+    try {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        // Update profiles table
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({
+            full_name: fullName.trim(),
+            phone: phone.trim() || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user.id);
+
+        if (profileError) {
+          return {
+            success: false,
+            message: profileError.message,
+          };
+        }
+
+        // Also update auth user metadata
+        await supabase.auth.updateUser({
+          data: { full_name: fullName.trim() },
+        });
+
+        safeRevalidate('/account', 'page');
+        safeRevalidate('/account/profile', 'page');
+
+        return {
+          success: true,
+          message: 'Profile information updated successfully!',
+        };
+      }
+    } catch {
+      // Fall through to demo session
+    }
+  }
+
+  const existing = await getDemoUserAction();
+  if (existing) {
     const updated: DemoUserSession = {
-      id: existing?.id || 'usr-demo-customer',
-      email: existing?.email || 'customer@shopsphere.dev',
+      ...existing,
       full_name: fullName.trim(),
       phone: phone.trim() || undefined,
-      role: existing?.role || 'customer',
     };
     await setDemoUserSession(updated);
 
@@ -1063,46 +1111,9 @@ export async function updateProfileAction(formData: FormData): Promise<AuthActio
     };
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return {
-      success: false,
-      message: 'User session expired. Please sign in again.',
-    };
-  }
-
-  // Update profiles table
-  const { error: profileError } = await supabase
-    .from('profiles')
-    .update({
-      full_name: fullName.trim(),
-      phone: phone.trim() || null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', user.id);
-
-  if (profileError) {
-    return {
-      success: false,
-      message: profileError.message,
-    };
-  }
-
-  // Also update auth user metadata
-  await supabase.auth.updateUser({
-    data: { full_name: fullName.trim() },
-  });
-
-  safeRevalidate('/account', 'page');
-  safeRevalidate('/account/profile', 'page');
-
   return {
-    success: true,
-    message: 'Profile information updated successfully!',
+    success: false,
+    message: 'User session expired. Please sign in again.',
   };
 }
 

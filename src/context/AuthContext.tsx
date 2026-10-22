@@ -227,7 +227,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setProfile(null);
     setIsLoading(false);
-    router.push('/');
+    router.push('/auth/login?logout=success');
     router.refresh();
   };
 
