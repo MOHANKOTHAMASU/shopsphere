@@ -157,6 +157,23 @@ export async function createOrderAction(payload: {
   if (!caller) {
     return { success: false, error: 'Authentication required. Please sign in to place an order.' };
   }
+
+  // Account Status Check: Restricted/suspended accounts cannot place orders
+  if (caller.status === 'suspended') {
+    return {
+      success: false,
+      error: 'Forbidden: Your account has been suspended. Please contact customer support.',
+    };
+  }
+
+  // Email Verification Check: Unverified accounts cannot place orders
+  if (caller.role !== 'admin' && !caller.isVerified) {
+    return {
+      success: false,
+      error: 'Please verify your email address before continuing.',
+    };
+  }
+
   const userId = caller.userId;
   let supabaseClient: SupabaseServerClient | null = null;
 
@@ -444,6 +461,14 @@ export async function getCustomerOrdersAction(): Promise<{
     return { success: false, orders: [], error: 'Authentication required to view order history.' };
   }
 
+  if (caller.status === 'suspended') {
+    return {
+      success: false,
+      orders: [],
+      error: 'Forbidden: Your account has been suspended. Please contact customer support.',
+    };
+  }
+
   if (isSupabaseConfigured()) {
     try {
       const supabase = await createClient();
@@ -616,6 +641,13 @@ export async function cancelOrderAction(
   const caller = await getAuthenticatedCaller();
   if (!caller) {
     return { success: false, error: 'Authentication required to cancel orders.' };
+  }
+
+  if (caller.status === 'suspended') {
+    return {
+      success: false,
+      error: 'Forbidden: Your account has been suspended. Please contact customer support.',
+    };
   }
 
   // Check memory store

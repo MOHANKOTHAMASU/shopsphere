@@ -12,8 +12,9 @@ import {
   ArrowRight,
   CheckCircle,
   AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
-import { signInAction } from '@/lib/auth/actions';
+import { signInAction, resendVerificationEmailAction } from '@/lib/auth/actions';
 import { useAuth } from '@/context/AuthContext';
 
 function LoginFormContent() {
@@ -28,18 +29,40 @@ function LoginFormContent() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [resendStatus, setResendStatus] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(
-    authErrorCode === 'auth-code-error'
+    authErrorCode === 'account-suspended'
+      ? 'Your account has been suspended. Please contact customer support for assistance.'
+      : authErrorCode === 'auth-code-error'
       ? 'Email confirmation or authorization code expired. Please sign in again.'
       : null
   );
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const handleResendVerification = async () => {
+    if (!email) {
+      setResendStatus('Please enter your registered email address in the field below first.');
+      return;
+    }
+    setIsResending(true);
+    setResendStatus(null);
+    try {
+      const res = await resendVerificationEmailAction(email);
+      setResendStatus(res.message || 'Verification email resent! Please check your inbox.');
+    } catch {
+      setResendStatus('Unable to resend verification email. Please try again later.');
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMessage(null);
     setSuccessMessage(null);
+    setResendStatus(null);
 
     const formData = new FormData(e.currentTarget);
     formData.set('redirect', redirectUrl);
@@ -78,23 +101,39 @@ function LoginFormContent() {
 
         {/* Error Alert */}
         {errorMessage && (
-          <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl space-y-2">
+          <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl space-y-2.5">
             <div className="flex items-start gap-2 text-xs text-rose-800 font-semibold">
               <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
               <span>{errorMessage}</span>
             </div>
             {errorMessage.toLowerCase().includes('verify') && (
-              <div className="text-[11px] text-rose-700 bg-rose-100/60 p-2.5 rounded-lg font-normal leading-relaxed space-y-1.5">
+              <div className="text-[11px] text-rose-700 bg-rose-100/60 p-3 rounded-xl font-normal leading-relaxed space-y-2.5">
                 <p>
-                  💡 <strong>Delivery Notice:</strong> If email verification is delayed by provider quota limits, you can verify your account and set a new password instantly using our 6-digit OTP code.
+                  Please verify your email address to unlock account access and protected features.
                 </p>
-                <Link
-                  href="/auth/forgot-password"
-                  className="text-indigo-700 font-bold hover:underline inline-flex items-center gap-1"
-                >
-                  <span>Verify and reset via 6-digit OTP</span>
-                  <ArrowRight className="w-3 h-3" />
-                </Link>
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={isResending}
+                    className="px-3 py-1.5 bg-rose-700 hover:bg-rose-800 text-white rounded-lg font-bold text-[11px] transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${isResending ? 'animate-spin' : ''}`} />
+                    <span>{isResending ? 'Resending...' : 'Resend Verification Email'}</span>
+                  </button>
+                  <Link
+                    href="/auth/forgot-password"
+                    className="px-3 py-1.5 bg-white text-indigo-700 border border-indigo-200 hover:bg-indigo-50 rounded-lg font-bold text-[11px] transition-colors inline-flex items-center gap-1"
+                  >
+                    <span>Verify with 6-Digit OTP</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </Link>
+                </div>
+                {resendStatus && (
+                  <p className="text-[11px] font-semibold text-slate-800 bg-white/80 p-2 rounded-lg border border-rose-200">
+                    {resendStatus}
+                  </p>
+                )}
               </div>
             )}
           </div>

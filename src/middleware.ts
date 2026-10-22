@@ -144,6 +144,23 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
+  // Check account suspension status for protected routes
+  const isSuspended =
+    demoUser?.status === 'suspended' ||
+    Boolean(
+      (user as unknown as { banned_until?: string })?.banned_until &&
+        new Date((user as unknown as { banned_until: string }).banned_until) > new Date()
+    );
+
+  if (authenticatedUser && isSuspended) {
+    const redirectUrl = new URL('/auth/login', request.url);
+    redirectUrl.searchParams.set('error', 'account-suspended');
+    const redirectResponse = NextResponse.redirect(redirectUrl);
+    redirectResponse.cookies.delete('shopsphere_demo_session');
+    applySecurityHeaders(redirectResponse);
+    return redirectResponse;
+  }
+
   // 4. Default Deny: ALL other pages require an authenticated session
   // (Includes storefront homepage '/', '/products', '/cart', '/checkout', '/account', '/track', '/wishlist')
   if (!authenticatedUser) {

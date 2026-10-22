@@ -111,6 +111,20 @@ export const memoryCustomers: CustomerSummary[] = [
     createdAt: new Date(Date.now() - 3600000 * 8).toISOString(), // Registered today!
   },
   {
+    id: 'usr-customer-04',
+    fullName: 'Ananya Verma',
+    email: 'ananya.suspended@example.com',
+    maskedEmail: 'a*****.s*****@example.com',
+    phone: '+91 99887 76655',
+    role: 'customer',
+    ordersCount: 0,
+    totalSpent: 0,
+    status: 'suspended', // Restricted / suspended account
+    isVerified: true,
+    lastOrderDate: new Date(Date.now() - 3600000 * 24 * 10).toISOString(),
+    createdAt: new Date(Date.now() - 3600000 * 24 * 15).toISOString(),
+  },
+  {
     id: 'usr-demo-customer',
     fullName: 'Rahul Sharma (Demo)',
     email: 'customer@shopsphere.dev',
@@ -162,10 +176,18 @@ export const memoryCredentials: Map<string, string> = new Map([
   ['customer@shopsphere.dev', 'Customer@123'],
   ['admin@shopsphere.dev', 'Admin@123'],
   ['kmvsubbarao28@gmail.com', 'Admin@123'],
+  ['vikram.j@example.com', 'Customer@123'],
+  ['ananya.suspended@example.com', 'Suspended@123'],
 ]);
 
 // Active Password Reset OTP Store: email -> { otp, expiresAt, email }
 export const memoryResetOtps: Map<string, { otp: string; expiresAt: number; email: string }> =
   new Map();
+
+// Active Email Verification Tokens Store: email -> { token, expiresAt, email }
+export const memoryVerificationTokens: Map<
+  string,
+  { token: string; expiresAt: number; email: string }
+> = new Map();
 
 

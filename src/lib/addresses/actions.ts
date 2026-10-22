@@ -85,6 +85,13 @@ export async function saveAddressAction(addressData: {
     return { success: false, error: 'Authentication required to save delivery addresses.' };
   }
 
+  if (caller.status === 'suspended') {
+    return {
+      success: false,
+      error: 'Forbidden: Your account has been suspended. Please contact customer support.',
+    };
+  }
+
   if (
     !addressData.fullName ||
     !addressData.phone ||
@@ -253,6 +260,13 @@ export async function deleteAddressAction(addressId: string): Promise<{ success:
   const caller = await getAuthenticatedCaller();
   if (!caller) {
     return { success: false, error: 'Authentication required to delete addresses.' };
+  }
+
+  if (caller.status === 'suspended') {
+    return {
+      success: false,
+      error: 'Forbidden: Your account has been suspended. Please contact customer support.',
+    };
   }
 
   if (isSupabaseConfigured()) {
