@@ -16,8 +16,12 @@ import {
   Truck,
   RotateCcw,
   Layers,
+  Heart,
+  Bookmark,
+  ArrowLeft,
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useWishlist } from '@/context/WishlistContext';
 import { formatCurrency } from '@/lib/utils';
 
 export default function CartPage() {
@@ -35,6 +39,12 @@ export default function CartPage() {
     clearWarnings,
     isLoading,
   } = useCart();
+  const { toggleWishlist } = useWishlist();
+
+  const handleMoveToWishlist = (product: typeof items[0]['product'], itemId: string) => {
+    toggleWishlist(product);
+    removeFromCart(itemId);
+  };
 
   const [couponCode, setCouponCode] = useState('');
   const [couponDiscount, setCouponDiscount] = useState<number>(0);
@@ -244,6 +254,12 @@ export default function CartPage() {
                       )}
                     </div>
 
+                    {/* Delivery Estimate per Item */}
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500 pt-0.5">
+                      <Truck className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                      <span>Estimated delivery in 2–3 days</span>
+                    </div>
+
                     {/* Stock note */}
                     {item.maxStock <= 5 && item.maxStock > 0 && (
                       <span className="text-[10px] font-bold text-amber-600 block">
@@ -253,38 +269,53 @@ export default function CartPage() {
                   </div>
                 </div>
 
-                {/* Quantity Controls & Item Subtotal */}
-                <div className="flex items-center justify-between w-full sm:w-auto gap-6 sm:gap-8 self-end sm:self-center pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
-                  {/* Quantity Stepper */}
-                  <div className="flex items-center border border-slate-300 rounded-xl bg-slate-50 overflow-hidden shadow-2xs">
-                    <button
-                      onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                      className="w-8 h-8 flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
-                      aria-label="Decrease quantity"
-                    >
-                      <Minus className="w-3.5 h-3.5" />
-                    </button>
-                    <span className="w-10 text-center font-bold text-xs text-slate-900 select-none font-mono">
-                      {item.quantity}
-                    </span>
-                    <button
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      disabled={isNearMaxStock}
-                      className="w-8 h-8 flex items-center justify-center text-slate-600 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                      aria-label="Increase quantity"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                    </button>
+                {/* Quantity Controls, Item Subtotal & Actions */}
+                <div className="flex flex-col sm:items-end justify-between w-full sm:w-auto gap-3 self-end sm:self-center pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                  <div className="flex items-center justify-between w-full sm:w-auto gap-6 sm:gap-8">
+                    {/* Quantity Stepper */}
+                    <div className="flex items-center border border-slate-300 rounded-xl bg-slate-50 overflow-hidden shadow-2xs">
+                      <button
+                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        className="w-8 h-8 flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
+                        aria-label="Decrease quantity"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="w-10 text-center font-bold text-xs text-slate-900 select-none font-mono">
+                        {item.quantity}
+                      </span>
+                      <button
+                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        disabled={isNearMaxStock}
+                        className="w-8 h-8 flex items-center justify-center text-slate-600 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                        aria-label="Increase quantity"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    {/* Line Total */}
+                    <div className="text-right">
+                      <p className="text-sm sm:text-base font-black text-slate-900 font-mono">
+                        {formatCurrency(itemTotal)}
+                      </p>
+                    </div>
                   </div>
 
-                  {/* Line Total */}
-                  <div className="text-right">
-                    <p className="text-sm sm:text-base font-black text-slate-900 font-mono">
-                      {formatCurrency(itemTotal)}
-                    </p>
+                  {/* Move to Wishlist & Remove Buttons */}
+                  <div className="flex items-center justify-end gap-3 text-xs w-full">
+                    <button
+                      onClick={() => handleMoveToWishlist(product, item.id)}
+                      className="text-[11px] text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 cursor-pointer"
+                      title="Move item to Wishlist"
+                    >
+                      <Heart className="w-3 h-3 text-rose-500" />
+                      <span>Move to Wishlist</span>
+                    </button>
+                    <span className="text-slate-300">•</span>
                     <button
                       onClick={() => removeFromCart(item.id)}
-                      className="text-[11px] text-rose-500 hover:text-rose-700 font-semibold transition-colors mt-0.5 cursor-pointer flex items-center gap-1 justify-end ml-auto"
+                      className="text-[11px] text-rose-500 hover:text-rose-700 font-semibold transition-colors cursor-pointer flex items-center gap-1"
                     >
                       <Trash2 className="w-3 h-3" />
                       <span>Remove</span>
@@ -413,6 +444,17 @@ export default function CartPage() {
                   </>
                 )}
               </button>
+            </div>
+
+            {/* Continue Shopping CTA */}
+            <div>
+              <Link
+                href="/products"
+                className="w-full py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span>Continue Shopping</span>
+              </Link>
             </div>
 
             {/* Trust Assurances */}

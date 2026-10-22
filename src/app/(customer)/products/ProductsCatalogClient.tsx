@@ -63,10 +63,13 @@ export function ProductsCatalogClient({
   const activeMinRating = searchParams.minRating ? Number(searchParams.minRating) : 0;
   const activeDealsOnly = searchParams.deals === 'true';
   const activeInStockOnly = searchParams.inStock === 'true';
+  const activeMinPrice = searchParams.minPrice ? Number(searchParams.minPrice) : 0;
   const activeMaxPrice = searchParams.maxPrice ? Number(searchParams.maxPrice) : 200000;
 
-  // Local state for interactive slider before updating URL
+  // Local state for interactive slider and manual inputs
   const [localMaxPrice, setLocalMaxPrice] = useState<number>(activeMaxPrice);
+  const [inputMinPrice, setInputMinPrice] = useState<string>(activeMinPrice > 0 ? String(activeMinPrice) : '');
+  const [inputMaxPrice, setInputMaxPrice] = useState<string>(activeMaxPrice < 200000 ? String(activeMaxPrice) : '');
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState<boolean>(false);
 
   const budgetFilterRanges = getBudgetFilterRanges(activeCategory);
@@ -84,6 +87,7 @@ export function ProductsCatalogClient({
     if (activeMinRating > 0) params.set('minRating', String(activeMinRating));
     if (activeDealsOnly) params.set('deals', 'true');
     if (activeInStockOnly) params.set('inStock', 'true');
+    if (activeMinPrice > 0) params.set('minPrice', String(activeMinPrice));
     if (activeMaxPrice < 200000) params.set('maxPrice', String(activeMaxPrice));
     if (activePage > 1) params.set('page', String(activePage));
 
@@ -99,6 +103,8 @@ export function ProductsCatalogClient({
         params.delete('tier');
       } else if (key === 'sort' && val === 'featured') {
         params.delete('sort');
+      } else if (key === 'minPrice' && (Number(val) <= 0 || !val)) {
+        params.delete('minPrice');
       } else if (key === 'maxPrice' && Number(val) >= 200000) {
         params.delete('maxPrice');
       } else if (key === 'minRating' && Number(val) <= 0) {
@@ -574,30 +580,125 @@ export function ProductsCatalogClient({
             </div>
           </div>
 
-          {/* Price Range Slider */}
-          <div className="pt-4 border-t border-slate-100">
-            <div className="flex items-center justify-between mb-2">
+          {/* Working Price Filter (Min Price, Max Price & Slider) */}
+          <div className="pt-4 border-t border-slate-100 space-y-3">
+            <div className="flex items-center justify-between">
               <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                Max Price
+                Price Filter
               </h4>
-              <span className="text-xs font-bold text-indigo-600 font-mono">
-                ₹{localMaxPrice.toLocaleString('en-IN')}
-              </span>
+              {(activeMinPrice > 0 || activeMaxPrice < 200000) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInputMinPrice('');
+                    setInputMaxPrice('');
+                    setLocalMaxPrice(200000);
+                    updateParams({ minPrice: null, maxPrice: null, page: 1 });
+                  }}
+                  className="text-[10px] text-indigo-600 font-semibold hover:underline cursor-pointer"
+                >
+                  Clear Price
+                </button>
+              )}
             </div>
-            <input
-              type="range"
-              min="1000"
-              max="200000"
-              step="2500"
-              value={localMaxPrice}
-              onChange={(e) => setLocalMaxPrice(Number(e.target.value))}
-              onMouseUp={handlePriceCommit}
-              onTouchEnd={handlePriceCommit}
-              className="w-full accent-indigo-600 cursor-pointer"
-            />
-            <div className="flex justify-between text-[10px] text-slate-400 mt-1 font-mono">
-              <span>₹1,000</span>
-              <span>₹2,00,000</span>
+
+            {/* Quick Price Presets */}
+            <div className="grid grid-cols-2 gap-1.5 text-xs">
+              <button
+                type="button"
+                onClick={() => updateParams({ minPrice: null, maxPrice: 500, page: 1 })}
+                className="px-2 py-1.5 rounded-lg bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 text-left border border-slate-200/80 transition-colors cursor-pointer"
+              >
+                Under ₹500
+              </button>
+              <button
+                type="button"
+                onClick={() => updateParams({ minPrice: null, maxPrice: 1000, page: 1 })}
+                className="px-2 py-1.5 rounded-lg bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 text-left border border-slate-200/80 transition-colors cursor-pointer"
+              >
+                Under ₹1,000
+              </button>
+              <button
+                type="button"
+                onClick={() => updateParams({ minPrice: null, maxPrice: 5000, page: 1 })}
+                className="px-2 py-1.5 rounded-lg bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 text-left border border-slate-200/80 transition-colors cursor-pointer"
+              >
+                Under ₹5,000
+              </button>
+              <button
+                type="button"
+                onClick={() => updateParams({ minPrice: 5000, maxPrice: 15000, page: 1 })}
+                className="px-2 py-1.5 rounded-lg bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 text-left border border-slate-200/80 transition-colors cursor-pointer"
+              >
+                ₹5K – ₹15K
+              </button>
+            </div>
+
+            {/* Min / Max Inputs */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const min = inputMinPrice ? Number(inputMinPrice) : undefined;
+                const max = inputMaxPrice ? Number(inputMaxPrice) : undefined;
+                updateParams({ minPrice: min, maxPrice: max, page: 1 });
+              }}
+              className="flex items-center gap-1.5 pt-1"
+            >
+              <div className="relative flex-1">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">₹</span>
+                <input
+                  type="number"
+                  placeholder="Min"
+                  value={inputMinPrice}
+                  onChange={(e) => setInputMinPrice(e.target.value)}
+                  className="w-full h-8 pl-5 pr-1 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono"
+                />
+              </div>
+              <span className="text-slate-400 text-xs">to</span>
+              <div className="relative flex-1">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs">₹</span>
+                <input
+                  type="number"
+                  placeholder="Max"
+                  value={inputMaxPrice}
+                  onChange={(e) => setInputMaxPrice(e.target.value)}
+                  className="w-full h-8 pl-5 pr-1 text-xs bg-slate-50 border border-slate-300 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono"
+                />
+              </div>
+              <button
+                type="submit"
+                className="h-8 px-2.5 bg-slate-900 hover:bg-indigo-600 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer shrink-0"
+              >
+                Go
+              </button>
+            </form>
+
+            {/* Price Slider */}
+            <div className="pt-1">
+              <div className="flex items-center justify-between text-xs mb-1">
+                <span className="text-slate-500 font-medium">Max Slider:</span>
+                <span className="font-bold text-indigo-600 font-mono">
+                  ₹{localMaxPrice.toLocaleString('en-IN')}
+                </span>
+              </div>
+              <input
+                type="range"
+                min="500"
+                max="200000"
+                step="2500"
+                value={localMaxPrice}
+                onChange={(e) => {
+                  setLocalMaxPrice(Number(e.target.value));
+                  setInputMaxPrice(String(e.target.value));
+                }}
+                onMouseUp={() => updateParams({ maxPrice: localMaxPrice, page: 1 })}
+                onTouchEnd={() => updateParams({ maxPrice: localMaxPrice, page: 1 })}
+                className="w-full accent-indigo-600 cursor-pointer"
+              />
+              <div className="flex justify-between text-[10px] text-slate-400 mt-0.5 font-mono">
+                <span>₹500</span>
+                <span>₹2,00,000</span>
+              </div>
             </div>
           </div>
 

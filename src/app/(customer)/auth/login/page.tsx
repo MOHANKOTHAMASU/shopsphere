@@ -23,8 +23,6 @@ import {
   sendPhoneOtpAction,
   verifyPhoneOtpAction,
 } from '@/lib/auth/phone-actions';
-import { DEVELOPMENT_TEST_OTP } from '@/lib/auth/phone-utils';
-
 import { validateLoginData } from '@/lib/auth/validation';
 import { useAuth } from '@/context/AuthContext';
 
@@ -101,7 +99,7 @@ function LoginFormContent() {
       const res = await sendPhoneOtpAction(countryCode, phoneNumber);
       if (res.success) {
         setMaskedPhone(res.maskedPhone || `${countryCode} ${phoneNumber}`);
-        setDevTestOtp(res.testOtp || DEVELOPMENT_TEST_OTP);
+        setDevTestOtp(res.testOtp || null);
         setPhoneStep('verify_otp');
         setCountdown(30);
         setSuccessMessage(res.message);
@@ -355,25 +353,27 @@ function LoginFormContent() {
                   </p>
                 </div>
 
-                {/* Development Mode OTP Notice */}
-                <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-xl flex items-center justify-between text-xs text-amber-900">
-                  <div className="flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-amber-600 shrink-0" />
-                    <span>
-                      <strong className="font-bold">Test Mode:</strong> Use test code{' '}
-                      <code className="bg-amber-100 px-1.5 py-0.5 rounded font-mono font-bold text-amber-950">
-                        123456
-                      </code>
-                    </span>
+                {/* Development Mode OTP Notice (Hidden in production) */}
+                {process.env.NODE_ENV !== 'production' && (
+                  <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-xl flex items-center justify-between text-xs text-amber-900">
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span>
+                        <strong className="font-bold">Test Mode:</strong> Use test code{' '}
+                        <code className="bg-amber-100 px-1.5 py-0.5 rounded font-mono font-bold text-amber-950">
+                          123456
+                        </code>
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setPhoneNumber('9876543210')}
+                      className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 underline cursor-pointer"
+                    >
+                      Demo #
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setPhoneNumber('9876543210')}
-                    className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 underline cursor-pointer"
-                  >
-                    Demo #
-                  </button>
-                </div>
+                )}
 
                 <button
                   type="submit"

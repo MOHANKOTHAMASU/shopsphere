@@ -3,8 +3,6 @@
 // ShopSphere Phone Number & OTP Utilities (Shared between Client & Server)
 // -----------------------------------------------------------------------------
 
-// Test OTP for local development & automated QA
-export const DEVELOPMENT_TEST_OTP = '123456';
 
 /**
  * Clean & normalize phone number to standard E.164-like format (e.g. "+919876543210")

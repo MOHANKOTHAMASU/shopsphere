@@ -392,11 +392,48 @@ export function Header() {
             </div>
           </nav>
 
+          {/* Official 10 Categories Bar (Amazon / Flipkart Style) */}
+          <div className="border-t border-slate-100 py-2 overflow-x-auto no-scrollbar hidden md:block">
+            <div className="flex items-center gap-1 sm:gap-2 whitespace-nowrap min-w-max text-xs font-semibold text-slate-700">
+              <Link
+                href="/products"
+                className="px-2.5 py-1 rounded-lg hover:bg-slate-100 hover:text-indigo-600 transition-colors flex items-center gap-1.5 font-bold text-slate-900"
+              >
+                <Layers className="w-3.5 h-3.5 text-indigo-600" />
+                <span>All Categories</span>
+              </Link>
+              {[
+                { name: 'Fashion', slug: 'fashion' },
+                { name: 'Mobiles', slug: 'mobiles' },
+                { name: 'Electronics', slug: 'electronics' },
+                { name: 'Beauty', slug: 'beauty' },
+                { name: 'Home Appliances', slug: 'home-appliances' },
+                { name: 'Food & Health', slug: 'food-health' },
+                { name: 'Automotive Accessories', slug: 'automotive' },
+                { name: 'Sports & Fitness', slug: 'sports' },
+                { name: 'Furniture', slug: 'furniture' },
+                { name: 'Books', slug: 'books' },
+              ].map((cat) => (
+                <Link
+                  key={cat.slug}
+                  href={`/products?cat=${cat.slug}`}
+                  className={`px-2.5 py-1 rounded-lg transition-colors ${
+                    selectedCategory === cat.slug
+                      ? 'bg-indigo-600 text-white font-bold shadow-2xs'
+                      : 'hover:bg-indigo-50 hover:text-indigo-600 text-slate-700'
+                  }`}
+                >
+                  {cat.name}
+                </Link>
+              ))}
+            </div>
+          </div>
+
           {/* Mobile Search Bar Row with Live Suggestions */}
           <div className="md:hidden pb-3">
             <SearchAutocomplete
               showCategoryDropdown={false}
-              placeholder="Search 400+ products, brands, categories..."
+              placeholder='Search "Samsung mobile", "Sneakers", "Face wash"...'
             />
           </div>
         </div>

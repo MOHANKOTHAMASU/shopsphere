@@ -22,20 +22,26 @@ import {
   BookOpen,
   Watch,
   Tag,
+  Smartphone,
+  Car,
+  Armchair,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { DEVELOPMENT_SEED_CATEGORIES } from '@/data/seed-categories';
 import { SearchAutocomplete } from '@/components/common/SearchAutocomplete';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
-  Headphones: <Headphones className="w-4 h-4 text-indigo-500" />,
   Shirt: <Shirt className="w-4 h-4 text-emerald-500" />,
-  Home: <Home className="w-4 h-4 text-amber-500" />,
+  Smartphone: <Smartphone className="w-4 h-4 text-blue-500" />,
+  Headphones: <Headphones className="w-4 h-4 text-indigo-500" />,
   Sparkles: <Sparkles className="w-4 h-4 text-pink-500" />,
-  Dumbbell: <Dumbbell className="w-4 h-4 text-cyan-500" />,
-  Footprints: <Footprints className="w-4 h-4 text-orange-500" />,
-  BookOpen: <BookOpen className="w-4 h-4 text-blue-500" />,
+  Home: <Home className="w-4 h-4 text-amber-500" />,
   ShoppingBag: <ShoppingBag className="w-4 h-4 text-emerald-600" />,
+  Car: <Car className="w-4 h-4 text-rose-500" />,
+  Dumbbell: <Dumbbell className="w-4 h-4 text-cyan-500" />,
+  Armchair: <Armchair className="w-4 h-4 text-amber-700" />,
+  BookOpen: <BookOpen className="w-4 h-4 text-blue-500" />,
+  Footprints: <Footprints className="w-4 h-4 text-orange-500" />,
   Watch: <Watch className="w-4 h-4 text-purple-500" />,
 };
 

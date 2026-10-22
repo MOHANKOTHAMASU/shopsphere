@@ -29,11 +29,12 @@ interface PhoneOtpState {
 const phoneOtpStore: Map<string, PhoneOtpState> = new Map();
 
 import {
-  DEVELOPMENT_TEST_OTP,
   normalizePhoneNumber,
   maskPhoneNumber,
   validatePhoneNumber,
 } from './phone-utils';
+import { DEVELOPMENT_TEST_OTP, isDevOtpAllowed } from './phone-config';
+
 
 
 /**
@@ -83,7 +84,7 @@ export async function sendPhoneOtpAction(
 
   // Generate 6-digit OTP
   // In development/test mode, use standard predictable code or pseudo-random code
-  const isDev = process.env.NODE_ENV !== 'production';
+  const isDev = isDevOtpAllowed();
   const otp = isDev ? DEVELOPMENT_TEST_OTP : Math.floor(100000 + Math.random() * 900000).toString();
 
   // Store OTP with 10-minute expiry
@@ -163,8 +164,9 @@ export async function verifyPhoneOtpAction(
 
   state.attempts += 1;
 
-  // Validate OTP code (matches stored OTP or development master test OTP)
-  const isMatch = cleanOtp === state.otp || cleanOtp === DEVELOPMENT_TEST_OTP;
+  // Validate OTP code (matches stored OTP or development master test OTP in dev)
+  const isDev = isDevOtpAllowed();
+  const isMatch = cleanOtp === state.otp || (isDev && cleanOtp === DEVELOPMENT_TEST_OTP);
   if (!isMatch) {
     const remainingAttempts = 5 - state.attempts;
     return {

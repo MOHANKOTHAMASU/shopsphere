@@ -2,14 +2,15 @@
 
 // -----------------------------------------------------------------------------
 // src/components/common/SearchAutocomplete.tsx
-// Omnipresent Search Autocomplete with Product Previews & Category Suggestions
+// Omnipresent Search Autocomplete with Product Previews, Category Suggestions,
+// Recent Searches & Trending Queries (Amazon / Flipkart Style)
 // -----------------------------------------------------------------------------
 
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Search, X, Layers, ArrowRight, Sparkles } from 'lucide-react';
+import { Search, X, Layers, ArrowRight, Sparkles, Clock, TrendingUp, Trash2 } from 'lucide-react';
 import { fetchSearchSuggestionsAction } from '@/lib/products/search-actions';
 import { SearchSuggestionResult } from '@/types/ecommerce';
 import { formatCurrency } from '@/lib/utils';
@@ -25,8 +26,20 @@ interface SearchAutocompleteProps {
   onCloseMobile?: () => void;
 }
 
+const TRENDING_SEARCHES = [
+  'Samsung mobile',
+  "Men's shoes",
+  'Wireless headphones',
+  'Face wash',
+  'Refrigerator',
+  'Office chair',
+  'Python programming book',
+];
+
+const RECENT_SEARCHES_STORAGE_KEY = 'shopsphere_recent_searches';
+
 export function SearchAutocomplete({
-  placeholder = 'Search for laptops, headphones, sneakers, audio...',
+  placeholder = 'Search "Samsung mobile", "Wireless headphones", "Office chair"...',
   initialQuery = '',
   className = '',
   selectedCategory = 'all',
@@ -38,6 +51,7 @@ export function SearchAutocomplete({
   const [query, setQuery] = useState(initialQuery);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [suggestions, setSuggestions] = useState<SearchSuggestionResult>({
     products: [],
     categories: [],
@@ -47,6 +61,44 @@ export function SearchAutocomplete({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Load recent searches from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(RECENT_SEARCHES_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          setRecentSearches(parsed.slice(0, 6));
+        }
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, []);
+
+  const saveRecentSearch = (term: string) => {
+    const clean = term.trim();
+    if (!clean) return;
+    try {
+      const updated = [clean, ...recentSearches.filter((s) => s.toLowerCase() !== clean.toLowerCase())].slice(0, 6);
+      setRecentSearches(updated);
+      localStorage.setItem(RECENT_SEARCHES_STORAGE_KEY, JSON.stringify(updated));
+    } catch {
+      // Ignore localStorage errors
+    }
+  };
+
+  const clearRecentSearches = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      localStorage.removeItem(RECENT_SEARCHES_STORAGE_KEY);
+      setRecentSearches([]);
+    } catch {
+      // Ignore
+    }
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -64,15 +116,14 @@ export function SearchAutocomplete({
   // Debounced search suggestions fetch
   useEffect(() => {
     const trimmed = query.trim();
-    const timer = setTimeout(async () => {
-      if (trimmed.length < 2) {
-        setSuggestions({ products: [], categories: [], query: '' });
-        setIsOpen(false);
-        setIsLoading(false);
-        return;
-      }
+    if (trimmed.length < 2) {
+      setSuggestions({ products: [], categories: [], query: '' });
+      setIsLoading(false);
+      return;
+    }
 
-      setIsLoading(true);
+    setIsLoading(true);
+    const timer = setTimeout(async () => {
       try {
         const data = await fetchSearchSuggestionsAction(trimmed);
         setSuggestions(data);
@@ -92,6 +143,10 @@ export function SearchAutocomplete({
     const q = (targetQuery !== undefined ? targetQuery : query).trim();
     const cat = targetCat !== undefined ? targetCat : selectedCategory;
 
+    if (q) {
+      saveRecentSearch(q);
+    }
+
     const params = new URLSearchParams();
     if (q) params.set('q', q);
     if (cat && cat !== 'all') params.set('cat', cat);
@@ -107,7 +162,7 @@ export function SearchAutocomplete({
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      if (!isOpen && query.trim().length >= 2) {
+      if (!isOpen) {
         setIsOpen(true);
         return;
       }
@@ -120,6 +175,7 @@ export function SearchAutocomplete({
       if (selectedIndex >= 0 && selectedIndex < suggestions.products.length) {
         // Navigate directly to product
         const prod = suggestions.products[selectedIndex];
+        saveRecentSearch(prod.title);
         setIsOpen(false);
         if (onCloseMobile) onCloseMobile();
         router.push(`/products/${prod.slug}`);
@@ -142,12 +198,12 @@ export function SearchAutocomplete({
   const handleClear = () => {
     setQuery('');
     setSuggestions({ products: [], categories: [], query: '' });
-    setIsOpen(false);
     inputRef.current?.focus();
   };
 
   const hasSuggestions =
     suggestions.products.length > 0 || suggestions.categories.length > 0;
+  const isInputEmpty = query.trim().length === 0;
 
   return (
     <div ref={containerRef} className={`relative w-full ${className}`}>
@@ -159,13 +215,13 @@ export function SearchAutocomplete({
         }}
         className="flex w-full items-center rounded-xl border border-slate-300 bg-slate-50 focus-within:border-indigo-600 focus-within:ring-2 focus-within:ring-indigo-100 focus-within:bg-white transition-all shadow-inner"
       >
-        {/* Category Selector Dropdown (Optional / Desktop) */}
+        {/* Category Selector Dropdown (Desktop / Tablet) */}
         {showCategoryDropdown && (
           <div className="relative shrink-0 border-r border-slate-200 hidden sm:block">
             <select
               value={selectedCategory}
               onChange={(e) => onCategoryChange && onCategoryChange(e.target.value)}
-              className="h-11 pl-3 pr-7 bg-transparent text-xs font-semibold text-slate-600 cursor-pointer focus:outline-none appearance-none"
+              className="h-11 pl-3 pr-7 bg-transparent text-xs font-semibold text-slate-700 cursor-pointer focus:outline-none appearance-none"
               aria-label="Select Category"
             >
               <option value="all">All Categories</option>
@@ -188,13 +244,11 @@ export function SearchAutocomplete({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onFocus={() => {
-              if (query.trim().length >= 2) setIsOpen(true);
-            }}
+            onFocus={() => setIsOpen(true)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             className="w-full h-11 px-4 text-xs sm:text-sm bg-transparent placeholder-slate-400 text-slate-800 focus:outline-none"
-            aria-label="Search products"
+            aria-label="Search products, categories, brands"
             autoComplete="off"
           />
 
@@ -219,17 +273,100 @@ export function SearchAutocomplete({
         {/* Submit Search Button */}
         <button
           type="submit"
-          className="h-11 px-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-r-xl flex items-center justify-center transition-colors cursor-pointer shrink-0"
+          className="h-11 px-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-r-xl flex items-center justify-center transition-colors cursor-pointer shrink-0 shadow-xs"
           aria-label="Search"
         >
           <Search className="w-4 h-4" />
         </button>
       </form>
 
-      {/* Autocomplete Suggestions Popover */}
+      {/* Autocomplete & Recent Searches Popover */}
       {isOpen && (
-        <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-slate-200/90 overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-150">
-          {hasSuggestions ? (
+        <div className="absolute left-0 right-0 top-full mt-2 bg-white rounded-2xl shadow-2xl border border-slate-200/90 overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-150 max-h-[80vh] overflow-y-auto">
+          {isInputEmpty ? (
+            /* Popover State A: Empty input showing Recent Searches & Trending */
+            <div className="divide-y divide-slate-100">
+              {/* Recent Searches */}
+              {recentSearches.length > 0 && (
+                <div className="p-3.5 bg-slate-50/70">
+                  <div className="flex items-center justify-between mb-2 px-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Recent Searches</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={clearRecentSearches}
+                      className="text-[10px] text-rose-500 hover:text-rose-700 font-semibold flex items-center gap-1 cursor-pointer"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span>Clear History</span>
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {recentSearches.map((term, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          setQuery(term);
+                          executeSearch(term);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-colors cursor-pointer"
+                      >
+                        <Clock className="w-3 h-3 text-slate-400" />
+                        <span>{term}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Trending Searches */}
+              <div className="p-3.5">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5 mb-2.5 px-1">
+                  <TrendingUp className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Trending Searches</span>
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {TRENDING_SEARCHES.map((term, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setQuery(term);
+                        executeSearch(term);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-600 hover:border-indigo-200 border border-transparent transition-colors cursor-pointer"
+                    >
+                      <Sparkles className="w-3 h-3 text-amber-500" />
+                      <span>{term}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Category Quick Links */}
+              <div className="p-3 bg-slate-50/50">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-2 px-1">
+                  Browse by Category
+                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
+                  {DEVELOPMENT_SEED_CATEGORIES.map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => executeSearch('', cat.slug)}
+                      className="text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-indigo-600 hover:bg-white transition-colors"
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : hasSuggestions ? (
+            /* Popover State B: Active query suggestions */
             <div className="divide-y divide-slate-100">
               {/* Category Suggestions */}
               {suggestions.categories.length > 0 && (
@@ -276,6 +413,7 @@ export function SearchAutocomplete({
                           key={prod.id}
                           href={`/products/${prod.slug}`}
                           onClick={() => {
+                            saveRecentSearch(prod.title);
                             setIsOpen(false);
                             if (onCloseMobile) onCloseMobile();
                           }}
@@ -349,18 +487,19 @@ export function SearchAutocomplete({
               </div>
             </div>
           ) : (
+            /* Popover State C: No results found */
             <div className="p-6 text-center space-y-2">
               <Search className="w-6 h-6 text-slate-300 mx-auto" />
               <p className="text-xs font-bold text-slate-700">
                 No products found for &ldquo;{query}&rdquo;
               </p>
               <p className="text-[11px] text-slate-400">
-                Try searching with different keywords like brand names or product categories.
+                Try searching with terms like &ldquo;Samsung mobile&rdquo;, &ldquo;Men&apos;s shoes&rdquo;, or &ldquo;Refrigerator&rdquo;.
               </p>
               <button
                 type="button"
                 onClick={() => executeSearch()}
-                className="mt-2 text-xs font-bold text-indigo-600 hover:underline inline-flex items-center gap-1"
+                className="mt-2 text-xs font-bold text-indigo-600 hover:underline inline-flex items-center gap-1 cursor-pointer"
               >
                 <span>Browse All Products in Catalog &rarr;</span>
               </button>

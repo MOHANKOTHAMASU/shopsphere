@@ -1,8 +1,23 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ShoppingBag, Zap, Heart, Check, Minus, Plus, Layers, AlertCircle } from 'lucide-react';
+import {
+  ShoppingBag,
+  Zap,
+  Heart,
+  Check,
+  Minus,
+  Plus,
+  Layers,
+  AlertCircle,
+  Truck,
+  MapPin,
+  ShieldCheck,
+  RotateCcw,
+  ArrowRight,
+} from 'lucide-react';
 import { Product, ProductVariant } from '@/types/ecommerce';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
@@ -10,6 +25,8 @@ import { useWishlist } from '@/context/WishlistContext';
 interface ProductDetailsActionsProps {
   product: Product;
 }
+
+const PIN_STORAGE_KEY = 'shopsphere_delivery_pincode';
 
 export function ProductDetailsActions({ product }: ProductDetailsActionsProps) {
   const router = useRouter();
@@ -22,13 +39,37 @@ export function ProductDetailsActions({ product }: ProductDetailsActionsProps) {
   const [quantity, setQuantity] = useState<number>(1);
   const [isAdded, setIsAdded] = useState<boolean>(false);
 
+  // Delivery PIN code checker state
+  const [pinCode, setPinCode] = useState<string>('');
+  const [pinResult, setPinResult] = useState<{
+    status: 'success' | 'error';
+    message: string;
+    deliveryDate?: string;
+    shippingCharge?: string;
+    codAvailable?: boolean;
+  } | null>(null);
+
   const favorited = isInWishlist(product.id);
 
-  // Active pricing and stock (derived from selected variant or main product)
+  // Load saved PIN from localStorage
+  useEffect(() => {
+    try {
+      const savedPin = localStorage.getItem(PIN_STORAGE_KEY);
+      if (savedPin) {
+        setPinCode(savedPin);
+        checkPinCode(savedPin);
+      }
+    } catch {
+      // Ignore
+    }
+  }, []);
+
+  // Active pricing and stock
   const currentPrice = selectedVariant ? selectedVariant.price : product.price;
   const currentStock = selectedVariant ? selectedVariant.stockQuantity : product.stockQuantity;
   const currentSku = selectedVariant ? selectedVariant.sku : product.sku;
   const isOutOfStock = currentStock <= 0;
+  const subtotal = currentPrice * quantity;
 
   const handleQuantityChange = (delta: number) => {
     setQuantity((prev) => {
@@ -49,7 +90,7 @@ export function ProductDetailsActions({ product }: ProductDetailsActionsProps) {
       selectedVariant?.attributes
     );
     setIsAdded(true);
-    setTimeout(() => setIsAdded(false), 2000);
+    setTimeout(() => setIsAdded(false), 2500);
   };
 
   const handleBuyNow = () => {
@@ -62,6 +103,37 @@ export function ProductDetailsActions({ product }: ProductDetailsActionsProps) {
       selectedVariant?.attributes
     );
     router.push('/cart');
+  };
+
+  const checkPinCode = (codeToCheck?: string) => {
+    const code = (codeToCheck !== undefined ? codeToCheck : pinCode).trim();
+    if (!/^[1-9][0-9]{5}$/.test(code)) {
+      setPinResult({
+        status: 'error',
+        message: 'Please enter a valid 6-digit Indian PIN code (e.g., 560001, 110001).',
+      });
+      return;
+    }
+
+    try {
+      localStorage.setItem(PIN_STORAGE_KEY, code);
+    } catch {
+      // Ignore
+    }
+
+    // Dynamic delivery estimate based on date
+    const d = new Date();
+    d.setDate(d.getDate() + 3);
+    const day = d.toLocaleDateString('en-IN', { weekday: 'long' });
+    const date = d.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+
+    setPinResult({
+      status: 'success',
+      message: `Delivery available to ${code}`,
+      deliveryDate: `${day}, ${date}`,
+      shippingCharge: currentPrice >= 499 ? 'FREE' : '₹49',
+      codAvailable: true,
+    });
   };
 
   return (
@@ -133,37 +205,49 @@ export function ProductDetailsActions({ product }: ProductDetailsActionsProps) {
         </div>
       )}
 
-      {/* Quantity Selector */}
-      <div className="flex items-center gap-4">
-        <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-          Quantity:
-        </span>
-        <div className="flex items-center border border-slate-300 rounded-xl bg-slate-50 overflow-hidden">
-          <button
-            onClick={() => handleQuantityChange(-1)}
-            disabled={quantity <= 1 || isOutOfStock}
-            className="w-10 h-10 flex items-center justify-center text-slate-600 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-            aria-label="Decrease quantity"
-          >
-            <Minus className="w-4 h-4" />
-          </button>
-          <span className="w-12 text-center font-bold text-sm text-slate-900 select-none">
-            {isOutOfStock ? 0 : quantity}
+      {/* Quantity Selector & Subtotal */}
+      <div className="flex items-center justify-between flex-wrap gap-4 p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80">
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+            Quantity:
           </span>
-          <button
-            onClick={() => handleQuantityChange(1)}
-            disabled={quantity >= currentStock || isOutOfStock}
-            className="w-10 h-10 flex items-center justify-center text-slate-600 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-            aria-label="Increase quantity"
-          >
-            <Plus className="w-4 h-4" />
-          </button>
+          <div className="flex items-center border border-slate-300 rounded-xl bg-white overflow-hidden shadow-2xs">
+            <button
+              onClick={() => handleQuantityChange(-1)}
+              disabled={quantity <= 1 || isOutOfStock}
+              className="w-10 h-10 flex items-center justify-center text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              aria-label="Decrease quantity"
+            >
+              <Minus className="w-4 h-4" />
+            </button>
+            <span className="w-12 text-center font-bold text-sm text-slate-900 select-none font-mono">
+              {isOutOfStock ? 0 : quantity}
+            </span>
+            <button
+              onClick={() => handleQuantityChange(1)}
+              disabled={quantity >= currentStock || isOutOfStock}
+              className="w-10 h-10 flex items-center justify-center text-slate-600 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              aria-label="Increase quantity"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+          {currentStock > 0 && currentStock <= 5 && (
+            <span className="text-xs font-bold text-amber-600">
+              Only {currentStock} left!
+            </span>
+          )}
         </div>
-        {currentStock > 0 && currentStock <= 5 && (
-          <span className="text-xs font-bold text-amber-600">
-            Only {currentStock} left! Order soon.
+
+        {/* Live Subtotal */}
+        <div className="text-right">
+          <span className="text-[11px] text-slate-500 block uppercase tracking-wider font-semibold">
+            Item Subtotal:
           </span>
-        )}
+          <span className="text-base sm:text-lg font-black text-slate-900 font-mono">
+            ₹{subtotal.toLocaleString('en-IN')}
+          </span>
+        </div>
       </div>
 
       {isOutOfStock && (
@@ -207,7 +291,7 @@ export function ProductDetailsActions({ product }: ProductDetailsActionsProps) {
         <button
           onClick={handleBuyNow}
           disabled={isOutOfStock}
-          className="flex-1 w-full py-3.5 px-6 rounded-xl font-extrabold text-sm bg-amber-500 hover:bg-amber-600 text-slate-950 flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          className="flex-1 w-full py-3.5 px-6 rounded-xl font-extrabold text-sm bg-amber-400 hover:bg-amber-500 text-slate-950 flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
         >
           <Zap className="w-4 h-4 fill-slate-950 text-slate-950" />
           <span>Buy Now</span>
@@ -225,6 +309,95 @@ export function ProductDetailsActions({ product }: ProductDetailsActionsProps) {
         >
           <Heart className={`w-5 h-5 ${favorited ? 'fill-rose-500' : ''}`} />
         </button>
+      </div>
+
+      {/* View Cart Notification Banner when added */}
+      {isAdded && (
+        <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs text-emerald-900 animate-in fade-in slide-in-from-top-1 duration-150">
+          <span className="font-semibold flex items-center gap-1.5">
+            <Check className="w-4 h-4 text-emerald-600" />
+            <span>Product added to your cart successfully.</span>
+          </span>
+          <Link
+            href="/cart"
+            className="font-bold text-emerald-800 hover:underline flex items-center gap-1"
+          >
+            <span>View Cart</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      )}
+
+      {/* Section 12: Delivery Date & PIN Code Checker */}
+      <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-3">
+        <div className="flex items-center gap-2 text-xs font-bold text-slate-900 uppercase tracking-wider">
+          <Truck className="w-4 h-4 text-indigo-600" />
+          <span>Delivery & Location Checker</span>
+        </div>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            checkPinCode();
+          }}
+          className="flex items-center gap-2"
+        >
+          <div className="relative flex-1">
+            <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={pinCode}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                setPinCode(val);
+                if (pinResult) setPinResult(null);
+              }}
+              placeholder="Enter 6-digit PIN code"
+              maxLength={6}
+              className="w-full h-10 pl-9 pr-3 text-xs bg-slate-50 border border-slate-300 rounded-xl font-mono text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white"
+            />
+          </div>
+          <button
+            type="submit"
+            className="h-10 px-4 bg-slate-900 hover:bg-indigo-600 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shrink-0"
+          >
+            Check
+          </button>
+        </form>
+
+        {pinResult && (
+          <div
+            className={`p-3 rounded-xl text-xs space-y-1.5 animate-in fade-in duration-150 ${
+              pinResult.status === 'success'
+                ? 'bg-emerald-50 border border-emerald-200 text-emerald-900'
+                : 'bg-rose-50 border border-rose-200 text-rose-800'
+            }`}
+          >
+            <div className="flex items-center gap-1.5 font-bold">
+              {pinResult.status === 'success' ? (
+                <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              )}
+              <span>{pinResult.message}</span>
+            </div>
+
+            {pinResult.status === 'success' && (
+              <div className="space-y-1 text-[11px] text-slate-700 pl-5">
+                <p>
+                  ⚡ Estimated delivery by <strong className="font-bold text-slate-900">{pinResult.deliveryDate}</strong>
+                </p>
+                <p>
+                  📦 Shipping Charges:{' '}
+                  <strong className="font-bold text-emerald-700 font-mono">{pinResult.shippingCharge}</strong>
+                </p>
+                {pinResult.codAvailable && (
+                  <p className="text-slate-600">✓ Cash on Delivery (COD) available</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

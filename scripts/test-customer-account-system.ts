@@ -7,8 +7,8 @@ import {
   normalizePhoneNumber,
   maskPhoneNumber,
   validatePhoneNumber,
-  DEVELOPMENT_TEST_OTP,
 } from '../src/lib/auth/phone-utils';
+import { DEVELOPMENT_TEST_OTP } from '../src/lib/auth/phone-config';
 import {
   sendPhoneOtpAction,
   verifyPhoneOtpAction,
