@@ -15,6 +15,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { signInAction, resendVerificationEmailAction } from '@/lib/auth/actions';
+import { validateLoginData } from '@/lib/auth/validation';
 import { useAuth } from '@/context/AuthContext';
 
 function LoginFormContent() {
@@ -28,9 +29,11 @@ function LoginFormContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [resendStatus, setResendStatus] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [errorMessage, setErrorMessage] = useState<string | null>(
     authErrorCode === 'account-suspended'
       ? 'Your account has been suspended. Please contact customer support for assistance.'
@@ -59,13 +62,22 @@ function LoginFormContent() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsLoading(true);
     setErrorMessage(null);
     setSuccessMessage(null);
     setResendStatus(null);
 
+    // Client-side instant validation
+    const validation = validateLoginData({ email, password });
+    if (!validation.isValid) {
+      setFieldErrors(validation.errors);
+      return;
+    }
+    setFieldErrors({});
+    setIsLoading(true);
+
     const formData = new FormData(e.currentTarget);
     formData.set('redirect', redirectUrl);
+    formData.set('rememberMe', rememberMe ? 'true' : 'false');
 
     const result = await signInAction(formData);
 
@@ -79,6 +91,9 @@ function LoginFormContent() {
         router.refresh();
       }, 700);
     } else {
+      if (result.errors) {
+        setFieldErrors(result.errors);
+      }
       setErrorMessage(result.message || 'Invalid email or password.');
     }
   };
@@ -159,13 +174,28 @@ function LoginFormContent() {
               <input
                 type="email"
                 name="email"
-                required
                 placeholder="you@example.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full h-11 pl-10 pr-4 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white"
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (fieldErrors.email) {
+                    setFieldErrors((prev) => ({ ...prev, email: '' }));
+                  }
+                }}
+                disabled={isLoading}
+                className={`w-full h-11 pl-10 pr-4 bg-slate-50 border rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:bg-white transition-all disabled:opacity-50 ${
+                  fieldErrors.email
+                    ? 'border-rose-400 focus:ring-rose-500 bg-rose-50/20'
+                    : 'border-slate-300 focus:ring-indigo-500'
+                }`}
               />
             </div>
+            {fieldErrors.email && (
+              <p className="text-[11px] text-rose-600 font-semibold mt-1.5 flex items-center gap-1.5 animate-fadeIn">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>{fieldErrors.email}</span>
+              </p>
+            )}
           </div>
 
           <div>
@@ -185,26 +215,49 @@ function LoginFormContent() {
               <input
                 type={showPassword ? 'text' : 'password'}
                 name="password"
-                required
                 placeholder="••••••••"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full h-11 pl-10 pr-10 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white"
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (fieldErrors.password) {
+                    setFieldErrors((prev) => ({ ...prev, password: '' }));
+                  }
+                }}
+                disabled={isLoading}
+                className={`w-full h-11 pl-10 pr-10 bg-slate-50 border rounded-xl text-xs sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:bg-white transition-all disabled:opacity-50 ${
+                  fieldErrors.password
+                    ? 'border-rose-400 focus:ring-rose-500 bg-rose-50/20'
+                    : 'border-slate-300 focus:ring-indigo-500'
+                }`}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                disabled={isLoading}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer disabled:opacity-50"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
+            {fieldErrors.password && (
+              <p className="text-[11px] text-rose-600 font-semibold mt-1.5 flex items-center gap-1.5 animate-fadeIn">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span>{fieldErrors.password}</span>
+              </p>
+            )}
           </div>
 
           <div className="flex items-center justify-between text-xs">
-            <label className="flex items-center gap-2 text-slate-600 cursor-pointer">
-              <input type="checkbox" defaultChecked className="rounded text-indigo-600 focus:ring-indigo-500" />
+            <label className="flex items-center gap-2 text-slate-600 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                name="rememberMe"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                disabled={isLoading}
+                className="rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+              />
               <span>Remember me on this browser</span>
             </label>
           </div>
@@ -215,7 +268,10 @@ function LoginFormContent() {
             className="w-full py-3.5 px-4 rounded-xl font-bold text-xs uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-700 transition-all shadow-md shadow-indigo-200 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-50"
           >
             {isLoading ? (
-              <span>Authenticating...</span>
+              <span className="flex items-center gap-2">
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                <span>Authenticating...</span>
+              </span>
             ) : (
               <>
                 <span>Sign In to Account</span>

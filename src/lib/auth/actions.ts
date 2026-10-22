@@ -33,7 +33,8 @@ let memoryDemoSession: DemoUserSession | null = null;
 async function performFallbackSignIn(
   email: string,
   redirectParam: string,
-  role?: 'customer' | 'admin'
+  role?: 'customer' | 'admin',
+  rememberMe: boolean = true
 ): Promise<AuthActionResult> {
   const cleanEmail = email.trim().toLowerCase();
   const isStoreAdmin =
@@ -70,7 +71,7 @@ async function performFallbackSignIn(
     phone: foundCustomer?.phone || (isStoreAdmin ? DEMO_USERS.admin.phone : '+91 98765 43210'),
   };
 
-  await setDemoUserSession(demoUser);
+  await setDemoUserSession(demoUser, rememberMe);
   safeRevalidate('/', 'layout');
 
   const fallbackDest = isStoreAdmin ? '/admin/dashboard' : '/';
@@ -108,13 +109,18 @@ export async function getDemoUserAction(): Promise<DemoUserSession | null> {
 /**
  * Set demo session cookie and memory store
  */
-export async function setDemoUserSession(user: DemoUserSession): Promise<void> {
+export async function setDemoUserSession(
+  user: DemoUserSession,
+  rememberMe: boolean = true
+): Promise<void> {
   memoryDemoSession = user;
   try {
     const cookieStore = await cookies();
+    // 30 days if rememberMe is enabled, 24 hours otherwise
+    const maxAge = rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 24;
     cookieStore.set(DEMO_COOKIE_NAME, JSON.stringify(user), {
       path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge,
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
@@ -459,6 +465,7 @@ export async function signInAction(formData: FormData): Promise<AuthActionResult
   const email = (formData.get('email') as string) || '';
   const password = (formData.get('password') as string) || '';
   const redirectParam = (formData.get('redirect') as string) || '/account';
+  const rememberMe = formData.get('rememberMe') === 'true' || formData.get('rememberMe') === 'on';
 
   const cleanEmail = email.trim().toLowerCase();
 
@@ -596,7 +603,7 @@ export async function signInAction(formData: FormData): Promise<AuthActionResult
     };
   }
 
-  return performFallbackSignIn(cleanEmail, redirectParam);
+  return performFallbackSignIn(cleanEmail, redirectParam, undefined, rememberMe);
 }
 
 /**
