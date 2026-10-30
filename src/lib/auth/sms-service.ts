@@ -47,6 +47,7 @@ interface LoginChallengeState {
   phoneVerified: boolean;
   supabaseManaged?: boolean;
   twilioVerifyManaged?: boolean;
+  isSandbox?: boolean;
 }
 
 // In-memory challenge store (keyed by challengeToken and normalizedPhone)
@@ -202,13 +203,18 @@ export async function sendMobileSmsOtp(
     };
   }
 
-  const otp = generateSecureSixDigitOtp();
+  const providerStatus = getSmsProviderStatus();
+  const isDevOrTest = process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_APP_ENV === 'test';
+  const isSandbox = !providerStatus.configured && isDevOrTest;
+
+  // In development without SMS credentials, default test code to 123456 so developer is not blocked
+  const otp = isSandbox ? '123456' : generateSecureSixDigitOtp();
   challenge.otpHash = hashOtp(otp, normalized);
   challenge.lastSentAt = now;
   challenge.attempts += 1;
+  challenge.isSandbox = isSandbox;
 
   const maskedPhone = maskPhoneNumber(normalized);
-  const providerStatus = getSmsProviderStatus();
 
   // 1. Dispatch via Twilio REST API if configured
   if (providerStatus.provider === 'twilio') {
@@ -506,10 +512,11 @@ export async function verifyMobileSmsOtp(
   const expectedHash = challenge.otpHash;
   const inputHash = hashOtp(cleanOtp, challenge.phone);
 
-  // Constant-time buffer comparison to prevent timing attacks
-  const isMatch =
+  // Constant-time buffer comparison to prevent timing attacks, plus sandbox check
+  const isBufferMatch =
     expectedHash.length === inputHash.length &&
     crypto.timingSafeEqual(Buffer.from(expectedHash), Buffer.from(inputHash));
+  const isMatch = isBufferMatch || (challenge.isSandbox && cleanOtp === '123456');
 
   if (!isMatch) {
     challenge.attempts += 1;

@@ -77,3 +77,4 @@ Follow the non-destructive **Additive Migration Rule**:
 - Foreign keys specify `ON DELETE RESTRICT` or `ON DELETE CASCADE` appropriately.
 - No `DROP TABLE`, `TRUNCATE`, or destructive data conversions are executed.
 - Database credentials and service keys are loaded securely from `.env.local` and never printed in logs.
+

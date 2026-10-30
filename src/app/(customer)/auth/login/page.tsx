@@ -48,8 +48,8 @@ function LoginFormContent() {
 
   const { refreshUser } = useAuth();
 
-  // Login Mode: 'secure_2fa' (Email + Password + Real SMS OTP) OR 'quick_phone' (Direct Phone OTP)
-  const [authMode, setAuthMode] = useState<'secure_2fa' | 'quick_phone'>('secure_2fa');
+  // Login Mode: 'quick_phone' (Direct Mobile Number OTP - Amazon/Flipkart style) OR 'secure_2fa' (Email + Password + OTP)
+  const [authMode, setAuthMode] = useState<'quick_phone' | 'secure_2fa'>('quick_phone');
 
   // Secure 2FA Steps: 'enter_credentials' -> 'verify_otp'
   const [step, setStep] = useState<'enter_credentials' | 'verify_otp'>('enter_credentials');
@@ -314,25 +314,9 @@ function LoginFormContent() {
           </p>
         </div>
 
-        {/* Tab Selection */}
+        {/* Tab Selection (Amazon/Flipkart Style: Mobile Number First) */}
         {step === 'enter_credentials' && (
           <div className="flex p-1 bg-slate-100 rounded-2xl border border-slate-200 text-xs font-bold">
-            <button
-              type="button"
-              onClick={() => {
-                setAuthMode('secure_2fa');
-                setErrorMessage(null);
-                setSuccessMessage(null);
-              }}
-              className={`flex-1 py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
-                authMode === 'secure_2fa'
-                  ? 'bg-white text-indigo-600 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Shield className="w-3.5 h-3.5 text-indigo-500" />
-              <span>Verified 2FA Login</span>
-            </button>
             <button
               type="button"
               onClick={() => {
@@ -347,7 +331,23 @@ function LoginFormContent() {
               }`}
             >
               <Smartphone className="w-3.5 h-3.5 text-indigo-500" />
-              <span>Direct Phone OTP</span>
+              <span>Mobile OTP Login</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAuthMode('secure_2fa');
+                setErrorMessage(null);
+                setSuccessMessage(null);
+              }}
+              className={`flex-1 py-2 rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+                authMode === 'secure_2fa'
+                  ? 'bg-white text-indigo-600 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Shield className="w-3.5 h-3.5 text-indigo-500" />
+              <span>Email & Password</span>
             </button>
           </div>
         )}
@@ -601,6 +601,9 @@ function LoginFormContent() {
                   className="w-full text-center py-3 px-4 bg-slate-50 border border-slate-200 rounded-2xl text-xl font-bold tracking-[0.5em] text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 font-mono placeholder:tracking-normal placeholder:text-slate-300"
                 />
               </div>
+              <p className="mt-1.5 text-[11px] text-slate-400 text-center">
+                Sandbox Test Mode: Enter <span className="font-mono font-bold text-indigo-600">123456</span> to preview login
+              </p>
             </div>
 
             {/* Resend Action & Limits */}

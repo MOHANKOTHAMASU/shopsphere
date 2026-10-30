@@ -103,3 +103,4 @@ TWILIO_VERIFY_SERVICE_SID=VAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ## M. Exact Next Action for You
 1. Go to [`http://localhost:3000/admin/login`](http://localhost:3000/admin/login) and click the amber **`[⚡ 1-Click Sign In as Store Admin]`** button to verify the fixed Admin Console.
 2. When ready for real phone SMS delivery, paste your Twilio keys into `.env.local` as explained in [`reports/EMAIL_SMS_PROVIDER_SETUP.md`](file:///c:/Users/kmvsu/OneDrive/Desktop/website-site/reports/EMAIL_SMS_PROVIDER_SETUP.md).
+

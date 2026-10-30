@@ -56,3 +56,4 @@
 - **Browser Refresh:** Form state and authenticated session persist safely using cookies and localStorage.
 - **Empty States:** Cart, Wishlist, and Orders pages display friendly illustrations and direct "Explore Products" call-to-action buttons when empty.
 - **Error Boundaries:** Broken URLs render custom 404 page (`/_not-found`) with return home button.
+

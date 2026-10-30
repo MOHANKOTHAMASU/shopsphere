@@ -140,3 +140,4 @@ flowchart TD
 | **"Please verify your email address"** | Account was created but confirmation link was not clicked. | Click the link in your email or click "Resend verification email" on `/auth/verify-email`. |
 | **Mobile SMS OTP not arriving on real phone** | Twilio keys are not yet added to `.env.local`. | Add `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `TWILIO_VERIFY_SERVICE_SID` to `.env.local`. |
 | **Port 3000 already in use** | A previous development server is still running in the background. | Run `Get-Process node | Stop-Process` in PowerShell, then run `npm.cmd run dev`. |
+
