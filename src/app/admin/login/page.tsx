@@ -19,8 +19,13 @@ export default function AdminLoginPage() {
     setError(null);
 
     try {
+      let adminEmail = email.trim();
+      if (adminEmail.toLowerCase() === 'admin') {
+        adminEmail = 'admin@shopsphere.dev';
+      }
+
       const formData = new FormData();
-      formData.append('email', email);
+      formData.append('email', adminEmail);
       formData.append('password', password);
       formData.append('redirect', '/admin/dashboard');
       formData.append('role', 'admin');
@@ -137,32 +142,38 @@ export default function AdminLoginPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-              Admin Email
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+                Admin Email
+              </label>
+              <span className="text-[11px] text-amber-400 font-mono">admin@shopsphere.dev or admin</span>
+            </div>
             <div className="relative">
               <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
-                type="email"
+                type="text"
                 required
-                placeholder="admin@shopsphere.dev"
+                placeholder="admin@shopsphere.dev or admin"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full h-11 pl-10 pr-4 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                className="w-full h-11 pl-10 pr-4 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 font-mono"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-              Master Password
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+                Master Password
+              </label>
+              <span className="text-[11px] text-amber-400 font-mono">Default: Admin@123</span>
+            </div>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="password"
                 required
-                placeholder="••••••••••••"
+                placeholder="Admin@123"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full h-11 pl-10 pr-4 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"

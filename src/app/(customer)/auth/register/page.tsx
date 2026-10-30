@@ -224,7 +224,7 @@ function RegisterFormContent() {
             <div>
               <p className="font-bold">{successMessage}</p>
               <p className="text-xs text-emerald-700 font-normal mt-0.5">
-                Redirecting you to your account dashboard in a moment...
+                Redirecting to verification portal...
               </p>
             </div>
           </div>

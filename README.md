@@ -14,37 +14,68 @@
 
 ## Table of Contents
 
-1. [Project Overview](#project-overview)
-2. [How I Developed This](#how-i-developed-this)
-3. [Tech Stack](#tech-stack)
-4. [Features](#features)
-5. [Project Architecture](#project-architecture)
-6. [Database Schema](#database-schema)
-7. [Authentication Flow](#authentication-flow)
-8. [Getting Started](#getting-started)
-9. [Environment Variables](#environment-variables)
-10. [Running Tests](#running-tests)
-11. [Deployment](#deployment)
-12. [API Routes](#api-routes)
-13. [Security](#security)
-14. [SEO & Performance](#seo--performance)
+1. [Live Host Links](#live-host-links)
+2. [Project Overview](#project-overview)
+3. [Admin Login & Test Credentials](#admin-login--test-credentials)
+4. [How I Developed This](#how-i-developed-this)
+5. [Tech Stack](#tech-stack)
+6. [Features](#features)
+7. [Project Architecture](#project-architecture)
+8. [Database Schema](#database-schema)
+9. [Authentication Flow (2FA + Email Verification)](#authentication-flow)
+10. [Getting Started](#getting-started)
+11. [Environment Variables](#environment-variables)
+12. [Running Tests](#running-tests)
+13. [Deployment](#deployment)
+14. [API Routes](#api-routes)
+15. [Security](#security)
+16. [SEO & Performance](#seo--performance)
+
+---
+
+## Live Host Links
+
+### 🌐 Cloud Production Deployment (Vercel)
+- **Storefront Home:** [https://shopsphere-xi-gilt.vercel.app](https://shopsphere-xi-gilt.vercel.app)
+- **Customer Sign In (2FA Login):** [https://shopsphere-xi-gilt.vercel.app/auth/login](https://shopsphere-xi-gilt.vercel.app/auth/login)
+- **Customer Registration:** [https://shopsphere-xi-gilt.vercel.app/auth/register](https://shopsphere-xi-gilt.vercel.app/auth/register)
+- **Email Verification Portal:** [https://shopsphere-xi-gilt.vercel.app/auth/verify-email](https://shopsphere-xi-gilt.vercel.app/auth/verify-email)
+- **Customer Account & Orders:** [https://shopsphere-xi-gilt.vercel.app/account](https://shopsphere-xi-gilt.vercel.app/account)
+- **Admin Control Center:** [https://shopsphere-xi-gilt.vercel.app/admin/login](https://shopsphere-xi-gilt.vercel.app/admin/login)
+- **GitHub Repository:** [https://github.com/MOHANKOTHAMASU/shopsphere](https://github.com/MOHANKOTHAMASU/shopsphere)
+
+### 💻 Local Development Server (When running `npm run dev`)
+- **Local Storefront:** [http://localhost:3000](http://localhost:3000)
+- **Local Customer Login:** [http://localhost:3000/auth/login](http://localhost:3000/auth/login)
+- **Local Email Verification:** [http://localhost:3000/auth/verify-email](http://localhost:3000/auth/verify-email)
+- **Local Admin Portal:** [http://localhost:3000/admin/login](http://localhost:3000/admin/login)
+- **Local Network (Wi-Fi Mobile Testing):** [http://192.168.36.71:3000](http://192.168.36.71:3000)
+
+---
+
+## Admin Login & Test Credentials
+
+The administrator portal is accessible at [`/admin/login`](https://shopsphere-xi-gilt.vercel.app/admin/login) or [`http://localhost:3000/admin/login`](http://localhost:3000/admin/login).
+
+* **Option 1: 1-Click Instant Demo Login (Fastest)**
+  Click the prominent amber button: **`🛡️ 1-Click Sign In as Store Admin`**. This instantly authenticates your session into the dashboard with zero credentials required.
+* **Option 2: Master Email & Password**
+  - **Admin Email:** `admin@shopsphere.dev` (or shorthand: `admin`)
+  - **Master Password:** `Admin@123`
 
 ---
 
 ## Project Overview
 
-**ShopSphere** is a complete, production-ready Indian e-commerce platform. It includes:
+**ShopSphere** is a high-performance, full-stack Indian e-commerce web platform engineered for real-world production. It combines modern server-side rendering, strict role-based access control, cryptographic 2-factor authentication, and an authoritative catalog with instant search.
 
-- Phone OTP authentication (Supabase Auth)
-- Full cart & checkout with Razorpay payment integration
-- Wishlist with persistent sync across devices
-- Order management with real-time tracking
-- Rewards & coupons system
-- Advanced search with filters (price, category, sort)
-- 10 product categories with 445+ active products
-- Customer account dashboard (addresses, orders, profile)
-- Admin dashboard (products, orders, customers, inventory, pricing, reports)
-- Mobile-first responsive design with bottom navigation
+### Key Capabilities:
+- **Two-Factor Authentication (2FA)**: Verified Email + Password credentials backed by real mobile SMS OTP delivery and genuine email verification.
+- **Authoritative Catalog**: 10 official retail categories (Fashion, Mobiles, Electronics, Beauty, Home Appliances, Food & Health, Automotive, Sports, Furniture, Books) populated with 445+ products.
+- **Checkout & Payments**: Multi-step checkout with Indian 6-digit PIN code delivery checks, Razorpay payment gateway integration, Cash on Delivery (COD), and automated invoice generation.
+- **Customer Account Ecosystem**: Saved delivery address book, real-time package delivery tracking, order history, rewards club (SuperCoins), and active promotional coupons.
+- **Administrative Control Suite**: Real-time KPI dashboard, catalog CRUD, CSV bulk import, inventory restock alerts, competitor pricing intelligence, and order fulfillment controls.
+- **Zero-Trust Security**: Row Level Security (RLS) on all database tables, default-deny route middleware, HMAC-SHA256 signature verification on webhooks, and zero plain-text token exposure.
 
 ---
 

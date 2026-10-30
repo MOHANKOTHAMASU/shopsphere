@@ -1,5 +1,4 @@
 import React from 'react';
-import { SeedDataNotice } from '@/components/common/SeedDataNotice';
 import { TopNoticeBar } from '@/components/layout/TopNoticeBar';
 import { Header } from '@/components/layout/Header';
 import { NavigationRibbon } from '@/components/layout/NavigationRibbon';
@@ -13,7 +12,6 @@ export default function CustomerLayout({
 }) {
   return (
     <div className="min-h-screen flex flex-col">
-      <SeedDataNotice />
       <TopNoticeBar />
       <Header />
       <NavigationRibbon />

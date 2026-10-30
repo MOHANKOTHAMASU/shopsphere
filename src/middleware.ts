@@ -9,6 +9,7 @@ import { sanitizeRedirectPath } from '@/lib/security/redirects';
 const PUBLIC_PATHS = new Set([
   '/auth/login',
   '/auth/register',
+  '/auth/verify-email',
   '/auth/forgot-password',
   '/auth/reset-password',
   '/auth/callback',
@@ -122,6 +123,7 @@ export async function middleware(request: NextRequest) {
   const isAuthPage =
     pathname === '/auth/login' ||
     pathname === '/auth/register' ||
+    pathname === '/auth/verify-email' ||
     pathname === '/auth/forgot-password' ||
     pathname === '/auth/reset-password';
 
@@ -160,6 +162,23 @@ export async function middleware(request: NextRequest) {
     redirectUrl.searchParams.set('error', 'account-suspended');
     const redirectResponse = NextResponse.redirect(redirectUrl);
     redirectResponse.cookies.delete('shopsphere_demo_session');
+    applySecurityHeaders(redirectResponse);
+    return redirectResponse;
+  }
+
+  // Check email verification status for customer accounts
+  const isEmailUnconfirmed =
+    userRole !== 'admin' &&
+    ((user && !user.email_confirmed_at && !(user as any).confirmed_at) ||
+      (demoUser && demoUser.isVerified === false));
+
+  if (authenticatedUser && isEmailUnconfirmed) {
+    const customerEmail = user?.email || demoUser?.email || '';
+    const redirectUrl = new URL('/auth/verify-email', request.url);
+    if (customerEmail) {
+      redirectUrl.searchParams.set('email', customerEmail);
+    }
+    const redirectResponse = NextResponse.redirect(redirectUrl);
     applySecurityHeaders(redirectResponse);
     return redirectResponse;
   }
