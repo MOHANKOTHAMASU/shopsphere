@@ -147,3 +147,4 @@ website-site/
    - `ADMIN_PASSWORD` (Strong custom master admin password)  
    - `MSG91_AUTH_KEY` & `MSG91_TEMPLATE_ID` (For live SMS dispatch)  
    - `RAZORPAY_KEY_ID` & `RAZORPAY_KEY_SECRET` (For live/test UPI payments)
+

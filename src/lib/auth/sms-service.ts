@@ -117,7 +117,7 @@ export async function sendMsg91FlowSms(
     };
   }
 
-  // MSG91 mobile numbers format requires country code without leading plus (e.g., "919652788899")
+  // MSG91 mobile numbers format requires country code without leading plus (e.g., "919876543210")
   const recipientMobile = normalizedPhone.replace(/^\+/, '').replace(/\D/g, '');
 
   const payload = {

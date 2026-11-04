@@ -98,35 +98,33 @@ export default function ContactSupportPage() {
 
       {/* Quick Contact Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Phone */}
+        {/* Helpdesk */}
         <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-2">
           <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
             <Phone className="w-5 h-5" />
           </div>
-          <h3 className="text-sm font-bold text-slate-900">Toll-Free Helpline</h3>
-          <p className="text-xs text-slate-500">Instant assistance with our executives</p>
+          <h3 className="text-sm font-bold text-slate-900">Support Helpdesk</h3>
+          <p className="text-xs text-slate-500">Dedicated assistance for orders & queries</p>
           <a
-            href="tel:18002007467"
-            className="text-xs font-bold text-indigo-600 hover:underline block pt-1 font-mono"
+            href="#support-form"
+            className="text-xs font-bold text-indigo-600 hover:underline block pt-1"
           >
-            1800-200-SHOP (Toll-Free)
+            Online Support Portal &darr;
           </a>
         </div>
 
-        {/* WhatsApp */}
+        {/* WhatsApp / Direct Form */}
         <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-2">
           <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
             <MessageCircle className="w-5 h-5" />
           </div>
-          <h3 className="text-sm font-bold text-slate-900">WhatsApp Chat</h3>
+          <h3 className="text-sm font-bold text-slate-900">Direct Ticket System</h3>
           <p className="text-xs text-slate-500">Quick updates and courier queries</p>
           <a
-            href="https://wa.me/919876543210?text=Hi%20ShopSphere,%20I%20need%20help%20with%20my%20order."
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs font-bold text-emerald-600 hover:underline block pt-1 font-mono"
+            href="#support-form"
+            className="text-xs font-bold text-emerald-600 hover:underline block pt-1"
           >
-            +91 98765 43210 (Chat Now)
+            Priority Resolution Form &darr;
           </a>
         </div>
 
@@ -137,12 +135,9 @@ export default function ContactSupportPage() {
           </div>
           <h3 className="text-sm font-bold text-slate-900">Email Helpdesk</h3>
           <p className="text-xs text-slate-500">Expect a response within 4 hours</p>
-          <a
-            href="mailto:support@shopsphere.in"
-            className="text-xs font-bold text-purple-600 hover:underline block pt-1 font-mono"
-          >
-            support@shopsphere.in
-          </a>
+          <span className="text-xs font-bold text-purple-600 block pt-1">
+            Handled via Ticket Portal
+          </span>
         </div>
 
         {/* Working Hours */}
@@ -161,7 +156,7 @@ export default function ContactSupportPage() {
       {/* Main Grid: Ticket Form & Help Center FAQ */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Support Ticket Submission Form (7 cols on lg) */}
-        <div className="lg:col-span-7 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/90 shadow-xs space-y-6">
+        <div id="support-form" className="lg:col-span-7 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/90 shadow-xs space-y-6 scroll-mt-24">
           <div className="border-b border-slate-100 pb-4">
             <h2 className="text-xl font-bold text-slate-900">Submit a Support Ticket</h2>
             <p className="text-xs text-slate-500">

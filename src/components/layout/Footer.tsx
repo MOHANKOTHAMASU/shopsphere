@@ -177,22 +177,22 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <a
-                  href="tel:18002007467"
+                <Link
+                  href="/contact"
                   className="text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors"
                 >
                   <Phone className="w-3.5 h-3.5 text-indigo-400" />
-                  1800-200-SHOP (Toll-free)
-                </a>
+                  <span>Customer Support Helpdesk</span>
+                </Link>
               </li>
               <li>
-                <a
-                  href="mailto:support@shopsphere.in"
+                <Link
+                  href="/contact"
                   className="text-slate-400 hover:text-white flex items-center gap-1.5 transition-colors"
                 >
                   <Mail className="w-3.5 h-3.5 text-indigo-400" />
-                  support@shopsphere.in
-                </a>
+                  <span>Submit Priority Ticket</span>
+                </Link>
               </li>
               <li>
                 <span className="text-slate-400 flex items-center gap-1.5">
