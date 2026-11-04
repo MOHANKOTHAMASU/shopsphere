@@ -128,3 +128,4 @@ This document details the code-level modifications applied across ShopSphere's a
 ### Patch 6: Admin Inventory Decrease Buttons
 - **File:** [`src/app/admin/inventory/page.tsx`](file:///c:/Users/kmvsu/OneDrive/Desktop/website-site/src/app/admin/inventory/page.tsx)
 - **Feature Added:** Added `-25` and `-10` stock adjustment buttons in the quick adjust table column, with automatic clamping at `0` units to prevent negative stock counts.
+

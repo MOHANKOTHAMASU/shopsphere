@@ -111,3 +111,4 @@ All fixes have been validated with the automated security suite `scripts/test-cr
 2. **Set `ADMIN_PASSWORD`:** Configure a strong, unique 16+ character password in Vercel to replace default passwords.
 3. **Set `AUTH_SECRET`:** Provide a dedicated secret key for HMAC session cookie signing.
 4. **Configure MSG91 Credentials:** Ensure `MSG91_AUTH_KEY`, `MSG91_TEMPLATE_ID`, and `MSG91_SENDER_ID` are configured on Vercel for live Indian carrier delivery.
+

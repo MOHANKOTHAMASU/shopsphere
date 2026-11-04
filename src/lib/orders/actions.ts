@@ -14,7 +14,7 @@ import {
 import { DEVELOPMENT_SEED_PRODUCTS } from '@/data/seed-products';
 import { COMPLETE_SEED_PRODUCTS_400 } from '@/data/seed-products-data';
 import { clearServerCartAction } from '@/lib/cart/actions';
-import { memoryProducts } from '@/lib/admin/store';
+import { memoryProducts, memoryCustomers } from '@/lib/admin/store';
 
 type OrderRow = Database['public']['Tables']['orders']['Row'];
 type OrderItemRow = Database['public']['Tables']['order_items']['Row'];
@@ -453,6 +453,39 @@ export async function createOrderAction(payload: {
   inMemoryOrders.unshift(finalOrder);
   if (idempotencyKey) {
     idempotencyStore.set(idempotencyKey, { timestamp: Date.now(), order: finalOrder });
+  }
+
+  // Record/update customer in memoryCustomers so Admin Users & Customers directory tracks the purchase
+  try {
+    const cleanCustomerPhone = shippingAddress.phone?.trim();
+    const existingCust = memoryCustomers.find(
+      (c) => (userId && userId !== 'guest-customer' && c.id === userId) || (cleanCustomerPhone && c.phone === cleanCustomerPhone)
+    );
+    if (existingCust) {
+      existingCust.ordersCount = (existingCust.ordersCount || 0) + 1;
+      existingCust.totalSpent = (existingCust.totalSpent || 0) + finalTotal;
+      existingCust.lastOrderDate = new Date().toISOString();
+      if (!existingCust.fullName && shippingAddress.fullName) {
+        existingCust.fullName = shippingAddress.fullName.trim();
+      }
+    } else {
+      memoryCustomers.unshift({
+        id: userId && userId !== 'guest-customer' ? userId : `usr-cust-${Date.now()}`,
+        fullName: shippingAddress.fullName?.trim() || 'Valued Customer',
+        email: 'customer@shopsphere.in',
+        maskedEmail: 'c*****@shopsphere.in',
+        phone: cleanCustomerPhone || '+91 98765 43210',
+        role: 'customer',
+        ordersCount: 1,
+        totalSpent: finalTotal,
+        status: 'active',
+        isVerified: true,
+        lastOrderDate: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      });
+    }
+  } catch {
+    // Non-fatal
   }
 
   // Symmetrically decrement memoryProducts stock in dev/sandbox mode

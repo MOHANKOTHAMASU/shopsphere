@@ -68,3 +68,4 @@ To establish the store's primary administrative account:
    Trigger a production deployment so the new environment variable is active across all Edge and Serverless functions.
 4. **Login:**
    Navigate to `https://shopsphere-xi-gilt.vercel.app/admin/login` and sign in with your email and the newly configured password.
+

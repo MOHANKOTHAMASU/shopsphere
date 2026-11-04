@@ -1067,7 +1067,7 @@ export async function getAdminCustomersAction(
       details: { search: search || 'all', statusFilter, page },
     });
 
-    let rawList: CustomerSummary[] = [];
+    let rawList: CustomerSummary[] = [...memoryCustomers];
 
     if (isSupabaseConfigured()) {
       try {
@@ -1078,8 +1078,8 @@ export async function getAdminCustomersAction(
           .eq('role', 'customer')
           .order('created_at', { ascending: false });
 
-        if (!error && data) {
-          rawList = data.map((p) => ({
+        if (!error && data && data.length > 0) {
+          const dbCustomers: CustomerSummary[] = data.map((p) => ({
             id: p.id,
             fullName: p.full_name || 'Customer',
             email: 'customer@hidden.supabase',
@@ -1092,12 +1092,44 @@ export async function getAdminCustomersAction(
             isVerified: true,
             createdAt: p.created_at,
           }));
+
+          // Merge database customers with memory store (avoid duplicates)
+          for (const dbC of dbCustomers) {
+            const existingIdx = rawList.findIndex(
+              (m) => m.id === dbC.id || (m.phone && m.phone === dbC.phone)
+            );
+            if (existingIdx >= 0) {
+              rawList[existingIdx] = {
+                ...rawList[existingIdx],
+                ...dbC,
+                fullName: dbC.fullName || rawList[existingIdx].fullName,
+              };
+            } else {
+              rawList.unshift(dbC);
+            }
+          }
         }
       } catch {
-        rawList = memoryCustomers;
+        // Fallback to memoryCustomers is preserved
       }
-    } else {
-      rawList = memoryCustomers;
+    }
+
+    // Correlate live purchase statistics from inMemoryOrders
+    for (const c of rawList) {
+      const userOrders = inMemoryOrders.filter(
+        (o) => o.userId === c.id || (c.phone && o.shippingAddress?.phone === c.phone)
+      );
+      if (userOrders.length > 0) {
+        c.ordersCount = Math.max(c.ordersCount || 0, userOrders.length);
+        const sumSpent = userOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+        c.totalSpent = Math.max(c.totalSpent || 0, sumSpent);
+        const latestOrder = [...userOrders].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )[0];
+        if (latestOrder) {
+          c.lastOrderDate = latestOrder.createdAt;
+        }
+      }
     }
 
     // Compute metrics

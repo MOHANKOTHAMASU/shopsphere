@@ -2,7 +2,16 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Warehouse, AlertTriangle, CheckCircle, Search, Save } from 'lucide-react';
+import {
+  Warehouse,
+  AlertTriangle,
+  CheckCircle,
+  Search,
+  Save,
+  CheckSquare,
+  Square,
+  RefreshCw,
+} from 'lucide-react';
 import { getAdminProductsAction, updateInventoryAction } from '@/lib/admin/actions';
 import { Product } from '@/types/ecommerce';
 import { formatCurrency } from '@/lib/utils';
@@ -10,11 +19,14 @@ import { formatCurrency } from '@/lib/utils';
 export default function AdminInventoryPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [stockInputs, setStockInputs] = useState<Record<string, number>>({});
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [filterType, setFilterType] = useState<'all' | 'low' | 'out' | 'in'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isBulkSaving, setIsBulkSaving] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [customBulkAmount, setCustomBulkAmount] = useState<number>(25);
 
   const loadProducts = () => {
     getAdminProductsAction().then((res) => {
@@ -51,14 +63,17 @@ export default function AdminInventoryPage() {
   }, []);
 
   const handleStockInputChange = (productId: string, val: number) => {
-    setStockInputs({ ...stockInputs, [productId]: Math.max(0, val) });
+    setStockInputs((prev) => ({ ...prev, [productId]: Math.max(0, val) }));
   };
 
   const handleQuickAdd = (productId: string, delta: number) => {
-    const current = stockInputs[productId] ?? 0;
-    setStockInputs({ ...stockInputs, [productId]: Math.max(0, current + delta) });
+    setStockInputs((prev) => {
+      const current = prev[productId] ?? 0;
+      return { ...prev, [productId]: Math.max(0, current + delta) };
+    });
   };
 
+  // Save single item
   const handleSaveStock = async (productId: string) => {
     const newStock = stockInputs[productId];
     if (newStock === undefined) return;
@@ -67,36 +82,170 @@ export default function AdminInventoryPage() {
     const res = await updateInventoryAction(productId, newStock);
     if (res.success) {
       setStatusMessage(`Stock updated to ${newStock} units.`);
-      loadProducts();
+      setProducts((prev) =>
+        prev.map((p) => (p.id === productId ? { ...p, stockQuantity: newStock, isAvailable: newStock > 0 } : p))
+      );
     }
     setUpdatingId(null);
     setTimeout(() => setStatusMessage(null), 3000);
   };
 
+  // Bulk Actions
+  const handleToggleSelect = (productId: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(productId) ? prev.filter((id) => id !== productId) : [...prev, productId]
+    );
+  };
+
+  const handleSelectAllFiltered = () => {
+    const allFilteredIds = filteredProducts.map((p) => p.id);
+    const areAllSelected = allFilteredIds.length > 0 && allFilteredIds.every((id) => selectedIds.includes(id));
+    if (areAllSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !allFilteredIds.includes(id)));
+    } else {
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...allFilteredIds])));
+    }
+  };
+
+  const handleSelectOutOfStock = () => {
+    const outIds = products.filter((p) => p.stockQuantity === 0).map((p) => p.id);
+    setSelectedIds(outIds);
+    setFilterType('out');
+  };
+
+  const handleSelectLowStock = () => {
+    const lowIds = products.filter((p) => p.stockQuantity <= 10 && p.stockQuantity > 0).map((p) => p.id);
+    setSelectedIds(lowIds);
+    setFilterType('low');
+  };
+
+  const handleClearSelection = () => {
+    setSelectedIds([]);
+  };
+
+  // Bulk add delta to all selected items
+  const handleBulkAdd = (delta: number) => {
+    if (selectedIds.length === 0) return;
+    setStockInputs((prev) => {
+      const next = { ...prev };
+      selectedIds.forEach((id) => {
+        const current = next[id] ?? 0;
+        next[id] = Math.max(0, current + delta);
+      });
+      return next;
+    });
+    setStatusMessage(`Added ${delta > 0 ? `+${delta}` : delta} units to ${selectedIds.length} selected product(s). Click "Save All Selected" to commit.`);
+  };
+
+  // Bulk set exact stock amount for all selected items
+  const handleBulkSetExact = (targetAmount: number) => {
+    if (selectedIds.length === 0) return;
+    setStockInputs((prev) => {
+      const next = { ...prev };
+      selectedIds.forEach((id) => {
+        next[id] = Math.max(0, targetAmount);
+      });
+      return next;
+    });
+    setStatusMessage(`Set stock to ${targetAmount} units for ${selectedIds.length} selected product(s). Click "Save All Selected" to commit.`);
+  };
+
+  // Commit all selected items to database
+  const handleSaveAllSelected = async () => {
+    if (selectedIds.length === 0) return;
+    setIsBulkSaving(true);
+    setStatusMessage(null);
+
+    let savedCount = 0;
+    for (const id of selectedIds) {
+      const newStock = stockInputs[id];
+      if (newStock !== undefined) {
+        const res = await updateInventoryAction(id, newStock);
+        if (res.success) savedCount++;
+      }
+    }
+
+    loadProducts();
+    setSelectedIds([]);
+    setIsBulkSaving(false);
+    setStatusMessage(`Successfully saved stock updates for ${savedCount} product(s)!`);
+    setTimeout(() => setStatusMessage(null), 4000);
+  };
+
+  // Save all items that have any pending modifications across the entire catalog
+  const modifiedProducts = products.filter((p) => {
+    const currentVal = stockInputs[p.id];
+    return currentVal !== undefined && currentVal !== p.stockQuantity;
+  });
+
+  const handleSaveAllModified = async () => {
+    if (modifiedProducts.length === 0) return;
+    setIsBulkSaving(true);
+    setStatusMessage(null);
+
+    let savedCount = 0;
+    for (const p of modifiedProducts) {
+      const newStock = stockInputs[p.id];
+      if (newStock !== undefined) {
+        const res = await updateInventoryAction(p.id, newStock);
+        if (res.success) savedCount++;
+      }
+    }
+
+    loadProducts();
+    setIsBulkSaving(false);
+    setStatusMessage(`Successfully committed changes for all ${savedCount} modified product(s)!`);
+    setTimeout(() => setStatusMessage(null), 4000);
+  };
+
   const lowStockCount = products.filter((p) => p.stockQuantity <= 10 && p.stockQuantity > 0).length;
   const outOfStockCount = products.filter((p) => p.stockQuantity === 0).length;
 
-  const filteredProducts = products.filter((p) => {
-    if (filterType === 'low') return p.stockQuantity <= 10 && p.stockQuantity > 0;
-    if (filterType === 'out') return p.stockQuantity === 0;
-    if (filterType === 'in') return p.stockQuantity > 10;
-    return true;
-  }).filter((p) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase().trim();
-    return p.title.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q);
-  });
+  const filteredProducts = products
+    .filter((p) => {
+      if (filterType === 'low') return p.stockQuantity <= 10 && p.stockQuantity > 0;
+      if (filterType === 'out') return p.stockQuantity === 0;
+      if (filterType === 'in') return p.stockQuantity > 10;
+      return true;
+    })
+    .filter((p) => {
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase().trim();
+      return p.title.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q);
+    });
+
+  const areAllFilteredSelected =
+    filteredProducts.length > 0 && filteredProducts.every((p) => selectedIds.includes(p.id));
 
   return (
     <div className="space-y-6 max-w-7xl">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-          Inventory & Stock Management
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-400 mt-1">
-          Monitor safety thresholds, restock inventory levels, and avoid overselling
-        </p>
+      {/* Header & Global Save Action */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+            Inventory & Stock Management
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-400 mt-1">
+            Monitor safety thresholds, bulk restock out-of-stock items, and avoid overselling
+          </p>
+        </div>
+
+        {/* Global Save Button for Any Modified Rows */}
+        {modifiedProducts.length > 0 && (
+          <button
+            type="button"
+            disabled={isBulkSaving}
+            onClick={handleSaveAllModified}
+            className="py-2.5 px-4 rounded-xl text-xs font-black bg-amber-400 hover:bg-amber-300 text-slate-950 transition-all shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-50"
+          >
+            {isBulkSaving ? (
+              <RefreshCw className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            <span>Save All Modified ({modifiedProducts.length} Items)</span>
+          </button>
+        )}
       </div>
 
       {/* KPI Cards */}
@@ -115,6 +264,13 @@ export default function AdminInventoryPage() {
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Low Stock Alert (&le;10)</span>
             <p className="text-2xl font-black text-amber-300 mt-1">{lowStockCount}</p>
+            <button
+              type="button"
+              onClick={handleSelectLowStock}
+              className="text-[10px] font-bold text-amber-400 hover:underline mt-1 cursor-pointer block"
+            >
+              Select All Low Stock &rarr;
+            </button>
           </div>
           <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
             <AlertTriangle className="w-5 h-5" />
@@ -125,6 +281,13 @@ export default function AdminInventoryPage() {
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-rose-400">Out of Stock (0)</span>
             <p className="text-2xl font-black text-rose-300 mt-1">{outOfStockCount}</p>
+            <button
+              type="button"
+              onClick={handleSelectOutOfStock}
+              className="text-[10px] font-bold text-rose-400 hover:underline mt-1 cursor-pointer block"
+            >
+              Select All Out of Stock &rarr;
+            </button>
           </div>
           <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center">
             <AlertTriangle className="w-5 h-5" />
@@ -139,6 +302,88 @@ export default function AdminInventoryPage() {
         </div>
       )}
 
+      {/* BULK RESTOCK ACTION TOOLBAR (Visible when items are selected) */}
+      {selectedIds.length > 0 && (
+        <div className="p-4 bg-amber-950/40 border-2 border-amber-500/60 rounded-2xl space-y-3 shadow-xl backdrop-blur-md animate-in fade-in slide-in-from-top-2">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-lg bg-amber-400 text-slate-950 font-black text-xs flex items-center justify-center">
+                {selectedIds.length}
+              </span>
+              <span className="text-xs font-bold text-amber-200">
+                Product(s) Selected for Bulk Restock
+              </span>
+              <button
+                type="button"
+                onClick={handleClearSelection}
+                className="text-[11px] text-slate-400 hover:text-white underline ml-2 cursor-pointer"
+              >
+                Clear Selection
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={isBulkSaving}
+                onClick={handleSaveAllSelected}
+                className="py-2 px-4 rounded-xl text-xs font-black bg-emerald-400 hover:bg-emerald-300 text-slate-950 transition-all flex items-center gap-1.5 shadow-md shadow-emerald-500/20 cursor-pointer disabled:opacity-50"
+              >
+                {isBulkSaving ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Save className="w-3.5 h-3.5" />
+                )}
+                <span>Save All Selected ({selectedIds.length})</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-amber-500/20 text-xs">
+            <span className="text-slate-400 font-bold mr-1">Quick Add to Selected:</span>
+            <button
+              type="button"
+              onClick={() => handleBulkAdd(10)}
+              className="py-1.5 px-3 rounded-lg bg-emerald-950/80 border border-emerald-700 hover:bg-emerald-900 text-emerald-300 font-bold transition-colors cursor-pointer"
+            >
+              +10 to All
+            </button>
+            <button
+              type="button"
+              onClick={() => handleBulkAdd(25)}
+              className="py-1.5 px-3 rounded-lg bg-emerald-950/80 border border-emerald-700 hover:bg-emerald-900 text-emerald-300 font-bold transition-colors cursor-pointer"
+            >
+              +25 to All
+            </button>
+            <button
+              type="button"
+              onClick={() => handleBulkAdd(50)}
+              className="py-1.5 px-3 rounded-lg bg-emerald-950/80 border border-emerald-700 hover:bg-emerald-900 text-emerald-300 font-bold transition-colors cursor-pointer"
+            >
+              +50 to All
+            </button>
+
+            <span className="text-slate-400 font-bold mx-2">|</span>
+
+            <span className="text-slate-400 font-bold">Set Custom Quantity:</span>
+            <input
+              type="number"
+              min="0"
+              value={customBulkAmount}
+              onChange={(e) => setCustomBulkAmount(Math.max(0, Number(e.target.value)))}
+              className="w-16 h-8 px-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white font-mono text-center"
+            />
+            <button
+              type="button"
+              onClick={() => handleBulkSetExact(customBulkAmount)}
+              className="py-1.5 px-3 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 font-black transition-colors cursor-pointer"
+            >
+              Apply Exact Stock
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Filter Tabs and Search */}
       <div className="p-4 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4">
         {/* Tabs */}
@@ -147,7 +392,7 @@ export default function AdminInventoryPage() {
             onClick={() => setFilterType('all')}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
               filterType === 'all'
-                ? 'bg-amber-400 text-slate-950'
+                ? 'bg-amber-400 text-slate-950 font-black'
                 : 'bg-slate-950 text-slate-400 hover:text-white'
             }`}
           >
@@ -157,7 +402,7 @@ export default function AdminInventoryPage() {
             onClick={() => setFilterType('low')}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
               filterType === 'low'
-                ? 'bg-amber-400 text-slate-950'
+                ? 'bg-amber-400 text-slate-950 font-black'
                 : 'bg-slate-950 text-amber-400 hover:bg-slate-800'
             }`}
           >
@@ -167,7 +412,7 @@ export default function AdminInventoryPage() {
             onClick={() => setFilterType('out')}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
               filterType === 'out'
-                ? 'bg-amber-400 text-slate-950'
+                ? 'bg-amber-400 text-slate-950 font-black'
                 : 'bg-slate-950 text-rose-400 hover:bg-slate-800'
             }`}
           >
@@ -177,7 +422,7 @@ export default function AdminInventoryPage() {
             onClick={() => setFilterType('in')}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
               filterType === 'in'
-                ? 'bg-amber-400 text-slate-950'
+                ? 'bg-amber-400 text-slate-950 font-black'
                 : 'bg-slate-950 text-slate-400 hover:text-white'
             }`}
           >
@@ -215,7 +460,21 @@ export default function AdminInventoryPage() {
             <table className="w-full text-left text-xs">
               <thead className="text-[11px] font-bold uppercase text-slate-400 bg-slate-950/60 border-b border-slate-800">
                 <tr>
-                  <th className="py-3.5 px-4">Product Details</th>
+                  <th className="py-3.5 px-3 w-10 text-center">
+                    <button
+                      type="button"
+                      onClick={handleSelectAllFiltered}
+                      className="cursor-pointer text-slate-400 hover:text-amber-400 transition-colors"
+                      title={areAllFilteredSelected ? 'Deselect all' : 'Select all'}
+                    >
+                      {areAllFilteredSelected ? (
+                        <CheckSquare className="w-4 h-4 text-amber-400" />
+                      ) : (
+                        <Square className="w-4 h-4" />
+                      )}
+                    </button>
+                  </th>
+                  <th className="py-3.5 px-3">Product Details</th>
                   <th className="py-3.5 px-3">SKU</th>
                   <th className="py-3.5 px-3">Price</th>
                   <th className="py-3.5 px-3">Current Stock</th>
@@ -229,10 +488,33 @@ export default function AdminInventoryPage() {
                   const isOut = p.stockQuantity === 0;
                   const currentVal = stockInputs[p.id] ?? p.stockQuantity;
                   const hasChanged = currentVal !== p.stockQuantity;
+                  const isSelected = selectedIds.includes(p.id);
 
                   return (
-                    <tr key={p.id} className="hover:bg-slate-800/40 transition-colors">
-                      <td className="py-3 px-4">
+                    <tr
+                      key={p.id}
+                      className={`transition-colors ${
+                        isSelected
+                          ? 'bg-amber-950/30'
+                          : hasChanged
+                          ? 'bg-slate-800/60'
+                          : 'hover:bg-slate-800/40'
+                      }`}
+                    >
+                      <td className="py-3 px-3 text-center">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSelect(p.id)}
+                          className="cursor-pointer text-slate-400 hover:text-amber-400 transition-colors"
+                        >
+                          {isSelected ? (
+                            <CheckSquare className="w-4 h-4 text-amber-400" />
+                          ) : (
+                            <Square className="w-4 h-4 text-slate-600" />
+                          )}
+                        </button>
+                      </td>
+                      <td className="py-3 px-3">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-xl bg-slate-950 border border-slate-800 overflow-hidden relative shrink-0">
                             <Image
@@ -289,7 +571,9 @@ export default function AdminInventoryPage() {
                             min="0"
                             value={currentVal}
                             onChange={(e) => handleStockInputChange(p.id, Number(e.target.value))}
-                            className="w-16 h-8 px-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white font-mono text-center focus:outline-none focus:border-amber-400"
+                            className={`w-16 h-8 px-2 bg-slate-950 border rounded-lg text-xs text-white font-mono text-center focus:outline-none ${
+                              hasChanged ? 'border-amber-400 ring-1 ring-amber-400/50' : 'border-slate-700'
+                            }`}
                           />
                           <button
                             type="button"
