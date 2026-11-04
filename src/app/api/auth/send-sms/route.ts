@@ -1,23 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { sendMsg91FlowSms, getSmsProviderStatus } from '@/lib/auth/sms-service';
-import { maskPhoneNumber, normalizePhoneNumber } from '@/lib/auth/phone-utils';
+import { maskPhoneNumber, normalizePhoneNumber, validatePhoneNumber } from '@/lib/auth/phone-utils';
 
 /**
  * POST /api/auth/send-sms
  * Supabase GoTrue Auth Webhook Endpoint for Custom SMS Delivery
  * Integrates Supabase Phone Auth with MSG91 Flow API (India DLT Compliant)
+ * 
+ * Cryptographically verifies SUPABASE_HOOK_SECRET to prevent unauthorized relay.
  */
 export async function POST(req: NextRequest) {
   try {
-    // 1. Verify Webhook Secret if configured
     const configuredSecret = process.env.SUPABASE_HOOK_SECRET;
-    if (configuredSecret) {
+
+    // 1. Mandatory Secret Verification in Production
+    if (!configuredSecret) {
+      if (process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production') {
+        console.error('[ShopSphere SMS Hook] SUPABASE_HOOK_SECRET is not configured on the server. Rejecting request.');
+        return NextResponse.json(
+          { error: 'SMS Hook is disabled: Server authentication secret not configured.' },
+          { status: 503 }
+        );
+      }
+    } else {
       const authHeader = req.headers.get('authorization') || '';
       const hookSecretHeader = req.headers.get('x-hook-secret') || '';
       const providedSecret = authHeader.replace(/^Bearer\s+/i, '').trim() || hookSecretHeader.trim();
 
-      if (providedSecret !== configuredSecret) {
-        console.warn('[ShopSphere SMS Hook] Unauthorized webhook attempt: secret mismatch.');
+      const secretBuffer = Buffer.from(configuredSecret);
+      const providedBuffer = Buffer.from(providedSecret);
+
+      if (
+        secretBuffer.length !== providedBuffer.length ||
+        !crypto.timingSafeEqual(secretBuffer, providedBuffer)
+      ) {
+        console.warn('[ShopSphere SMS Hook] Unauthorized webhook attempt: secret signature mismatch.');
         return NextResponse.json(
           { error: 'Unauthorized: Invalid hook secret' },
           { status: 401 }
@@ -27,7 +45,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Parse payload from Supabase GoTrue
     const payload = await req.json().catch(() => null);
-    if (!payload) {
+    if (!payload || typeof payload !== 'object') {
       return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
     }
 
@@ -42,21 +60,37 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const normalizedPhone = normalizePhoneNumber('+91', phone);
-    const masked = maskPhoneNumber(normalizedPhone);
+    const cleanOtp = String(otp).trim();
+    // Validate OTP format: 4 to 8 numeric digits
+    if (!/^\d{4,8}$/.test(cleanOtp)) {
+      return NextResponse.json(
+        { error: 'Invalid OTP format. Must be numeric.' },
+        { status: 400 }
+      );
+    }
 
-    console.log(`[ShopSphere SMS Hook] Received dispatch request for ${masked}`);
+    const normalizedPhone = normalizePhoneNumber('+91', String(phone));
+    const phoneValidation = validatePhoneNumber('+91', normalizedPhone);
+    if (!phoneValidation.isValid) {
+      return NextResponse.json(
+        { error: phoneValidation.error || 'Invalid phone number format.' },
+        { status: 400 }
+      );
+    }
+
+    const masked = maskPhoneNumber(normalizedPhone);
+    console.log(`[ShopSphere SMS Hook] Authorized dispatch request for ${masked}`);
 
     // 3. Dispatch via MSG91 Flow API
     const providerStatus = getSmsProviderStatus();
 
     if (providerStatus.provider === 'msg91') {
-      const msg91Result = await sendMsg91FlowSms(normalizedPhone, String(otp));
+      const msg91Result = await sendMsg91FlowSms(normalizedPhone, cleanOtp);
 
       if (!msg91Result.success) {
         console.error(`[ShopSphere SMS Hook] MSG91 delivery rejected for ${masked}:`, msg91Result.message);
         return NextResponse.json(
-          { error: msg91Result.message, code: msg91Result.error },
+          { error: 'SMS delivery failed at carrier gateway', code: msg91Result.error },
           { status: 502 }
         );
       }
@@ -80,7 +114,7 @@ export async function POST(req: NextRequest) {
         } else if (fromPhone) {
           bodyParams.set('From', fromPhone);
         }
-        bodyParams.set('Body', `Your ShopSphere verification code is: ${otp}. Valid for 5 minutes.`);
+        bodyParams.set('Body', `Your ShopSphere verification code is: ${cleanOtp}. Valid for 5 minutes.`);
 
         const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
           method: 'POST',
@@ -92,9 +126,8 @@ export async function POST(req: NextRequest) {
         });
 
         if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
           return NextResponse.json(
-            { error: errData.message || 'Twilio dispatch failed' },
+            { error: 'Twilio carrier dispatch failed' },
             { status: 502 }
           );
         }
@@ -119,6 +152,9 @@ export async function POST(req: NextRequest) {
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : 'Internal Server Error';
     console.error('[ShopSphere SMS Hook] Unhandled exception:', errorMsg);
-    return NextResponse.json({ error: errorMsg }, { status: 500 });
+    return NextResponse.json(
+      { error: process.env.NODE_ENV === 'production' ? 'Internal Server Error' : errorMsg },
+      { status: 500 }
+    );
   }
 }

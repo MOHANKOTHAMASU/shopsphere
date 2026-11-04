@@ -5,6 +5,7 @@
 
 import crypto from 'crypto';
 import { normalizePhoneNumber, maskPhoneNumber, validatePhoneNumber } from './phone-utils';
+import { isDevOtpAllowed } from './phone-config';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 
 export interface SmsProviderStatus {
@@ -289,10 +290,11 @@ export async function sendMobileSmsOtp(
   }
 
   const providerStatus = getSmsProviderStatus();
-  const isDevOrTest = process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_APP_ENV === 'test';
-  const isSandbox = !providerStatus.configured && isDevOrTest;
+  const isDev = isDevOtpAllowed();
+  const isSandbox = !providerStatus.configured && isDev;
 
-  // In development without SMS credentials, default test code to 123456 so developer is not blocked
+  // In local development without SMS credentials, default test code to 123456 so developer is not blocked.
+  // In production, cryptographically secure 6-digit OTP is ALWAYS generated.
   const otp = isSandbox ? '123456' : generateSecureSixDigitOtp();
   challenge.otpHash = hashOtp(otp, normalized);
   challenge.lastSentAt = now;
@@ -618,11 +620,12 @@ export async function verifyMobileSmsOtp(
   const expectedHash = challenge.otpHash;
   const inputHash = hashOtp(cleanOtp, challenge.phone);
 
-  // Constant-time buffer comparison to prevent timing attacks, plus sandbox check
+  // Constant-time buffer comparison to prevent timing attacks.
+  // Demo OTP 123456 is strictly permitted only in local development sandbox mode, NEVER in production.
   const isBufferMatch =
     expectedHash.length === inputHash.length &&
     crypto.timingSafeEqual(Buffer.from(expectedHash), Buffer.from(inputHash));
-  const isMatch = isBufferMatch || (challenge.isSandbox && cleanOtp === '123456');
+  const isMatch = isBufferMatch || (isDevOtpAllowed() && challenge.isSandbox && cleanOtp === '123456');
 
   if (!isMatch) {
     challenge.attempts += 1;

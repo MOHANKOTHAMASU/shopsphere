@@ -94,30 +94,32 @@ export default function AdminLoginPage() {
           </p>
         </div>
 
-        {/* 1-Click Quick Demo Admin Access */}
-        <div className="p-3.5 bg-amber-950/30 border border-amber-500/30 rounded-2xl space-y-2.5">
-          <div className="flex items-center justify-between text-xs font-bold text-amber-300">
-            <div className="flex items-center gap-1.5">
-              <Zap className="w-4 h-4 text-amber-400 fill-amber-400" />
-              <span>Developer Quick Access</span>
+        {/* 1-Click Quick Demo Admin Access (Restricted Strictly to Local Development Sandbox) */}
+        {process.env.NODE_ENV !== 'production' && (
+          <div className="p-3.5 bg-amber-950/30 border border-amber-500/30 rounded-2xl space-y-2.5">
+            <div className="flex items-center justify-between text-xs font-bold text-amber-300">
+              <div className="flex items-center gap-1.5">
+                <Zap className="w-4 h-4 text-amber-400 fill-amber-400" />
+                <span>Developer Quick Access</span>
+              </div>
+              <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">
+                LOCAL SANDBOX ONLY
+              </span>
             </div>
-            <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">
-              LOCAL SANDBOX
-            </span>
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              Instantly access the admin dashboard without entering credentials during local development.
+            </p>
+            <button
+              type="button"
+              disabled={isLoading}
+              onClick={handleQuickDemoAdmin}
+              className="w-full py-2.5 px-3 rounded-xl font-bold text-xs bg-amber-400 hover:bg-amber-300 text-slate-950 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-amber-500/20 active:scale-[0.98] disabled:opacity-50"
+            >
+              <ShieldAlert className="w-4 h-4" />
+              <span>1-Click Sign In as Store Admin</span>
+            </button>
           </div>
-          <p className="text-[11px] text-slate-400 leading-relaxed">
-            Instantly access the admin dashboard without entering credentials during development.
-          </p>
-          <button
-            type="button"
-            disabled={isLoading}
-            onClick={handleQuickDemoAdmin}
-            className="w-full py-2.5 px-3 rounded-xl font-bold text-xs bg-amber-400 hover:bg-amber-300 text-slate-950 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-amber-500/20 active:scale-[0.98] disabled:opacity-50"
-          >
-            <ShieldAlert className="w-4 h-4" />
-            <span>1-Click Sign In as Store Admin</span>
-          </button>
-        </div>
+        )}
 
         {error && (
           <div className="p-3 bg-rose-950/60 border border-rose-800 rounded-xl flex items-start gap-2 text-xs text-rose-300 font-medium">
@@ -137,7 +139,7 @@ export default function AdminLoginPage() {
           <div className="relative flex items-center justify-center my-2">
             <div className="border-t border-slate-800 w-full" />
             <span className="bg-slate-900/90 px-3 text-[11px] font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">
-              Or sign in with master email
+              Master Admin Authentication
             </span>
           </div>
 
@@ -146,14 +148,16 @@ export default function AdminLoginPage() {
               <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
                 Admin Email
               </label>
-              <span className="text-[11px] text-amber-400 font-mono">admin@shopsphere.dev or admin</span>
+              {process.env.NODE_ENV !== 'production' && (
+                <span className="text-[11px] text-amber-400 font-mono">Dev: admin@shopsphere.dev</span>
+              )}
             </div>
             <div className="relative">
               <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 required
-                placeholder="admin@shopsphere.dev or admin"
+                placeholder={process.env.NODE_ENV !== 'production' ? "admin@shopsphere.dev or admin" : "Enter authorized admin email"}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full h-11 pl-10 pr-4 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 font-mono"
@@ -166,14 +170,16 @@ export default function AdminLoginPage() {
               <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
                 Master Password
               </label>
-              <span className="text-[11px] text-amber-400 font-mono">Default: Admin@123</span>
+              {process.env.NODE_ENV !== 'production' && (
+                <span className="text-[11px] text-amber-400 font-mono">Dev: Admin@123</span>
+              )}
             </div>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="password"
                 required
-                placeholder="Admin@123"
+                placeholder={process.env.NODE_ENV !== 'production' ? "Admin@123" : "Enter master password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full h-11 pl-10 pr-4 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"

@@ -386,7 +386,6 @@ export async function sendPhoneOtpAction(
     message: `Verification code dispatched to ${masked}.`,
     maskedPhone: masked,
     normalizedPhone: normalized,
-    testOtp: isDev ? otp : undefined,
     isNewUser: !existingCustomer,
   };
 }

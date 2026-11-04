@@ -8,9 +8,18 @@
 export const DEVELOPMENT_TEST_OTP = '123456';
 
 /**
- * Returns true if the environment is strictly local development or automated test runner.
- * Never allows test OTP in production runtime.
+ * Returns true strictly if the environment is local development.
+ * Never allows test OTP in production runtime or any deployed Vercel preview/production environment.
+ * NEVER uses frontend environment variables (like NEXT_PUBLIC_*) to evaluate security bypasses.
  */
 export function isDevOtpAllowed(): boolean {
-  return process.env.NODE_ENV !== 'production' || process.env.NEXT_PUBLIC_APP_ENV === 'test';
+  // Production runtime and Vercel deployments are strictly forbidden from using development test OTP
+  if (
+    process.env.NODE_ENV === 'production' ||
+    process.env.VERCEL_ENV === 'production' ||
+    process.env.VERCEL_ENV === 'preview'
+  ) {
+    return false;
+  }
+  return process.env.NODE_ENV === 'development';
 }

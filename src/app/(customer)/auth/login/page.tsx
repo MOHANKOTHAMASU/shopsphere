@@ -601,9 +601,15 @@ function LoginFormContent() {
                   className="w-full text-center py-3 px-4 bg-slate-50 border border-slate-200 rounded-2xl text-xl font-bold tracking-[0.5em] text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 font-mono placeholder:tracking-normal placeholder:text-slate-300"
                 />
               </div>
-              <p className="mt-1.5 text-[11px] text-slate-400 text-center">
-                Sandbox Test Mode: Enter <span className="font-mono font-bold text-indigo-600">123456</span> to preview login
-              </p>
+              {process.env.NODE_ENV !== 'production' ? (
+                <p className="mt-1.5 text-[11px] text-slate-400 text-center">
+                  Sandbox Test Mode: Enter <span className="font-mono font-bold text-indigo-600">123456</span> to preview login
+                </p>
+              ) : (
+                <p className="mt-1.5 text-[11px] text-slate-400 text-center">
+                  Enter the 6-digit verification code sent to your registered mobile phone.
+                </p>
+              )}
             </div>
 
             {/* Resend Action & Limits */}

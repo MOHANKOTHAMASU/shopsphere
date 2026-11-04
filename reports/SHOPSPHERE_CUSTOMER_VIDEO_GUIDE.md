@@ -45,3 +45,4 @@ When the screen recording and Telugu voiceover are rendered into `.mp4`:
    - Embed responsive iframe on `/how-to-use`.
 3. **Current Safe State:**
    - The `/how-to-use` page currently presents an interactive placeholder player clearly stating that video production is in progress, preventing any false claims while providing the full script and chapter guide.
+

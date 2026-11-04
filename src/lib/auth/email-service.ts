@@ -7,6 +7,7 @@
 
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/security/rate-limit';
+import { memoryCustomers, memoryVerificationTokens } from '@/lib/admin/store';
 
 export interface EmailVerificationStatus {
   isVerified: boolean;
@@ -176,13 +177,37 @@ export async function verifyEmailOtpToken(
       };
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : 'Verification failed';
-      return { success: false, message: errorMsg, error: errorMsg };
+      console.warn('[ShopSphere Auth] Supabase email verification error, checking store:', errorMsg);
     }
+  }
+
+  // Fallback: Check memory verification token store (when Supabase free tier rate-limits or DNS is paused)
+  const record = memoryVerificationTokens.get(cleanEmail);
+  if (record && record.token === cleanToken) {
+    if (Date.now() > record.expiresAt) {
+      memoryVerificationTokens.delete(cleanEmail);
+      return {
+        success: false,
+        message: 'This verification code has expired. Please request a new verification email.',
+        error: 'EXPIRED_CODE',
+      };
+    }
+
+    memoryVerificationTokens.delete(cleanEmail);
+    const customer = memoryCustomers.find((c) => c.email.toLowerCase() === cleanEmail);
+    if (customer) {
+      customer.isVerified = true;
+    }
+
+    return {
+      success: true,
+      message: 'Your email address has been successfully verified! You may now sign in.',
+    };
   }
 
   return {
     success: false,
-    message: 'Email verification provider not configured.',
-    error: 'NOT_CONFIGURED',
+    message: 'Invalid or expired verification code. Please check your code or request a new one.',
+    error: 'INVALID_CODE',
   };
 }

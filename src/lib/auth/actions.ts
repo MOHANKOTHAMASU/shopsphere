@@ -9,6 +9,7 @@ import { sanitizeRedirectPath } from '@/lib/security/redirects';
 import { checkRateLimit } from '@/lib/security/rate-limit';
 
 import { DEMO_USERS, DEMO_COOKIE_NAME, type DemoUserSession } from './demo-users';
+import { createSignedSessionToken, verifySignedSessionToken } from './session-security';
 import {
   memoryCustomers,
   memoryAddresses,
@@ -28,7 +29,6 @@ export interface AuthActionResult {
   otp?: string;
 }
 
-let memoryDemoSession: DemoUserSession | null = null;
 
 async function performFallbackSignIn(
   email: string,
@@ -93,32 +93,32 @@ function safeRevalidate(path: string, type?: 'page' | 'layout') {
 }
 
 /**
- * Retrieve the active demo user session from cookies or memory
+ * Retrieve the active user session from cryptographically signed cookie
  */
 export async function getDemoUserAction(): Promise<DemoUserSession | null> {
   try {
     const cookieStore = await cookies();
     const cookie = cookieStore.get(DEMO_COOKIE_NAME);
-    if (!cookie?.value) return memoryDemoSession;
-    return JSON.parse(cookie.value) as DemoUserSession;
+    if (!cookie?.value) return null;
+    return verifySignedSessionToken(cookie.value);
   } catch {
-    return memoryDemoSession;
+    return null;
   }
 }
 
 /**
- * Set demo session cookie and memory store
+ * Set cryptographically signed session cookie
  */
 export async function setDemoUserSession(
   user: DemoUserSession,
   rememberMe: boolean = true
 ): Promise<void> {
-  memoryDemoSession = user;
   try {
     const cookieStore = await cookies();
     // 30 days if rememberMe is enabled, 24 hours otherwise
     const maxAge = rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 24;
-    cookieStore.set(DEMO_COOKIE_NAME, JSON.stringify(user), {
+    const signedToken = createSignedSessionToken(user, maxAge);
+    cookieStore.set(DEMO_COOKIE_NAME, signedToken, {
       path: '/',
       maxAge,
       sameSite: 'lax',
@@ -131,10 +131,9 @@ export async function setDemoUserSession(
 }
 
 /**
- * Clear demo session cookie and memory store
+ * Clear session cookie
  */
 export async function clearDemoUserSession(): Promise<void> {
-  memoryDemoSession = null;
   try {
     const cookieStore = await cookies();
     cookieStore.delete(DEMO_COOKIE_NAME);
@@ -144,9 +143,16 @@ export async function clearDemoUserSession(): Promise<void> {
 }
 
 /**
- * 1-Click Demo Sign In Action (Customer or Admin)
+ * 1-Click Demo Sign In Action (Customer or Admin) - Exclusively allowed in non-production development
  */
 export async function signInDemoAction(role: 'customer' | 'admin' = 'customer'): Promise<AuthActionResult> {
+  if (process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production') {
+    return {
+      success: false,
+      message: '1-Click demo sign-in is disabled in production environments for security.',
+    };
+  }
+
   const targetUser = DEMO_USERS[role];
   await setDemoUserSession(targetUser);
   safeRevalidate('/', 'layout');
@@ -526,9 +532,23 @@ export async function signInAction(formData: FormData): Promise<AuthActionResult
   const foundCustomer = memoryCustomers.find((c) => c.email.toLowerCase() === cleanEmail);
   const storedPassword = memoryCredentials.get(cleanEmail);
 
-  // If store admin, accept Admin@123 or common dev passwords
-  const validAdminPasswords = ['Admin@123', 'admin', 'admin123', 'Admin123', 'password'];
-  const isValidAdminPass = isStoreAdmin && validAdminPasswords.includes(password);
+  // Admin Password Security Enforcement:
+  // In production, default dev passwords ('Admin@123', 'admin') are strictly rejected.
+  // The server requires ADMIN_PASSWORD to be explicitly configured.
+  const isProd = process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production';
+  const configuredAdminPass = process.env.ADMIN_PASSWORD;
+
+  let isValidAdminPass = false;
+  if (isStoreAdmin) {
+    if (isProd) {
+      isValidAdminPass = Boolean(configuredAdminPass && password === configuredAdminPass);
+    } else {
+      const devAdminPasswords = ['Admin@123', 'admin', 'admin123', 'Admin123', 'password'];
+      isValidAdminPass =
+        (Boolean(configuredAdminPass) && password === configuredAdminPass) ||
+        devAdminPasswords.includes(password);
+    }
+  }
 
   // Reject invalid password
   if (storedPassword && storedPassword !== password && !isValidAdminPass) {

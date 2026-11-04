@@ -268,6 +268,22 @@ export default function AdminInventoryPage() {
                       </td>
                       <td className="py-3 px-3">
                         <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleQuickAdd(p.id, -25)}
+                            className="px-2 py-1 rounded-lg bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800/60 text-xs font-bold text-rose-300 hover:text-white transition-colors cursor-pointer"
+                            title="Decrease 25 units"
+                          >
+                            -25
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleQuickAdd(p.id, -10)}
+                            className="px-2 py-1 rounded-lg bg-rose-950/60 hover:bg-rose-900/80 border border-rose-800/60 text-xs font-bold text-rose-300 hover:text-white transition-colors cursor-pointer"
+                            title="Decrease 10 units"
+                          >
+                            -10
+                          </button>
                           <input
                             type="number"
                             min="0"
@@ -278,7 +294,7 @@ export default function AdminInventoryPage() {
                           <button
                             type="button"
                             onClick={() => handleQuickAdd(p.id, 10)}
-                            className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 hover:text-white transition-colors cursor-pointer"
+                            className="px-2 py-1 rounded-lg bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-800/60 text-xs font-bold text-emerald-300 hover:text-white transition-colors cursor-pointer"
                             title="Add 10 units"
                           >
                             +10
@@ -286,7 +302,7 @@ export default function AdminInventoryPage() {
                           <button
                             type="button"
                             onClick={() => handleQuickAdd(p.id, 25)}
-                            className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 hover:text-white transition-colors cursor-pointer"
+                            className="px-2 py-1 rounded-lg bg-emerald-950/60 hover:bg-emerald-900/80 border border-emerald-800/60 text-xs font-bold text-emerald-300 hover:text-white transition-colors cursor-pointer"
                             title="Add 25 units"
                           >
                             +25
