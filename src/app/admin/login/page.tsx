@@ -34,8 +34,8 @@ export default function AdminLoginPage() {
       if (result.success) {
         setSuccess(true);
         setTimeout(() => {
-          window.location.href = result.redirectTo || '/admin/dashboard';
-        }, 400);
+          window.location.replace(result.redirectTo || '/admin/dashboard');
+        }, 300);
       } else {
         setError(result.message || 'Invalid admin credentials. Please try again.');
       }

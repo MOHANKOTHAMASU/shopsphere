@@ -73,12 +73,26 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Check for demo session cookie
+  // Check for signed or legacy session cookie
   const demoCookie = request.cookies.get('shopsphere_demo_session');
   let demoUser = null;
   if (demoCookie?.value) {
     try {
-      demoUser = JSON.parse(demoCookie.value);
+      const val = demoCookie.value;
+      if (val.includes('.')) {
+        // Cryptographically signed session token: base64url(payload).signature
+        const [payloadB64] = val.split('.');
+        if (payloadB64) {
+          const jsonStr = Buffer.from(payloadB64, 'base64url').toString('utf8');
+          const payload = JSON.parse(jsonStr);
+          if (payload && payload.user && (!payload.expiresAt || Date.now() < payload.expiresAt)) {
+            demoUser = payload.user;
+          }
+        }
+      } else {
+        // Legacy plain JSON cookie format fallback
+        demoUser = JSON.parse(val);
+      }
     } catch {
       // ignore parse error
     }

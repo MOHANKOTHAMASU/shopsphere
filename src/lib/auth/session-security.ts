@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { DemoUserSession } from './actions';
+import { DemoUserSession } from './demo-users';
 
 // Server-only signing secret (NEVER exposed to client bundles)
 const SESSION_SECRET =
