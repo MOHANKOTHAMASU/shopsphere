@@ -26,6 +26,7 @@ import {
   getLoginChallenge,
   sendMobileSmsOtp,
   verifyMobileSmsOtp,
+  sendMsg91FlowSms,
   getSmsProviderStatus,
   type SmsSendResult,
   type SmsVerifyResult,
@@ -343,9 +344,15 @@ export async function sendPhoneOtpAction(
 
   const masked = maskPhoneNumber(normalized);
 
-  // Check if Twilio is configured
+  // Check if MSG91 (Primary Indian Carrier Pipe) or Twilio is configured
   const providerStatus = getSmsProviderStatus();
-  if (providerStatus.provider === 'twilio') {
+  if (providerStatus.provider === 'msg91') {
+    try {
+      await sendMsg91FlowSms(normalized, otp);
+    } catch {
+      // Ignored for non-fatal fallback
+    }
+  } else if (providerStatus.provider === 'twilio') {
     try {
       const twilioSid = process.env.TWILIO_ACCOUNT_SID!;
       const twilioToken = process.env.TWILIO_AUTH_TOKEN!;

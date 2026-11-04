@@ -49,3 +49,4 @@
 
 - **For Immediate Production Launch & Frictionless Setup:** Use **Twilio Verify v2**. It connects directly to your existing Next.js backend with 3 environment variables in `.env.local` and delivers to all Indian mobile operators immediately.
 - **For High-Scale Cost Optimization (10,000+ OTPs/month):** Transition to **MSG91** once your business entity completes DLT registration on VilPower/Jio DLT to reduce per-message cost to ~₹0.20.
+

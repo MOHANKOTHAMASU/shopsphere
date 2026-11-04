@@ -8,7 +8,7 @@ import { normalizePhoneNumber, maskPhoneNumber, validatePhoneNumber } from './ph
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 
 export interface SmsProviderStatus {
-  provider: 'twilio' | 'supabase' | 'none';
+  provider: 'msg91' | 'twilio' | 'supabase' | 'none';
   configured: boolean;
   details: string;
 }
@@ -62,9 +62,18 @@ function hashOtp(otp: string, phone: string): string {
 }
 
 /**
- * Inspect configured SMS provider
+ * Inspect configured SMS provider (MSG91 preferred for Indian carriers, Twilio as fallback)
  */
 export function getSmsProviderStatus(): SmsProviderStatus {
+  const msg91AuthKey = process.env.MSG91_AUTH_KEY;
+  if (msg91AuthKey && !msg91AuthKey.includes('placeholder')) {
+    return {
+      provider: 'msg91',
+      configured: true,
+      details: 'MSG91 Flow API configured for Indian carrier SMS delivery (Jio, Airtel, Vi, BSNL).',
+    };
+  }
+
   const twilioSid = process.env.TWILIO_ACCOUNT_SID;
   const twilioToken = process.env.TWILIO_AUTH_TOKEN;
   const twilioVerifySid = process.env.TWILIO_VERIFY_SERVICE_SID;
@@ -83,8 +92,84 @@ export function getSmsProviderStatus(): SmsProviderStatus {
   return {
     provider: 'none',
     configured: false,
-    details: 'No SMS provider configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_VERIFY_SERVICE_SID in .env.',
+    details: 'No SMS provider configured. Set MSG91_AUTH_KEY (or TWILIO credentials) in .env.local.',
   };
+}
+
+/**
+ * Dispatch OTP SMS via official MSG91 Flow API
+ * Uses approved DLT template and direct Indian telecom operator SMPP pipes
+ */
+export async function sendMsg91FlowSms(
+  normalizedPhone: string,
+  otp: string
+): Promise<{ success: boolean; message: string; messageId?: string; error?: string }> {
+  const authKey = process.env.MSG91_AUTH_KEY;
+  const templateId = process.env.MSG91_TEMPLATE_ID || process.env.NEXT_PUBLIC_MSG91_TEMPLATE_ID;
+  const senderId = process.env.MSG91_SENDER_ID || 'SHPSPH';
+
+  if (!authKey || authKey.includes('placeholder')) {
+    return {
+      success: false,
+      message: 'MSG91 authentication key is not configured in environment variables.',
+      error: 'MSG91_NOT_CONFIGURED',
+    };
+  }
+
+  // MSG91 mobile numbers format requires country code without leading plus (e.g., "919652788899")
+  const recipientMobile = normalizedPhone.replace(/^\+/, '').replace(/\D/g, '');
+
+  const payload = {
+    template_id: templateId,
+    sender: senderId,
+    short_url: '0',
+    recipients: [
+      {
+        mobiles: recipientMobile,
+        otp: otp,
+      },
+    ],
+  };
+
+  try {
+    const res = await fetch('https://control.msg91.com/api/v5/flow/', {
+      method: 'POST',
+      headers: {
+        authkey: authKey,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.type === 'error') {
+      const errorMsg = data.message || `MSG91 rejected SMS dispatch (HTTP ${res.status})`;
+      console.error('[ShopSphere SMS] MSG91 rejected dispatch:', errorMsg);
+      return {
+        success: false,
+        message: `MSG91 delivery failed: ${errorMsg}`,
+        error: data.code || 'MSG91_DISPATCH_REJECTED',
+      };
+    }
+
+    const messageId = data.message_id || data.request_id || 'msg91-queued';
+    console.log(`[ShopSphere SMS] Dispatched SMS via MSG91 Flow API (Recipient: ${maskPhoneNumber(normalizedPhone)}, RequestID: ${messageId})`);
+
+    return {
+      success: true,
+      message: 'SMS successfully dispatched via MSG91 Flow API.',
+      messageId,
+    };
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : 'Network error connecting to MSG91';
+    console.error('[ShopSphere SMS] MSG91 network error:', errorMsg);
+    return {
+      success: false,
+      message: `Failed to connect to MSG91 SMS gateway: ${errorMsg}`,
+      error: 'MSG91_NETWORK_ERROR',
+    };
+  }
 }
 
 /**
@@ -216,7 +301,28 @@ export async function sendMobileSmsOtp(
 
   const maskedPhone = maskPhoneNumber(normalized);
 
-  // 1. Dispatch via Twilio REST API if configured
+  // 1. Dispatch via MSG91 Flow API if configured (Primary Indian Telecom Pipe: Jio, Airtel, Vi, BSNL)
+  if (providerStatus.provider === 'msg91') {
+    const msg91Res = await sendMsg91FlowSms(normalized, otp);
+    if (!msg91Res.success) {
+      return {
+        success: false,
+        message: msg91Res.message,
+        error: msg91Res.error,
+      };
+    }
+
+    return {
+      success: true,
+      message: `A genuine verification code has been dispatched via MSG91 to ${maskedPhone}.`,
+      maskedPhone,
+      normalizedPhone: normalized,
+      cooldownSeconds: 30,
+      provider: 'msg91',
+    };
+  }
+
+  // 2. Dispatch via Twilio REST API if configured
   if (providerStatus.provider === 'twilio') {
     const twilioSid = process.env.TWILIO_ACCOUNT_SID!;
     const twilioToken = process.env.TWILIO_AUTH_TOKEN!;

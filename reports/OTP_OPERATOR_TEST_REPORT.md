@@ -48,3 +48,4 @@ flowchart LR
 > 1. Active SIM connection and mobile signal coverage.
 > 2. Telecom operator Do Not Disturb (DND) settings (Twilio Verify uses transactional routing that bypasses commercial DND).
 > 3. Active account balance on the external SMS gateway.
+

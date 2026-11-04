@@ -44,3 +44,4 @@ When you entered your phone number (`+9196*** **899`) and clicked "Verify & Cont
 1. **Default Sandbox OTP:** In local development mode without external telecom keys, `123456` is now officially recognized as the sandbox preview OTP, allowing you to preview the full login journey without external charges.
 2. **Indian E-Commerce Default:** The login page now defaults to **Mobile Number Login** (just like Amazon India, Flipkart, and Meesho).
 3. **Telecom Carrier Bridge:** When real Twilio/MSG91 keys are pasted into `.env.local`, the system automatically shifts to live cellular transmission to Jio, Airtel, Vi, and BSNL numbers.
+

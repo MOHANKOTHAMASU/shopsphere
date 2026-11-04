@@ -43,3 +43,4 @@
 2. **Universal Carrier Support:** Whether the SIM card belongs to Jio, Airtel, Vi, or BSNL, any valid 10-digit number is accepted.
 3. **Password Fallback:** Retains the traditional "Email & Password" tab for international shoppers or desktop power users.
 4. **Zero-Friction Registration:** New mobile numbers are automatically offered quick account creation without redundant verification barriers.
+

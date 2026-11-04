@@ -37,3 +37,4 @@ graph TD
    When developing locally on your laptop without active credit card billing on telecom gateways, Approach B provides a secure sandbox mode (`123456`) so you can develop and test without incurring charges.
 4. **Future-Proof Extensibility:**
    The gateway adapter pattern in `src/lib/auth/sms-service.ts` allows swapping between Twilio Verify, MSG91, and Supabase Phone Auth simply by changing environment variables, with zero frontend refactoring.
+

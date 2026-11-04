@@ -94,3 +94,4 @@ When it says "Connected", open your browser, enter your phone number, and a real
 6. Click **"Verify & Continue"**.
 7. You are instantly logged in! Look at the top navigation bar—it will say:
    `Hello, Customer` $\rightarrow$ `My Account`!
+

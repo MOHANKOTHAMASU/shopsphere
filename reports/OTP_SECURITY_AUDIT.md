@@ -55,3 +55,4 @@ flowchart TD
 | **Credential Masking** | PII leakage on screen | Masked phone display (`+91 96*** **899`) | **PASS** |
 | **Session Hijacking** | XSS token theft | HttpOnly, SameSite=Lax cookie storage | **PASS** |
 | **Production Log Scrubbing** | Secret token exposure | Zero plain-text OTPs printed to server logs | **PASS** |
+
