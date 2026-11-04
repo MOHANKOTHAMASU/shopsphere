@@ -58,13 +58,20 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // Only attempt user check if Supabase has non-placeholder config
+  // Only attempt user check if Supabase has non-placeholder config AND an auth cookie exists
   const isRealConfig =
     !supabaseUrl.includes('placeholder.supabase.co') &&
     !supabaseAnonKey.includes('placeholder-anon-key');
 
+  const allCookies = request.cookies.getAll();
+  const hasSupabaseAuthCookie = allCookies.some(
+    (c) =>
+      (c.name.startsWith('sb-') && c.name.includes('auth-token')) ||
+      c.name.includes('supabase-auth-token')
+  );
+
   let user = null;
-  if (isRealConfig) {
+  if (isRealConfig && hasSupabaseAuthCookie) {
     try {
       const { data } = await supabase.auth.getUser();
       user = data.user;
@@ -78,8 +85,12 @@ export async function middleware(request: NextRequest) {
   let demoUser = null;
   if (demoCookie?.value) {
     try {
-      const val = demoCookie.value;
-      if (val.includes('.')) {
+      const val = demoCookie.value.trim();
+      if (val.startsWith('{')) {
+        // Plain JSON cookie format (used in tests and fallback)
+        const parsed = JSON.parse(val);
+        demoUser = parsed.user || parsed;
+      } else if (val.includes('.')) {
         // Cryptographically signed session token: base64url(payload).signature
         const [payloadB64] = val.split('.');
         if (payloadB64) {
@@ -89,9 +100,6 @@ export async function middleware(request: NextRequest) {
             demoUser = payload.user;
           }
         }
-      } else {
-        // Legacy plain JSON cookie format fallback
-        demoUser = JSON.parse(val);
       }
     } catch {
       // ignore parse error
@@ -130,7 +138,7 @@ export async function middleware(request: NextRequest) {
       const redirectUrl = new URL('/admin/login', request.url);
       redirectUrl.searchParams.set('redirect', pathname);
       if (authenticatedUser && !isOwnerOrAdmin) {
-        redirectUrl.searchParams.set('error', 'unauthorized-admin');
+        redirectUrl.searchParams.set('error', 'admin-required');
       }
       const redirectResponse = NextResponse.redirect(redirectUrl);
       applySecurityHeaders(redirectResponse);
@@ -164,61 +172,64 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // 3. Whitelisted Public Informational Pages & APIs
-  const isPublicPage = PUBLIC_PATHS.has(pathname);
-  if (isPublicPage) {
+  // 3. Customer Protected Routes (/account/*, /checkout)
+  // Only personal account data and placing orders require an authenticated session
+  const isCustomerProtectedRoute =
+    pathname === '/account' ||
+    pathname.startsWith('/account/') ||
+    pathname === '/checkout' ||
+    pathname.startsWith('/checkout/');
+
+  if (isCustomerProtectedRoute) {
+    if (!authenticatedUser) {
+      const redirectUrl = new URL('/auth/login', request.url);
+      redirectUrl.searchParams.set('redirect', pathname);
+      const redirectResponse = NextResponse.redirect(redirectUrl);
+      applySecurityHeaders(redirectResponse);
+      return redirectResponse;
+    }
+
+    // Check account suspension status for protected routes
+    const isSuspended =
+      demoUser?.status === 'suspended' ||
+      Boolean(
+        (user as unknown as { banned_until?: string })?.banned_until &&
+          new Date((user as unknown as { banned_until: string }).banned_until) > new Date()
+      );
+
+    if (isSuspended) {
+      const redirectUrl = new URL('/auth/login', request.url);
+      redirectUrl.searchParams.set('error', 'account-suspended');
+      const redirectResponse = NextResponse.redirect(redirectUrl);
+      redirectResponse.cookies.delete('shopsphere_demo_session');
+      applySecurityHeaders(redirectResponse);
+      return redirectResponse;
+    }
+
+    // Check email verification status for customer accounts
+    const isEmailUnconfirmed =
+      userRole !== 'admin' &&
+      ((user && !user.email_confirmed_at && !(user as any).confirmed_at) ||
+        (demoUser && demoUser.isVerified === false));
+
+    if (isEmailUnconfirmed) {
+      const customerEmail = user?.email || demoUser?.email || '';
+      const redirectUrl = new URL('/auth/verify-email', request.url);
+      if (customerEmail) {
+        redirectUrl.searchParams.set('email', customerEmail);
+      }
+      const redirectResponse = NextResponse.redirect(redirectUrl);
+      applySecurityHeaders(redirectResponse);
+      return redirectResponse;
+    }
+
     applySecurityHeaders(response);
     return response;
   }
 
-  // Check account suspension status for protected routes
-  const isSuspended =
-    demoUser?.status === 'suspended' ||
-    Boolean(
-      (user as unknown as { banned_until?: string })?.banned_until &&
-        new Date((user as unknown as { banned_until: string }).banned_until) > new Date()
-    );
-
-  if (authenticatedUser && isSuspended) {
-    const redirectUrl = new URL('/auth/login', request.url);
-    redirectUrl.searchParams.set('error', 'account-suspended');
-    const redirectResponse = NextResponse.redirect(redirectUrl);
-    redirectResponse.cookies.delete('shopsphere_demo_session');
-    applySecurityHeaders(redirectResponse);
-    return redirectResponse;
-  }
-
-  // Check email verification status for customer accounts
-  const isEmailUnconfirmed =
-    userRole !== 'admin' &&
-    ((user && !user.email_confirmed_at && !(user as any).confirmed_at) ||
-      (demoUser && demoUser.isVerified === false));
-
-  if (authenticatedUser && isEmailUnconfirmed) {
-    const customerEmail = user?.email || demoUser?.email || '';
-    const redirectUrl = new URL('/auth/verify-email', request.url);
-    if (customerEmail) {
-      redirectUrl.searchParams.set('email', customerEmail);
-    }
-    const redirectResponse = NextResponse.redirect(redirectUrl);
-    applySecurityHeaders(redirectResponse);
-    return redirectResponse;
-  }
-
-  // 4. Default Deny: ALL other pages require an authenticated session
-  // (Includes storefront homepage '/', '/products', '/cart', '/checkout', '/account', '/track', '/wishlist')
-  if (!authenticatedUser) {
-    const redirectUrl = new URL('/auth/login', request.url);
-    if (pathname !== '/') {
-      redirectUrl.searchParams.set('redirect', pathname);
-    }
-    const redirectResponse = NextResponse.redirect(redirectUrl);
-    applySecurityHeaders(redirectResponse);
-    return redirectResponse;
-  }
-
-  // Authenticated user accessing a protected route
-  applySecurityHeaders(response);
+  // 4. All Other Routes are Public Shopping & Informational Routes
+  // Storefront home '/', catalog '/products', cart '/cart', guides '/how-to-use', etc.
+  // Allow all customers and visitors to browse freely without barriers.
   return response;
 }
 
