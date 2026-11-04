@@ -37,31 +37,59 @@
 
 ### 🌐 Cloud Production Deployment (Vercel)
 - **Storefront Home:** [https://shopsphere-xi-gilt.vercel.app](https://shopsphere-xi-gilt.vercel.app)
-- **Customer Sign In (2FA Login):** [https://shopsphere-xi-gilt.vercel.app/auth/login](https://shopsphere-xi-gilt.vercel.app/auth/login)
+- **Product Catalog & Search:** [https://shopsphere-xi-gilt.vercel.app/products](https://shopsphere-xi-gilt.vercel.app/products)
+- **Shopping Cart:** [https://shopsphere-xi-gilt.vercel.app/cart](https://shopsphere-xi-gilt.vercel.app/cart)
+- **Secure Checkout:** [https://shopsphere-xi-gilt.vercel.app/checkout](https://shopsphere-xi-gilt.vercel.app/checkout)
+- **Live Order Tracking:** [https://shopsphere-xi-gilt.vercel.app/track](https://shopsphere-xi-gilt.vercel.app/track)
+- **Customer Sign In (Mobile OTP):** [https://shopsphere-xi-gilt.vercel.app/auth/login](https://shopsphere-xi-gilt.vercel.app/auth/login)
 - **Customer Registration:** [https://shopsphere-xi-gilt.vercel.app/auth/register](https://shopsphere-xi-gilt.vercel.app/auth/register)
 - **Email Verification Portal:** [https://shopsphere-xi-gilt.vercel.app/auth/verify-email](https://shopsphere-xi-gilt.vercel.app/auth/verify-email)
-- **Customer Account & Orders:** [https://shopsphere-xi-gilt.vercel.app/account](https://shopsphere-xi-gilt.vercel.app/account)
+- **Customer Profile & Account:** [https://shopsphere-xi-gilt.vercel.app/account/profile](https://shopsphere-xi-gilt.vercel.app/account/profile)
+- **Customer Orders & Invoices:** [https://shopsphere-xi-gilt.vercel.app/account/orders](https://shopsphere-xi-gilt.vercel.app/account/orders)
+- **Customer Addresses:** [https://shopsphere-xi-gilt.vercel.app/account/addresses](https://shopsphere-xi-gilt.vercel.app/account/addresses)
+- **Customer Wishlist:** [https://shopsphere-xi-gilt.vercel.app/wishlist](https://shopsphere-xi-gilt.vercel.app/wishlist)
+- **How-To-Use Video Guide:** [https://shopsphere-xi-gilt.vercel.app/how-to-use](https://shopsphere-xi-gilt.vercel.app/how-to-use)
+- **Exclusive Prime Benefits:** [https://shopsphere-xi-gilt.vercel.app/benefits](https://shopsphere-xi-gilt.vercel.app/benefits)
+- **Deals & Coupons Hub:** [https://shopsphere-xi-gilt.vercel.app/offers](https://shopsphere-xi-gilt.vercel.app/offers)
 - **Admin Control Center:** [https://shopsphere-xi-gilt.vercel.app/admin/login](https://shopsphere-xi-gilt.vercel.app/admin/login)
+- **Admin KPI Dashboard:** [https://shopsphere-xi-gilt.vercel.app/admin/dashboard](https://shopsphere-xi-gilt.vercel.app/admin/dashboard)
+- **Admin Inventory & Restock:** [https://shopsphere-xi-gilt.vercel.app/admin/inventory](https://shopsphere-xi-gilt.vercel.app/admin/inventory)
+- **Admin Order Fulfillment:** [https://shopsphere-xi-gilt.vercel.app/admin/orders](https://shopsphere-xi-gilt.vercel.app/admin/orders)
+- **Admin Customer Directory:** [https://shopsphere-xi-gilt.vercel.app/admin/customers](https://shopsphere-xi-gilt.vercel.app/admin/customers)
+- **Admin Pricing Intelligence:** [https://shopsphere-xi-gilt.vercel.app/admin/pricing](https://shopsphere-xi-gilt.vercel.app/admin/pricing)
+- **Admin Compliance & Audits:** [https://shopsphere-xi-gilt.vercel.app/admin/reports](https://shopsphere-xi-gilt.vercel.app/admin/reports)
 - **GitHub Repository:** [https://github.com/MOHANKOTHAMASU/shopsphere](https://github.com/MOHANKOTHAMASU/shopsphere)
 
 ### 💻 Local Development Server (When running `npm run dev`)
 - **Local Storefront:** [http://localhost:3000](http://localhost:3000)
 - **Local Customer Login:** [http://localhost:3000/auth/login](http://localhost:3000/auth/login)
-- **Local Email Verification:** [http://localhost:3000/auth/verify-email](http://localhost:3000/auth/verify-email)
 - **Local Admin Portal:** [http://localhost:3000/admin/login](http://localhost:3000/admin/login)
-- **Local Network (Wi-Fi Mobile Testing):** [http://192.168.36.71:3000](http://192.168.36.71:3000)
+- **Local Network (Mobile Testing):** [http://192.168.36.71:3000](http://192.168.36.71:3000)
 
 ---
 
-## Admin Login & Test Credentials
+## Admin Login & System Passwords
 
-The administrator portal is accessible at [`/admin/login`](https://shopsphere-xi-gilt.vercel.app/admin/login) or [`http://localhost:3000/admin/login`](http://localhost:3000/admin/login).
+### 🔒 Store Administrator Credentials (Owner Only)
+The administrator portal is accessible at [`/admin/login`](https://shopsphere-xi-gilt.vercel.app/admin/login).
+*Access is strictly restricted to the store owner and system administrator.*
 
-* **Option 1: 1-Click Instant Demo Login (Fastest)**
-  Click the prominent amber button: **`🛡️ 1-Click Sign In as Store Admin`**. This instantly authenticates your session into the dashboard with zero credentials required.
-* **Option 2: Master Email & Password**
-  - **Admin Email:** `admin@shopsphere.dev` (or shorthand: `admin`)
-  - **Master Password:** `Admin@123`
+| Role | Authorized Email | Master Password | Privileges |
+| :--- | :--- | :--- | :--- |
+| **Store Owner (Super Admin)** | `kmvsubbarao28@gmail.com` | `Admin@123` *(or `ADMIN_PASSWORD` in Vercel)* | Full administrative access across all store resources |
+| **System Admin** | `admin@shopsphere.dev` (or `admin`) | `Admin@123` *(or `ADMIN_PASSWORD` in Vercel)* | Full catalog, orders, restock & fulfillment access |
+
+> **⚠️ Strict Access Control Notice**: Any visitor attempting to enter an email other than the authorized store owner (`kmvsubbarao28@gmail.com` or `admin@shopsphere.dev`) will be immediately rejected with:
+> `Access Denied: Only the store owner (kmvsubbarao28@gmail.com) is authorized to access the ShopSphere Admin Console.`
+
+### 📱 Customer Mobile Authentication
+Customer authentication uses passwordless Mobile Number + Real SMS OTP (dispatched via MSG91 Flow API):
+
+| User Type | Mobile Number / Email | Verification Code (OTP) | Notes |
+| :--- | :--- | :--- | :--- |
+| **Registered Customer** | Any valid 10-digit Indian Mobile (`+91 9652788899`) | Real SMS OTP sent to mobile phone | Dispatched via MSG91 carrier gateway (30s cooldown, max 5 attempts) |
+| **Demo Customer Account** | `customer@shopsphere.dev` / `+91 9876543210` | Dispatched to SMS or local sandbox | Full verified customer session with order history |
+| **Local Sandbox Dev Mode** | `+91` any 10-digit number | `123456` | Strictly restricted to local development only; automatically blocked on production Vercel |
 
 ---
 

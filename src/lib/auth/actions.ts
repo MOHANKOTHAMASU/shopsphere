@@ -29,6 +29,16 @@ export interface AuthActionResult {
   otp?: string;
 }
 
+const AUTHORIZED_ADMIN_EMAILS = [
+  'kmvsubbarao28@gmail.com',
+  'admin@shopsphere.dev',
+  process.env.ADMIN_EMAIL?.trim().toLowerCase(),
+].filter(Boolean) as string[];
+
+function isAuthorizedAdminEmail(email?: string | null): boolean {
+  if (!email) return false;
+  return AUTHORIZED_ADMIN_EMAILS.includes(email.trim().toLowerCase());
+}
 
 async function performFallbackSignIn(
   email: string,
@@ -37,11 +47,15 @@ async function performFallbackSignIn(
   rememberMe: boolean = true
 ): Promise<AuthActionResult> {
   const cleanEmail = email.trim().toLowerCase();
-  const isStoreAdmin =
-    role === 'admin' ||
-    redirectParam.startsWith('/admin') ||
-    cleanEmail === 'admin@shopsphere.dev' ||
-    cleanEmail === 'kmvsubbarao28@gmail.com';
+  const isAdminAttempt = role === 'admin' || redirectParam.startsWith('/admin');
+  const isStoreAdmin = isAuthorizedAdminEmail(cleanEmail);
+
+  if (isAdminAttempt && !isStoreAdmin) {
+    return {
+      success: false,
+      message: 'Access Denied: Only authorized store administrators (kmvsubbarao28@gmail.com) can access the ShopSphere Admin Console.',
+    };
+  }
 
   const foundCustomer = memoryCustomers.find((c) => c.email.toLowerCase() === cleanEmail);
 
@@ -429,6 +443,7 @@ export async function signInAction(formData: FormData): Promise<AuthActionResult
   let email = (formData.get('email') as string) || '';
   const password = (formData.get('password') as string) || '';
   const redirectParam = (formData.get('redirect') as string) || '/account';
+  const role = (formData.get('role') as string) || '';
   const rememberMe = formData.get('rememberMe') === 'true' || formData.get('rememberMe') === 'on';
 
   let cleanEmail = email.trim().toLowerCase();
@@ -454,6 +469,15 @@ export async function signInAction(formData: FormData): Promise<AuthActionResult
     };
   }
 
+  // Admin Access Restriction: Only authorized store owner emails can attempt admin logins
+  const isAdminAttempt = redirectParam.startsWith('/admin') || role === 'admin';
+  if (isAdminAttempt && !isAuthorizedAdminEmail(cleanEmail)) {
+    return {
+      success: false,
+      message: 'Access Denied: Only authorized store administrators (kmvsubbarao28@gmail.com) can access the ShopSphere Admin Console.',
+    };
+  }
+
   // 1. Supabase Auth Verification (When Supabase is configured)
   if (isSupabaseConfigured()) {
     try {
@@ -464,7 +488,13 @@ export async function signInAction(formData: FormData): Promise<AuthActionResult
       });
 
       if (!error && data?.user) {
-        const isStoreAdmin = redirectParam.startsWith('/admin');
+        const isStoreAdmin = isAuthorizedAdminEmail(data.user.email);
+        if (isAdminAttempt && !isStoreAdmin) {
+          return {
+            success: false,
+            message: 'Access Denied: Only authorized store administrators (kmvsubbarao28@gmail.com) can access the ShopSphere Admin Console.',
+          };
+        }
 
         // Check if user is suspended/banned
         const isBanned = Boolean(
@@ -530,10 +560,14 @@ export async function signInAction(formData: FormData): Promise<AuthActionResult
   }
 
   // 2. Active Store & Fallback Credentials Check
-  const isStoreAdmin =
-    redirectParam.startsWith('/admin') ||
-    cleanEmail === 'admin@shopsphere.dev' ||
-    cleanEmail === 'kmvsubbarao28@gmail.com';
+  const isStoreAdmin = isAuthorizedAdminEmail(cleanEmail);
+
+  if (isAdminAttempt && !isStoreAdmin) {
+    return {
+      success: false,
+      message: 'Access Denied: Only authorized store administrators (kmvsubbarao28@gmail.com) can access the ShopSphere Admin Console.',
+    };
+  }
 
   const foundCustomer = memoryCustomers.find((c) => c.email.toLowerCase() === cleanEmail);
   const storedPassword = memoryCredentials.get(cleanEmail);

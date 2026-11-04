@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ShieldAlert, Lock, Mail, ArrowRight, ArrowLeft, CheckCircle, Zap, AlertCircle, Info } from 'lucide-react';
+import { ShieldAlert, Lock, Mail, ArrowRight, ArrowLeft, CheckCircle, Zap, AlertCircle } from 'lucide-react';
 import { signInAction, signInDemoAction } from '@/lib/auth/actions';
 
 export default function AdminLoginPage() {
@@ -13,6 +13,16 @@ export default function AdminLoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const err = params.get('error');
+      if (err === 'unauthorized-admin' || err === 'admin-required') {
+        setError('Access Denied: Administrative privileges required. Only the store owner (kmvsubbarao28@gmail.com) can access this console.');
+      }
+    }
+  }, []);
+
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -22,6 +32,17 @@ export default function AdminLoginPage() {
       let adminEmail = email.trim();
       if (adminEmail.toLowerCase() === 'admin') {
         adminEmail = 'admin@shopsphere.dev';
+      }
+
+      // Restrict access strictly to authorized store owner / admin
+      const authorizedEmails = [
+        'kmvsubbarao28@gmail.com',
+        'admin@shopsphere.dev',
+      ];
+      if (!authorizedEmails.includes(adminEmail.toLowerCase())) {
+        setError('Access Denied: Only the store owner (kmvsubbarao28@gmail.com) is authorized to access the ShopSphere Admin Console.');
+        setIsLoading(false);
+        return;
       }
 
       const formData = new FormData();
@@ -148,16 +169,13 @@ export default function AdminLoginPage() {
               <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
                 Admin Email
               </label>
-              {process.env.NODE_ENV !== 'production' && (
-                <span className="text-[11px] text-amber-400 font-mono">Dev: admin@shopsphere.dev</span>
-              )}
             </div>
             <div className="relative">
               <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 required
-                placeholder={process.env.NODE_ENV !== 'production' ? "admin@shopsphere.dev or admin" : "Enter authorized admin email"}
+                placeholder="kmvsubbarao28@gmail.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full h-11 pl-10 pr-4 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 font-mono"
@@ -170,31 +188,17 @@ export default function AdminLoginPage() {
               <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
                 Master Password
               </label>
-              {process.env.NODE_ENV !== 'production' && (
-                <span className="text-[11px] text-amber-400 font-mono">Dev: Admin@123</span>
-              )}
             </div>
             <div className="relative">
               <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="password"
                 required
-                placeholder={process.env.NODE_ENV !== 'production' ? "Admin@123" : "Enter master password"}
+                placeholder="Enter master password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full h-11 pl-10 pr-4 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
               />
-            </div>
-          </div>
-
-          {/* Clean 2FA Explanatory Callout (No fake input) */}
-          <div className="p-3 bg-slate-950/80 border border-slate-800/80 rounded-xl flex items-start gap-2.5 text-[11px] text-slate-400">
-            <Info className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-            <div className="space-y-0.5">
-              <span className="font-bold text-slate-300">Two-Factor Authentication (2FA)</span>
-              <p>
-                2FA TOTP (Google Authenticator) is managed in production via Supabase MFA. In local development sandbox mode, no security PIN is required.
-              </p>
             </div>
           </div>
 
@@ -213,12 +217,6 @@ export default function AdminLoginPage() {
             )}
           </button>
         </form>
-
-        <div className="pt-4 border-t border-slate-800/80 text-center">
-          <p className="text-[11px] text-slate-500">
-            To authorize new store administrators in production, run <code className="text-amber-400">npm run promote:admin</code> from the server console.
-          </p>
-        </div>
       </div>
     </div>
   );

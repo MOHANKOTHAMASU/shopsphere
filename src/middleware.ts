@@ -117,12 +117,20 @@ export async function middleware(request: NextRequest) {
       return response;
     }
 
-    // All other /admin/* routes require authenticated admin session
-    if (!authenticatedUser || userRole !== 'admin') {
+    // All other /admin/* routes require authenticated admin session strictly restricted to store owner
+    const userEmail = (authenticatedUser as { email?: string })?.email?.trim().toLowerCase();
+    const authorizedAdminEmails = [
+      'kmvsubbarao28@gmail.com',
+      'admin@shopsphere.dev',
+      process.env.ADMIN_EMAIL?.trim().toLowerCase(),
+    ].filter(Boolean);
+    const isOwnerOrAdmin = userRole === 'admin' && (!userEmail || authorizedAdminEmails.includes(userEmail));
+
+    if (!authenticatedUser || !isOwnerOrAdmin) {
       const redirectUrl = new URL('/admin/login', request.url);
       redirectUrl.searchParams.set('redirect', pathname);
-      if (authenticatedUser && userRole !== 'admin') {
-        redirectUrl.searchParams.set('error', 'admin-required');
+      if (authenticatedUser && !isOwnerOrAdmin) {
+        redirectUrl.searchParams.set('error', 'unauthorized-admin');
       }
       const redirectResponse = NextResponse.redirect(redirectUrl);
       applySecurityHeaders(redirectResponse);

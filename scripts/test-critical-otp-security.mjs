@@ -286,6 +286,59 @@ runTest('Quick adjust cannot decrease stock below zero (clamped to 0)', () => {
 });
 
 // -----------------------------------------------------------------------------
+// TEST SUITE 6: ADMIN EXCLUSIVITY & STORE OWNER AUTHORIZATION
+// -----------------------------------------------------------------------------
+console.log('\n🧪 [SUITE 6] Admin Exclusivity & Store Owner Access Authorization');
+
+const AUTHORIZED_ADMIN_EMAILS = [
+  'kmvsubbarao28@gmail.com',
+  'admin@shopsphere.dev',
+];
+
+function isAuthorizedAdmin(email) {
+  if (!email) return false;
+  return AUTHORIZED_ADMIN_EMAILS.includes(email.trim().toLowerCase());
+}
+
+function verifyAdminAccess(email, role, path) {
+  const isAdminAttempt = role === 'admin' || path.startsWith('/admin');
+  if (isAdminAttempt && !isAuthorizedAdmin(email)) {
+    return {
+      allowed: false,
+      status: 403,
+      message: 'Access Denied: Only authorized store administrators (kmvsubbarao28@gmail.com) can access the ShopSphere Admin Console.',
+    };
+  }
+  return { allowed: true };
+}
+
+runTest('Store owner email kmvsubbarao28@gmail.com is authorized as admin', () => {
+  assert.strictEqual(isAuthorizedAdmin('kmvsubbarao28@gmail.com'), true);
+  const result = verifyAdminAccess('kmvsubbarao28@gmail.com', 'admin', '/admin/dashboard');
+  assert.strictEqual(result.allowed, true);
+});
+
+runTest('Store admin email admin@shopsphere.dev is authorized as admin', () => {
+  assert.strictEqual(isAuthorizedAdmin('admin@shopsphere.dev'), true);
+  const result = verifyAdminAccess('admin@shopsphere.dev', 'admin', '/admin/dashboard');
+  assert.strictEqual(result.allowed, true);
+});
+
+runTest('Customer account customer@shopsphere.dev is strictly denied admin access', () => {
+  assert.strictEqual(isAuthorizedAdmin('customer@shopsphere.dev'), false);
+  const result = verifyAdminAccess('customer@shopsphere.dev', 'customer', '/admin/inventory');
+  assert.strictEqual(result.allowed, false);
+  assert.strictEqual(result.status, 403);
+});
+
+runTest('Arbitrary visitor attacker@evil.com is denied admin access', () => {
+  assert.strictEqual(isAuthorizedAdmin('attacker@evil.com'), false);
+  const result = verifyAdminAccess('attacker@evil.com', 'admin', '/admin/orders');
+  assert.strictEqual(result.allowed, false);
+  assert.strictEqual(result.status, 403);
+});
+
+// -----------------------------------------------------------------------------
 // SUMMARY
 // -----------------------------------------------------------------------------
 console.log('\n------------------------------------------------------------');
