@@ -50,3 +50,4 @@ sequenceDiagram
 | **Secret Protection** | `RAZORPAY_KEY_SECRET` is strictly server-side. Never exposed in browser bundles. | **VERIFIED** |
 | **Overselling Protection** | Checkout clamps order quantity to real-time available stock. Requests exceeding stock fail. | **VERIFIED** |
 | **Order Snapshotting** | Past order line prices are stored as immutable snapshots. Future price changes do not alter history. | **VERIFIED** |
+

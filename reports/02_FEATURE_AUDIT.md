@@ -70,3 +70,4 @@ flowchart TD
 2. **Category Slugs:** Catalog seed categories now alias smoothly into the 10 official retail categories.
 3. **Session Verification:** Cryptographically signed session cookies parse correctly in Next.js Edge Middleware.
 4. **Admin Exclusivity:** Non-whitelisted visitors entering the admin URL are denied entry with explicit authorization warnings.
+

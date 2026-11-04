@@ -67,3 +67,4 @@ From `node scripts/test-critical-otp-security.mjs`:
 * `✅ PASS: Admin login rejects default password in production mode`
 * `✅ PASS: Store owner kmvsubbarao28@gmail.com is authorized as admin`
 * `✅ PASS: Arbitrary visitor attacker@evil.com is denied admin access`
+

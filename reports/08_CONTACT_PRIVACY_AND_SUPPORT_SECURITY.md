@@ -21,3 +21,4 @@ Contact channels are driven by environment variables:
 * If **`NEXT_PUBLIC_BUSINESS_PHONE`** is set in Vercel, the verified company helpline is shown. If not configured, the website directs the user to the online support form.
 * If **`NEXT_PUBLIC_BUSINESS_WHATSAPP`** is set, official company WhatsApp chat is enabled. If not configured, the website directs the user to the support ticket form.
 * Support tickets are persisted server-side with rate limiting, input length validation, and admin-only lookup.
+

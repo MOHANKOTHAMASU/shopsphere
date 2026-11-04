@@ -36,3 +36,4 @@ To prevent accidental inventory corruption or negative stock values:
 1. **Owner-Only Whitelist:** Only `kmvsubbarao28@gmail.com` and `admin@shopsphere.dev` can access `/admin/*`.
 2. **Access Denied Redirection:** Any unauthorized user is intercepted in `src/middleware.ts` and redirected to `/admin/login?error=admin-required`.
 3. **No 1-Click Sandbox in Production:** The developer 1-click bypass button is conditionally hidden whenever `process.env.NODE_ENV === 'production'`.
+
