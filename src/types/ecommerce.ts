@@ -127,7 +127,9 @@ export type OrderStatus =
   | 'processing'
   | 'shipped'
   | 'delivered'
-  | 'cancelled';
+  | 'cancelled'
+  | 'return_requested'
+  | 'returned';
 
 export type PaymentStatus = 'unpaid' | 'paid' | 'failed' | 'refunded';
 export type PaymentMethod = 'cod' | 'razorpay' | 'card' | 'upi' | 'netbanking';

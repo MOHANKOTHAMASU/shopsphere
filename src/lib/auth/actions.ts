@@ -580,6 +580,15 @@ export async function resendVerificationEmailAction(
     };
   }
 
+  // Check if account is already verified
+  const existingCustomer = memoryCustomers.find((c) => c.email.toLowerCase() === cleanEmail);
+  if (existingCustomer && existingCustomer.isVerified) {
+    return {
+      success: false,
+      message: 'This account is already verified. You can sign in directly.',
+    };
+  }
+
   // 60-second cooldown rate limit per email (shared with sendEmailVerification)
   const rateLimit = checkRateLimit(`resend-email:${cleanEmail}`, 1, 60);
   if (!rateLimit.allowed) {

@@ -83,3 +83,4 @@ This guide provides step-by-step instructions to configure **MSG91** and **Supab
 | `MSG91_TEMPLATE_ID` | MSG91 Flow / Template Identifier | `.env.local` & Vercel |
 | `MSG91_SENDER_ID` | 6-letter approved Header (`SHPSPH`) | `.env.local` & Vercel |
 | `SUPABASE_HOOK_SECRET` | Secret verifying Supabase Auth Hook | `.env.local` & Vercel |
+

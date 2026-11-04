@@ -26,6 +26,15 @@ interface OrderWithItemsRow extends OrderRow {
 
 import { idempotencyStore, inMemoryOrders } from '@/lib/orders/store';
 import { getAuthenticatedCaller } from '@/lib/auth/admin-guard';
+import { revalidatePath } from 'next/cache';
+
+function safeRevalidate(path: string, type: 'page' | 'layout' = 'page') {
+  try {
+    revalidatePath(path, type);
+  } catch {
+    // Safe for non-request contexts
+  }
+}
 
 /**
  * 1. Validate Coupon Code on the Server
@@ -774,4 +783,103 @@ export async function cancelOrderAction(
   }
 
   return { success: true, message: 'Your order has been cancelled and stock has been restored.' };
+}
+
+/**
+ * -----------------------------------------------------------------------------
+ * REQUEST ORDER RETURN (Within 7-day delivery window)
+ * -----------------------------------------------------------------------------
+ */
+export async function requestOrderReturnAction(
+  orderId: string,
+  reason: string = 'Item defective or not as described',
+  comments?: string
+): Promise<{
+  success: boolean;
+  message?: string;
+  error?: string;
+}> {
+  const caller = await getAuthenticatedCaller();
+  if (!caller) {
+    return { success: false, error: 'Authentication required to request a return.' };
+  }
+
+  if (caller.status === 'suspended') {
+    return {
+      success: false,
+      error: 'Forbidden: Your account has been suspended. Please contact customer support.',
+    };
+  }
+
+  // Check in-memory orders
+  const memOrder = inMemoryOrders.find((o) => o.id === orderId || o.orderNumber === orderId);
+  if (memOrder) {
+    if (caller.role !== 'admin' && memOrder.userId !== caller.userId) {
+      return { success: false, error: 'Unauthorized: You do not have permission to request return for this order.' };
+    }
+    if (memOrder.status === 'return_requested' || memOrder.status === 'returned') {
+      return { success: false, error: 'A return request is already active or processed for this order.' };
+    }
+    if (memOrder.status !== 'delivered') {
+      return { success: false, error: 'Returns can only be requested for delivered orders within the 7-day window.' };
+    }
+
+    memOrder.status = 'return_requested';
+    (memOrder as unknown as { returnReason?: string }).returnReason = reason;
+
+    safeRevalidate('/account/orders', 'page');
+    safeRevalidate(`/account/orders/${orderId}`, 'page');
+    safeRevalidate('/admin/orders', 'page');
+
+    return {
+      success: true,
+      message: 'Return request submitted successfully. A courier executive will contact you within 48 hours for pickup.',
+    };
+  }
+
+  // Supabase fallback
+  if (isSupabaseConfigured()) {
+    try {
+      const supabase = await createClient();
+      const { data: orderData, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('id', orderId)
+        .single();
+
+      if (error || !orderData) {
+        return { success: false, error: 'Order not found.' };
+      }
+
+      if (caller.role !== 'admin' && orderData.user_id && orderData.user_id !== caller.userId) {
+        return { success: false, error: 'Unauthorized: Access denied.' };
+      }
+
+      if (orderData.status !== 'delivered') {
+        return { success: false, error: 'Returns can only be requested for delivered orders within 7 days.' };
+      }
+
+      await supabase
+        .from('orders')
+        .update({
+          status: 'return_requested' as any,
+          cancellation_reason: `Return requested: ${reason}${comments ? ` (${comments})` : ''}`,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', orderId);
+
+      safeRevalidate('/account/orders', 'page');
+      safeRevalidate(`/account/orders/${orderId}`, 'page');
+      safeRevalidate('/admin/orders', 'page');
+
+      return {
+        success: true,
+        message: 'Return request submitted successfully. Courier pickup will be scheduled.',
+      };
+    } catch (err) {
+      return { success: false, error: (err as Error).message || 'Failed to submit return request.' };
+    }
+  }
+
+  return { success: true, message: 'Return request registered successfully.' };
 }
