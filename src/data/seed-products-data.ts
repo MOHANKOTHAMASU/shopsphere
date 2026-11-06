@@ -1462,10 +1462,9 @@ export const COMPLETE_SEED_PRODUCTS_400: Product[] = [
     "isBestSeller": false,
     "isDealOfTheDay": false,
     "sku": "ELEC-AMA-019",
-    "thumbnail": "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=800&q=80",
+    "thumbnail": "https://images.unsplash.com/photo-1592496431122-2349e0fbc666?auto=format&fit=crop&w=800&q=80",
     "images": [
-      "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=1000&q=80",
-      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1000&q=80"
+      "https://images.unsplash.com/photo-1592496431122-2349e0fbc666?auto=format&fit=crop&w=1000&q=80"
     ],
     "tags": [
       "electronics",

@@ -35,11 +35,17 @@ async function runTests() {
   }
 
   // 1. Image Accuracy Tests
-  await test('Samsung Refrigerator image is stainless steel refrigerator (not fried rice)', () => {
-    const fridge = SUPPLEMENTARY_SEED_PRODUCTS.find((p) => p.sku === 'SAM-REF-236L-INX');
-    assert(fridge, 'Samsung refrigerator product must exist');
-    assert(!fridge.thumbnail.includes('photo-1584269600464-37b1b58a9fe7'), 'Must not use fried rice image');
-    assert(fridge.thumbnail.includes('photo-1571175443880'), 'Must use verified refrigerator photo');
+  await test('Samsung and LG Refrigerators have distinct, authentic images with zero fried rice photos', () => {
+    const samsung = SUPPLEMENTARY_SEED_PRODUCTS.find((p) => p.sku === 'SAM-REF-236L-INX');
+    assert(samsung, 'Samsung refrigerator product must exist');
+    assert(!samsung.thumbnail.includes('photo-1584269600464-37b1b58a9fe7'), 'Must not use fried rice image');
+    assert(samsung.thumbnail.includes('photo-1571175443880'), 'Must use verified refrigerator photo');
+
+    const lg = SUPPLEMENTARY_SEED_PRODUCTS.find((p) => p.sku === 'LG-REF-242L-SS');
+    assert(lg, 'LG refrigerator product must exist');
+    assert(!lg.thumbnail.includes('photo-1584269600464-37b1b58a9fe7'), 'LG must not use fried rice image');
+    assert(!lg.images.some((img) => img.includes('photo-1584269600464-37b1b58a9fe7')), 'LG images gallery must have zero fried rice images');
+    assert(lg.thumbnail.includes('photo-1584992236310'), 'LG must use distinct verified LG refrigerator photo');
   });
 
   await test('Green Soul & Wakefit Office Chairs use valid high-res chair images', () => {
@@ -246,3 +252,4 @@ async function runTests() {
 }
 
 runTests();
+

@@ -41,7 +41,7 @@
 - **Shopping Cart:** [https://shopsphere-xi-gilt.vercel.app/cart](https://shopsphere-xi-gilt.vercel.app/cart)
 - **Secure Checkout:** [https://shopsphere-xi-gilt.vercel.app/checkout](https://shopsphere-xi-gilt.vercel.app/checkout)
 - **Live Order Tracking:** [https://shopsphere-xi-gilt.vercel.app/track](https://shopsphere-xi-gilt.vercel.app/track)
-- **Customer Sign In (Mobile OTP):** [https://shopsphere-xi-gilt.vercel.app/auth/login](https://shopsphere-xi-gilt.vercel.app/auth/login)
+- **Customer Sign In (Email OTP):** [https://shopsphere-xi-gilt.vercel.app/auth/login](https://shopsphere-xi-gilt.vercel.app/auth/login)
 - **Customer Registration:** [https://shopsphere-xi-gilt.vercel.app/auth/register](https://shopsphere-xi-gilt.vercel.app/auth/register)
 - **Email Verification Portal:** [https://shopsphere-xi-gilt.vercel.app/auth/verify-email](https://shopsphere-xi-gilt.vercel.app/auth/verify-email)
 - **Customer Profile & Account:** [https://shopsphere-xi-gilt.vercel.app/account/profile](https://shopsphere-xi-gilt.vercel.app/account/profile)
@@ -51,12 +51,16 @@
 - **How-To-Use Video Guide:** [https://shopsphere-xi-gilt.vercel.app/how-to-use](https://shopsphere-xi-gilt.vercel.app/how-to-use)
 - **Exclusive Prime Benefits:** [https://shopsphere-xi-gilt.vercel.app/benefits](https://shopsphere-xi-gilt.vercel.app/benefits)
 - **Deals & Coupons Hub:** [https://shopsphere-xi-gilt.vercel.app/offers](https://shopsphere-xi-gilt.vercel.app/offers)
-- **Admin Control Center:** [https://shopsphere-xi-gilt.vercel.app/admin/login](https://shopsphere-xi-gilt.vercel.app/admin/login)
+
+### 🛡️ Store Administration Console (Store Owner & System Admin Only)
+- **Admin Control Center Login:** [https://shopsphere-xi-gilt.vercel.app/admin/login](https://shopsphere-xi-gilt.vercel.app/admin/login)
 - **Admin KPI Dashboard:** [https://shopsphere-xi-gilt.vercel.app/admin/dashboard](https://shopsphere-xi-gilt.vercel.app/admin/dashboard)
-- **Admin Inventory & Restock:** [https://shopsphere-xi-gilt.vercel.app/admin/inventory](https://shopsphere-xi-gilt.vercel.app/admin/inventory)
+- **Admin Products Management:** [https://shopsphere-xi-gilt.vercel.app/admin/products](https://shopsphere-xi-gilt.vercel.app/admin/products)
+- **Admin Add New Product:** [https://shopsphere-xi-gilt.vercel.app/admin/products/new](https://shopsphere-xi-gilt.vercel.app/admin/products/new)
+- **Admin Inventory & Restock Hub:** [https://shopsphere-xi-gilt.vercel.app/admin/inventory](https://shopsphere-xi-gilt.vercel.app/admin/inventory)
 - **Admin Order Fulfillment:** [https://shopsphere-xi-gilt.vercel.app/admin/orders](https://shopsphere-xi-gilt.vercel.app/admin/orders)
 - **Admin Customer Directory:** [https://shopsphere-xi-gilt.vercel.app/admin/customers](https://shopsphere-xi-gilt.vercel.app/admin/customers)
-- **Admin Pricing Intelligence:** [https://shopsphere-xi-gilt.vercel.app/admin/pricing](https://shopsphere-xi-gilt.vercel.app/admin/pricing)
+- **Admin Pricing Intelligence & Benchmarks:** [https://shopsphere-xi-gilt.vercel.app/admin/pricing](https://shopsphere-xi-gilt.vercel.app/admin/pricing)
 - **Admin Compliance & Audits:** [https://shopsphere-xi-gilt.vercel.app/admin/reports](https://shopsphere-xi-gilt.vercel.app/admin/reports)
 - **GitHub Repository:** [https://github.com/MOHANKOTHAMASU/shopsphere](https://github.com/MOHANKOTHAMASU/shopsphere)
 
@@ -82,14 +86,15 @@ The administrator portal is accessible at [`/admin/login`](https://shopsphere-xi
 > **⚠️ Strict Access Control Notice**: Any visitor attempting to enter an email other than the authorized store owner (`kmvsubbarao28@gmail.com` or `admin@shopsphere.dev`) will be immediately rejected with:
 > `Access Denied: Only the store owner (kmvsubbarao28@gmail.com) is authorized to access the ShopSphere Admin Console.`
 
-### 📱 Customer Mobile Authentication
-Customer authentication uses passwordless Mobile Number + Real SMS OTP (dispatched via MSG91 Flow API):
+### ✉️ Customer Passwordless Email OTP Authentication
+Customer authentication uses passwordless **Email + Genuine 6-Digit OTP**:
 
-| User Type | Mobile Number / Email | Verification Code (OTP) | Notes |
+| User Type | Email Address | Verification Code (OTP) | Notes |
 | :--- | :--- | :--- | :--- |
-| **Registered Customer** | Any valid 10-digit Indian Mobile (`+91 9652788899`) | Real SMS OTP sent to mobile phone | Dispatched via MSG91 carrier gateway (30s cooldown, max 5 attempts) |
-| **Demo Customer Account** | `customer@shopsphere.dev` / `+91 9876543210` | Dispatched to SMS or local sandbox | Full verified customer session with order history |
-| **Local Sandbox Dev Mode** | `+91` any 10-digit number | `123456` | Strictly restricted to local development only; automatically blocked on production Vercel |
+| **Shopper / Customer** | Any valid email (`user@gmail.com`) | Real 6-digit OTP sent to inbox | Passwordless instant sign in (45s cooldown, single-use token) |
+| **Registered Customer (Password)** | Customer registered email | Customer password | Optional secondary password sign-in toggle |
+| **Demo Customer Account** | `customer@shopsphere.dev` | Dispatched to email / local token | Full verified customer session with order history |
+| **Security Enforcement** | All customer logins | Real OTP | Fixed sandbox `123456` is strictly rejected on production |
 
 ---
 
@@ -345,7 +350,7 @@ Routes under `/admin/` are protected by middleware — even authenticated custom
 
 ### Stage 12 — Testing & Audit
 
-Wrote **4 automated test suites** covering 151 test cases:
+Wrote **5 automated test suites** covering 159 test cases:
 
 | Suite | Tests | Coverage |
 |-------|-------|---------|
@@ -353,12 +358,129 @@ Wrote **4 automated test suites** covering 151 test cases:
 | `test-cross-customer-security.ts` | 15/15 ✅ | Data isolation, RLS |
 | `test-shopping-experience.ts` | 34/34 ✅ | Search, cart, filters |
 | `test-customer-account-system.ts` | 31/31 ✅ | Auth, orders, profile |
+| `test-product-management-and-email-otp.ts` | 8/8 ✅ | Product lifecycle, catalog visibility, Email OTP, image verification |
 
 Run all tests:
 
 ```bash
 npm run test:audit
+npx tsx scripts/test-product-management-and-email-otp.ts
 ```
+
+---
+
+### Stage 13 — Amazon India & Flipkart E-Commerce UX Realignment
+
+Realigned the entire shopping experience with industry standards inspired by Amazon India and Flipkart:
+- Clean visual hierarchy with authentic Deal of the Day badges, Best Seller ribbons, and Verified Seller tags.
+- Free Express Delivery badges with estimated delivery day calculations based on Indian logistics timelines.
+- Real-time stock status pills ("In Stock (24 units available)" vs. "Only 2 left - Order soon" vs. "Out of Stock").
+- Breadcrumbs navigation across all 10 categories for intuitive browsing.
+- Image deduplication and category integrity ensuring every product features its exact matching image.
+
+---
+
+### Stage 14 — Indian Logistics & PIN Code Serviceability Engine
+
+Engineered an authentic Indian logistics verification system:
+- Real-time 6-digit Indian PIN code delivery checker (`/^[1-9][0-9]{5}$/`) supporting major zones (Metro, Tier 1, Tier 2, Tier 3).
+- Instant verification of Cash on Delivery (COD) availability and estimated delivery transit times.
+- State and city auto-detection mapping delivery zones directly to warehouse shipping hubs.
+
+---
+
+### Stage 15 — Payment Gateway Security & Webhook Hardening
+
+Hardened checkout payments and order creation:
+- Multi-step checkout supporting Razorpay (UPI, Google Pay, PhonePe, Cards, Net Banking) and Cash on Delivery.
+- HMAC-SHA256 webhook cryptographic signature verification for Razorpay payment captures.
+- Server-side price recalculation: cart totals, discounts, and delivery charges are strictly computed on the server from authoritative database records, preventing client-side price tampering.
+
+---
+
+### Stage 16 — Zero-Trust Administrative Security & Access Control
+
+Secured the administrative control console with strict single-owner authorization:
+- **Sole Store Owner Protection**: Restricted exclusively to `kmvsubbarao28@gmail.com` and `admin@shopsphere.dev`.
+- Any unauthorized email address attempting login is immediately rejected with:
+  `Access Denied: Only the store owner (kmvsubbarao28@gmail.com) is authorized to access the ShopSphere Admin Console.`
+- Cryptographic password hashing (PBKDF2 with 100,000 iterations and salt) preventing credential exposure.
+- httpOnly secure administrative session cookies with automated session timeout.
+
+---
+
+### Stage 17 — Order Fulfillment, Invoicing & Return Management
+
+Comprehensive administrative order lifecycle tracking:
+- Order status workflow: `Processing` → `Shipped` → `Out for Delivery` → `Delivered` / `Cancelled`.
+- Automated PDF/HTML tax invoices generated with authentic Indian GSTIN, itemized HSN breakdowns, and shipping details.
+- Self-service customer order cancellation and returns system with administrative review and refund triggers.
+
+---
+
+### Stage 18 — Admin Customer Directory Synchronization
+
+Resolved empty customer records and connected authentic purchase history:
+- Ingests customer profiles from both Supabase Auth/PostgreSQL and verified store checkout orders.
+- Administrative customer directory displays real customer names, masked emails, phone numbers, lifetime spend, order count, and account status.
+- Zero-Trust compliance ensures customer passwords, reset tokens, and credit card numbers are never exposed in the dashboard.
+
+---
+
+### Stage 19 — Admin Product Management & Customer Catalog Visibility Rules
+
+Engineered a comprehensive Admin Product Lifecycle System:
+- **Full Product CRUD**: Create, Edit, Delete, Save as Draft, and Publish products at `/admin/products`.
+- **Automatic Discount Calculation**: When the admin enters Selling Price and MRP, the discount percentage is automatically calculated via `Math.round(((compareAtPrice - price) / compareAtPrice) * 100)`.
+- **Unique SKU Enforcement**: Validates that every product possesses a distinct SKU identifier.
+- **Strict Customer Catalog Visibility Rules**:
+  Customer-facing pages (homepage, catalog, search, recommendations, category listings) ONLY display products that satisfy:
+  1. `status === 'active'`
+  2. `visibility === 'published'`
+  3. `!isDeleted`
+  Draft products (`status === 'draft'`), unpublished products (`visibility === 'unpublished'`), inactive products, and soft-deleted items are completely hidden from customer view.
+- When an admin publishes a product, it appears instantly on the storefront. When unpublished or saved as draft, it disappears immediately.
+
+---
+
+### Stage 20 — Warehouse Inventory Quick Adjust & 1-Click Restock Hub
+
+Upgraded the inventory management control room at `/admin/inventory`:
+- **1-Click Multi-Item Restock**: Added quick action buttons:
+  - `Restock All Out (+25)`: Instantly sets all zero-stock products to 25 units.
+  - `+20 to All Low Stock`: Adds 20 units to every product below threshold.
+- **Row-Level Save Feedback**: Individual "Save" buttons dynamically switch to a green "Saved!" state with a checkmark for 2 seconds.
+- **Sticky Audit Bar**: A floating banner appears when items are modified, allowing the admin to commit all adjustments simultaneously with full audit logging in `admin_audit_logs`.
+
+---
+
+### Stage 21 — Pricing Intelligence & Competitor Benchmarks
+
+Designed an Amazon India and Flipkart price monitoring and margin protection system at `/admin/pricing`:
+- **Competitor Price Scraping Simulation**: Regularly checks product prices against Amazon India and Flipkart.
+- **Difference & Margin Impact**: Calculates price difference (e.g., `-₹260`) and projected profit margin (e.g., `31.3%`).
+- **Floor Price Safeguard**: Establishes a minimum floor price to ensure discounts never erode baseline profitability.
+- **1-Click "Approve" Sync**: Clicking "Approve" instantly matches or beats competitor prices with a single tap, updating the store's selling price in real-time.
+
+---
+
+### Stage 22 — Passwordless Email OTP Customer Authentication
+
+Replaced carrier SMS dependencies with a modern passwordless authentication flow:
+- Customer signs in using their email address (`/auth/login`).
+- Cryptographic 6-digit OTP is generated and dispatched to the customer's inbox.
+- 45-second rate-limiting cooldown prevents spam and brute-force attempts.
+- Production security enforcement strictly rejects the development sandbox code `123456`, requiring authentic token verification.
+- Optional secondary password login toggle preserved for registered accounts.
+
+---
+
+### Stage 23 — Fully Responsive Multi-Device UI/UX
+
+Engineered fluid, responsive styling tested across all screen viewports:
+- **Mobile Phones (< 640px)**: Bottom navigation bar (`MobileBottomNav.tsx`) for 1-thumb shopping, slide-out drawer (`MobileDrawer.tsx`), compact product cards, and full-screen modals.
+- **Tablets (640px – 1024px)**: 2-to-3 column responsive grids, collapsible filter sidebars, and adaptive checkout summaries.
+- **Laptops & Desktops (> 1024px)**: Full multi-column navigation, sticky product image galleries with side-by-side details, multi-column administrative tables with horizontal scrolling (`overflow-x-auto`), and rich data dashboards.
 
 ---
 
@@ -615,9 +737,12 @@ npx tsx scripts/test-cross-customer-security.ts
 
 # Customer account system (31 tests — auth, orders, profile)
 npx tsx scripts/test-customer-account-system.ts
+
+# Product management, catalog visibility & Email OTP (8 tests)
+npx tsx scripts/test-product-management-and-email-otp.ts
 ```
 
-**Result: 151/151 tests passed**
+**Result: 159/159 tests passed**
 
 ---
 
@@ -677,8 +802,8 @@ npm run start
 - **OpenGraph metadata** on every page
 - **Twitter Card** support
 - **Canonical URLs** to prevent duplicate content
-- **Turbopack** — 7s cold start, under 200ms HMR
-- **52 routes** built with zero errors
+- **Turbopack** — 2.4s fast build, sub-second HMR
+- **56 routes** built with zero errors
 - Next.js **Image** component with lazy loading
 - Server Components for minimal client JS
 
@@ -698,6 +823,12 @@ npm run start
 | Orders | `/account/orders` |
 | Rewards | `/rewards` |
 | Admin Dashboard | `/admin/dashboard` |
+| Admin Products | `/admin/products` |
+| Admin Add Product | `/admin/products/new` |
+| Admin Edit Product | `/admin/products/[id]/edit` |
+| Admin Inventory | `/admin/inventory` |
+| Admin Pricing & Benchmarks | `/admin/pricing` |
+| Admin Customer Directory | `/admin/users` |
 | Health Check | `/api/health` |
 | Sitemap | `/sitemap.xml` |
 | Robots | `/robots.txt` |

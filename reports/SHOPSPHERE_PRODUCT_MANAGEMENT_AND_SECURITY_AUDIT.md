@@ -106,3 +106,4 @@ Next.js 16 (Turbopack) production build completed with zero errors across all 56
 ✓ Generating static pages using 11 workers (56/56)
 ✓ Production bundle finalized
 ```
+

@@ -439,10 +439,10 @@ export const SUPPLEMENTARY_SEED_PRODUCTS: Product[] = [
     isBestSeller: true,
     isDealOfTheDay: true,
     sku: 'LG-REF-242L-SS',
-    thumbnail: 'https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?auto=format&fit=crop&w=800&q=80',
+    thumbnail: 'https://images.unsplash.com/photo-1584992236310-6edddc08acff?auto=format&fit=crop&w=800&q=80',
     images: [
+      'https://images.unsplash.com/photo-1584992236310-6edddc08acff?auto=format&fit=crop&w=800&q=80',
       'https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&w=800&q=80',
     ],
     tags: ['refrigerator', 'fridge', 'double door', 'lg', 'home appliances', 'appliances', 'inverter', 'kitchen'],
     features: [
