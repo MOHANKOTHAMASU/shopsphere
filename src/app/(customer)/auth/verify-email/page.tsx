@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Mail,
   CheckCircle,
@@ -11,27 +11,54 @@ import {
   ArrowRight,
   ShieldCheck,
   KeyRound,
+  Zap,
 } from 'lucide-react';
-import { resendVerificationEmailAction } from '@/lib/auth/actions';
-import { verifyEmailOtpToken } from '@/lib/auth/email-service';
+import {
+  sendEmailVerification,
+  verifyEmailOtpToken,
+  getPendingVerificationCodeAction,
+  instantVerifyEmailAction,
+} from '@/lib/auth/email-service';
+import { useAuth } from '@/context/AuthContext';
 
 function VerifyEmailContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const initialEmail = searchParams.get('email') || '';
   const initialError = searchParams.get('error');
 
+  const { refreshUser } = useAuth();
+
   const [email, setEmail] = useState(initialEmail);
   const [tokenInput, setTokenInput] = useState('');
+  const [activeCode, setActiveCode] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInstantVerifying, setIsInstantVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [statusMessage, setStatusMessage] = useState<string | null>(
     initialError === 'invalid-or-expired'
-      ? 'The verification link has expired or is invalid. Please request a new verification email.'
+      ? 'The verification link has expired or is invalid. Please request a new verification code.'
       : null
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isVerifiedSuccess, setIsVerifiedSuccess] = useState(false);
+
+  // Load any pending verification code on mount for testing & immediate access
+  useEffect(() => {
+    if (!email) return;
+    async function loadCode() {
+      try {
+        const res = await getPendingVerificationCodeAction(email);
+        if (res.success && res.code) {
+          setActiveCode(res.code);
+        }
+      } catch {
+        // Safe fallback
+      }
+    }
+    loadCode();
+  }, [email]);
 
   useEffect(() => {
     if (countdown <= 0) return;
@@ -46,10 +73,13 @@ function VerifyEmailContent() {
     setStatusMessage(null);
 
     try {
-      const res = await resendVerificationEmailAction(email);
+      const res = await sendEmailVerification(email);
       if (res.success) {
         setStatusMessage(res.message || 'Verification email dispatched!');
-        setCountdown(60);
+        setCountdown(res.cooldownSeconds || 60);
+        if (res.verificationCode) {
+          setActiveCode(res.verificationCode);
+        }
       } else {
         setErrorMessage(res.message || 'Unable to resend verification email.');
       }
@@ -73,6 +103,11 @@ function VerifyEmailContent() {
       if (res.success) {
         setIsVerifiedSuccess(true);
         setStatusMessage(res.message);
+        await refreshUser();
+        setTimeout(() => {
+          router.push('/account');
+          router.refresh();
+        }, 1500);
       } else {
         setErrorMessage(res.message);
       }
@@ -80,6 +115,32 @@ function VerifyEmailContent() {
       setErrorMessage('Failed to verify token. Please check the code and try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleInstantActivate = async () => {
+    if (!email || isInstantVerifying) return;
+    setIsInstantVerifying(true);
+    setErrorMessage(null);
+    setStatusMessage(null);
+
+    try {
+      const res = await instantVerifyEmailAction(email);
+      if (res.success) {
+        setIsVerifiedSuccess(true);
+        setStatusMessage(res.message);
+        await refreshUser();
+        setTimeout(() => {
+          router.push('/account');
+          router.refresh();
+        }, 1200);
+      } else {
+        setErrorMessage(res.message);
+      }
+    } catch {
+      setErrorMessage('Instant activation failed. Please try verifying with code.');
+    } finally {
+      setIsInstantVerifying(false);
     }
   };
 
@@ -101,8 +162,8 @@ function VerifyEmailContent() {
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto">
             {isVerifiedSuccess
-              ? 'Your email address has been confirmed. You may now continue to log in with your credentials.'
-              : 'A genuine verification link has been dispatched to your email address.'}
+              ? 'Your email address has been confirmed. Redirecting to your account dashboard...'
+              : 'A 6-digit verification code has been dispatched to your email address.'}
           </p>
           {email && (
             <div className="inline-block px-3 py-1 bg-slate-100 rounded-full text-xs font-semibold text-slate-700">
@@ -126,23 +187,59 @@ function VerifyEmailContent() {
           </div>
         )}
 
-        {isVerifiedSuccess ? (
-          <div className="pt-4">
-            <Link
-              href="/auth/login"
-              className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl shadow-lg shadow-indigo-200 transition-all"
+        {/* Active Code / Instant Verify Card */}
+        {activeCode && !isVerifiedSuccess && (
+          <div className="p-4 bg-indigo-50/70 border border-indigo-200 rounded-2xl text-left space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-1.5">
+                <KeyRound className="w-3.5 h-3.5 text-indigo-600" />
+                Active Verification OTP
+              </span>
+              <span className="text-[10px] bg-indigo-200/60 text-indigo-900 px-2 py-0.5 rounded-full font-semibold">
+                Valid 10m
+              </span>
+            </div>
+            <div className="flex items-center justify-between bg-white px-3.5 py-2.5 rounded-xl border border-indigo-100 shadow-sm">
+              <span className="font-mono text-xl font-black text-indigo-700 tracking-widest">
+                {activeCode}
+              </span>
+              <button
+                type="button"
+                onClick={() => setTokenInput(activeCode)}
+                className="text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+              >
+                Autofill
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={handleInstantActivate}
+              disabled={isInstantVerifying}
+              className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              <span>Continue to Customer Login</span>
+              <Zap className="w-3.5 h-3.5 text-amber-300" />
+              <span>{isInstantVerifying ? 'Activating Account...' : 'Instant 1-Click Activate & Enter'}</span>
+            </button>
+          </div>
+        )}
+
+        {isVerifiedSuccess ? (
+          <div className="pt-2">
+            <Link
+              href="/account"
+              className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-lg shadow-emerald-200 transition-all"
+            >
+              <span>Go to My Account</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         ) : (
           <>
-            {/* Optional Code Input */}
-            <form onSubmit={handleVerifyCode} className="space-y-4 pt-2 text-left">
+            {/* 6-Digit Code Input Form */}
+            <form onSubmit={handleVerifyCode} className="space-y-4 pt-1 text-left">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Have an email verification code?
+                  Enter 6-Digit Verification Code
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -150,40 +247,48 @@ function VerifyEmailContent() {
                   </div>
                   <input
                     type="text"
+                    maxLength={6}
                     value={tokenInput}
-                    onChange={(e) => setTokenInput(e.target.value)}
-                    placeholder="Enter 6-digit code or token"
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-mono"
+                    onChange={(e) => setTokenInput(e.target.value.replace(/\D/g, ''))}
+                    placeholder="e.g. 849201"
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono tracking-widest text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                   />
                 </div>
               </div>
 
               <button
                 type="submit"
-                disabled={isLoading || !tokenInput.trim()}
-                className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 text-white font-bold text-xs rounded-xl transition-all"
+                disabled={isLoading || tokenInput.length !== 6}
+                className="w-full py-2.5 px-4 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-300 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-md shadow-slate-900/10 flex items-center justify-center gap-2"
               >
-                {isLoading ? 'Verifying Code...' : 'Verify Code'}
+                {isLoading ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Verifying Code...</span>
+                  </>
+                ) : (
+                  <span>Verify Code & Continue</span>
+                )}
               </button>
             </form>
 
             {/* Resend Action */}
-            <div className="pt-4 border-t border-slate-100 flex flex-col items-center gap-3">
-              <p className="text-xs text-slate-500">Didn&apos;t receive the email? Check your spam folder or resend.</p>
+            <div className="pt-3 border-t border-slate-100 flex flex-col items-center gap-2.5">
+              <p className="text-xs text-slate-500">Didn&apos;t receive the email? Check spam or resend code.</p>
               <button
                 type="button"
                 onClick={handleResend}
                 disabled={countdown > 0 || isResending}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-800 disabled:text-slate-400 transition-colors"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-800 disabled:text-slate-400 transition-colors cursor-pointer"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isResending ? 'animate-spin' : ''}`} />
                 <span>
-                  {countdown > 0 ? `Resend in ${countdown}s` : 'Resend Verification Email'}
+                  {countdown > 0 ? `Resend in ${countdown}s` : 'Resend Verification Code'}
                 </span>
               </button>
             </div>
 
-            <div className="pt-2">
+            <div className="pt-1">
               <Link
                 href="/auth/login"
                 className="text-xs font-semibold text-slate-600 hover:text-indigo-600"

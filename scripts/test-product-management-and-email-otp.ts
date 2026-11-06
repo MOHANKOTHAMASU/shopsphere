@@ -197,6 +197,21 @@ async function runTests() {
   // 3. Email OTP Authentication Tests
   await test('Email OTP dispatch generates 6-digit code with cooldown', async () => {
     const testEmail = `shopper_${Date.now()}@example.com`;
+    // Register customer in memory store first (shouldCreateUser: false requirement)
+    memoryCustomers.unshift({
+      id: `usr-${Date.now()}`,
+      fullName: 'Test Shopper',
+      email: testEmail,
+      maskedEmail: 't***@example.com',
+      phone: '+91 98765 43210',
+      role: 'customer',
+      ordersCount: 0,
+      totalSpent: 0,
+      status: 'active',
+      isVerified: true,
+      createdAt: new Date().toISOString(),
+    });
+
     const res = await sendCustomerEmailOtpAction(testEmail);
     assert(res.success, 'Email OTP dispatch must succeed');
     assert(res.cooldownSeconds && res.cooldownSeconds > 0, 'Must enforce cooldown');
@@ -209,6 +224,21 @@ async function runTests() {
 
   await test('Email OTP verification succeeds with correct code and rejects wrong code', async () => {
     const testEmail = `verify_test_${Date.now()}@example.com`;
+    // Register customer in memory store first (shouldCreateUser: false requirement)
+    memoryCustomers.unshift({
+      id: `usr-${Date.now()}`,
+      fullName: 'Test Verify Shopper',
+      email: testEmail,
+      maskedEmail: 't***@example.com',
+      phone: '+91 98765 43210',
+      role: 'customer',
+      ordersCount: 0,
+      totalSpent: 0,
+      status: 'active',
+      isVerified: true,
+      createdAt: new Date().toISOString(),
+    });
+
     const sendRes = await sendCustomerEmailOtpAction(testEmail);
     assert(sendRes.success, 'OTP send must succeed');
 

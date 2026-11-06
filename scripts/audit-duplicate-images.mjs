@@ -32,3 +32,4 @@ duplicates.forEach((d, idx) => {
   console.log(`  - Item 1: (${d.item1.category}) ${d.item1.title} [${d.item1.id}]`);
   console.log(`  - Item 2: (${d.item2.category}) ${d.item2.title} [${d.item2.id}]`);
 });
+

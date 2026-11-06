@@ -125,6 +125,20 @@ export const memoryCustomers: CustomerSummary[] = [
     createdAt: new Date(Date.now() - 3600000 * 24 * 15).toISOString(),
   },
   {
+    id: 'usr-admin-owner',
+    fullName: 'Mohan Venkata Subba Rao',
+    email: 'kmvsubbarao28@gmail.com',
+    maskedEmail: 'k***o@gmail.com',
+    phone: '+91 96527 88899',
+    role: 'admin',
+    ordersCount: 3,
+    totalSpent: 42500,
+    status: 'active',
+    isVerified: true,
+    lastOrderDate: new Date().toISOString(),
+    createdAt: new Date(Date.now() - 3600000 * 24 * 30).toISOString(),
+  },
+  {
     id: 'usr-demo-customer',
     fullName: 'Rahul Sharma (Demo)',
     email: 'customer@shopsphere.dev',
@@ -184,10 +198,13 @@ export const memoryCredentials: Map<string, string> = new Map([
 export const memoryResetOtps: Map<string, { otp: string; expiresAt: number; email: string }> =
   new Map();
 
-// Active Email Verification Tokens Store: email -> { token, expiresAt, email }
-export const memoryVerificationTokens: Map<
-  string,
-  { token: string; expiresAt: number; email: string }
-> = new Map();
+// Active Email Verification Tokens Store: email -> { token, expiresAt, email, attempts }
+export interface MemoryVerificationToken {
+  token: string;
+  expiresAt: number;
+  email: string;
+  attempts?: number;
+}
+export const memoryVerificationTokens: Map<string, MemoryVerificationToken> = new Map();
 
 

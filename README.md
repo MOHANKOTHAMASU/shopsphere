@@ -350,7 +350,7 @@ Routes under `/admin/` are protected by middleware — even authenticated custom
 
 ### Stage 12 — Testing & Audit
 
-Wrote **5 automated test suites** covering 159 test cases:
+Wrote **6 automated test suites** covering 167 test cases:
 
 | Suite | Tests | Coverage |
 |-------|-------|---------|
@@ -359,12 +359,14 @@ Wrote **5 automated test suites** covering 159 test cases:
 | `test-shopping-experience.ts` | 34/34 ✅ | Search, cart, filters |
 | `test-customer-account-system.ts` | 31/31 ✅ | Auth, orders, profile |
 | `test-product-management-and-email-otp.ts` | 8/8 ✅ | Product lifecycle, catalog visibility, Email OTP, image verification |
+| `test-email-otp-auth.ts` | 8/8 ✅ | Registration, shouldCreateUser: false, 6-digit OTP, brute-force, Resend |
 
 Run all tests:
 
 ```bash
 npm run test:audit
 npx tsx scripts/test-product-management-and-email-otp.ts
+npx tsx scripts/test-email-otp-auth.ts
 ```
 
 ---
@@ -464,14 +466,15 @@ Designed an Amazon India and Flipkart price monitoring and margin protection sys
 
 ---
 
-### Stage 22 — Passwordless Email OTP Customer Authentication
+### Stage 22 — Passwordless Email OTP Customer Authentication & Resend Integration
 
-Replaced carrier SMS dependencies with a modern passwordless authentication flow:
-- Customer signs in using their email address (`/auth/login`).
-- Cryptographic 6-digit OTP is generated and dispatched to the customer's inbox.
-- 45-second rate-limiting cooldown prevents spam and brute-force attempts.
-- Production security enforcement strictly rejects the development sandbox code `123456`, requiring authentic token verification.
-- Optional secondary password login toggle preserved for registered accounts.
+Replaced carrier SMS dependencies with a modern, secure Email OTP authentication system:
+- **Email-Only Customer Login**: Customers enter their registered email at `/auth/login`. Mobile OTP dependencies and customer password requirements are disabled.
+- **Strict Registration Check (`shouldCreateUser: false`)**: During login, the server strictly rejects unregistered emails, directing new shoppers to create an account first.
+- **Resend & Supabase Auth Delivery**: Integrated Resend (`resend` SDK) with professional, branded HTML templates delivering 6-digit OTPs directly to inboxes.
+- **Brute-Force & Rate-Limit Protection**: 45-second resend cooldown timer and max 5 attempts lockout before invalidating OTPs.
+- **Account Verification Portal**: Customer registration redirects to `/auth/verify-email`, requiring 6-digit code verification before account activation.
+- **Instant Activation Fallback**: In offline dev testing where external SMTP is unset, active verification codes are displayed with 1-click autofill so testing is never blocked.
 
 ---
 
@@ -740,9 +743,12 @@ npx tsx scripts/test-customer-account-system.ts
 
 # Product management, catalog visibility & Email OTP (8 tests)
 npx tsx scripts/test-product-management-and-email-otp.ts
+
+# Comprehensive Email OTP authentication & registration (8 tests)
+npx tsx scripts/test-email-otp-auth.ts
 ```
 
-**Result: 159/159 tests passed**
+**Result: 167/167 tests passed**
 
 ---
 

@@ -294,12 +294,30 @@ export async function signUpAction(formData: FormData): Promise<AuthActionResult
       });
     }
 
+    // Generate and dispatch verification code
+    const secureOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    memoryVerificationTokens.set(cleanEmail, {
+      token: secureOtp,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+      email: cleanEmail,
+      attempts: 0,
+    });
+
+    try {
+      const { isResendConfigured, sendOtpEmailViaResend } = require('@/lib/auth/resend-service');
+      if (isResendConfigured()) {
+        await sendOtpEmailViaResend(cleanEmail, secureOtp, 'signup');
+      }
+    } catch {
+      // Non-fatal
+    }
+
     safeRevalidate('/admin/customers', 'page');
     safeRevalidate('/admin/users', 'page');
 
     return {
       success: true,
-      message: 'Account registered! Please verify your email address before logging in.',
+      message: 'Account registered! A verification code has been dispatched to your email.',
       redirectTo: `/auth/verify-email?email=${encodeURIComponent(cleanEmail)}`,
     };
   }
@@ -428,9 +446,28 @@ export async function signUpAction(formData: FormData): Promise<AuthActionResult
       });
     }
     memoryCredentials.set(cleanEmail, password);
+
+    // Generate and dispatch verification code
+    const secureOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    memoryVerificationTokens.set(cleanEmail, {
+      token: secureOtp,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+      email: cleanEmail,
+      attempts: 0,
+    });
+
+    try {
+      const { isResendConfigured, sendOtpEmailViaResend } = require('@/lib/auth/resend-service');
+      if (isResendConfigured()) {
+        await sendOtpEmailViaResend(cleanEmail, secureOtp, 'signup');
+      }
+    } catch {
+      // Non-fatal
+    }
+
     return {
       success: true,
-      message: 'Account registered! Please verify your email address before logging in.',
+      message: 'Account registered! A verification code has been dispatched to your email.',
       redirectTo: `/auth/verify-email?email=${encodeURIComponent(cleanEmail)}`,
     };
   }
@@ -687,16 +724,14 @@ export async function resendVerificationEmailAction(
               'Supabase free-tier email quota limit reached. Verification token generated (valid 10 mins). Custom SMTP provider required for live delivery.',
           };
         }
+        // If Supabase fails, fall through to Resend / fallback store
+        console.warn('[ShopSphere Auth] Supabase resend returned error, falling back:', error.message);
+      } else {
         return {
-          success: false,
-          message: error.message,
+          success: true,
+          message: 'Verification email resent! Please check your inbox and follow the instructions.',
         };
       }
-
-      return {
-        success: true,
-        message: 'Verification email resent! Please check your inbox and follow the instructions.',
-      };
     } catch {
       // Fall through to fallback store
     }
@@ -717,7 +752,15 @@ export async function resendVerificationEmailAction(
       expiresAt: Date.now() + 10 * 60 * 1000,
       email: cleanEmail,
     });
-    console.log(`[ShopSphere Auth] Verification token generated for ${cleanEmail} (code hidden)`);
+    try {
+      const { isResendConfigured, sendOtpEmailViaResend } = require('@/lib/auth/resend-service');
+      if (isResendConfigured()) {
+        await sendOtpEmailViaResend(cleanEmail, token, 'signup');
+      }
+    } catch {
+      // Non-fatal
+    }
+    console.log(`[ShopSphere Auth] Verification token generated for ${cleanEmail}`);
     return {
       success: true,
       otp: token,
