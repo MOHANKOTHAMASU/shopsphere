@@ -36,15 +36,19 @@ export default function AdminUsersPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const fetchUsers = (page: number, q: string, status: string) => {
     setIsLoading(true);
+    setErrorMessage(null);
     getAdminCustomersAction(q, { page, limit: 8, status }).then((res) => {
       if (res.success) {
         setCustomers(res.customers);
         setMetrics(res.metrics);
         setTotalPages(res.totalPages);
         setTotalCount(res.total);
+      } else {
+        setErrorMessage(res.error || 'Unable to load customer directory. Please check administrative authentication.');
       }
       setIsLoading(false);
     });
@@ -53,11 +57,15 @@ export default function AdminUsersPage() {
   useEffect(() => {
     let isMounted = true;
     getAdminCustomersAction('', { page: 1, limit: 8, status: 'all' }).then((res) => {
-      if (isMounted && res.success) {
-        setCustomers(res.customers);
-        setMetrics(res.metrics);
-        setTotalPages(res.totalPages);
-        setTotalCount(res.total);
+      if (isMounted) {
+        if (res.success) {
+          setCustomers(res.customers);
+          setMetrics(res.metrics);
+          setTotalPages(res.totalPages);
+          setTotalCount(res.total);
+        } else {
+          setErrorMessage(res.error || 'Administrative session expired or unauthorized.');
+        }
         setIsLoading(false);
       }
     });
@@ -192,6 +200,22 @@ export default function AdminUsersPage() {
           </div>
         </div>
       </div>
+
+      {/* Error Message Banner */}
+      {errorMessage && (
+        <div className="p-4 bg-rose-950/80 border border-rose-800 rounded-2xl flex items-center justify-between gap-3 text-xs text-rose-300">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-rose-400">Notice:</span>
+            <span>{errorMessage}</span>
+          </div>
+          <a
+            href="/admin/login"
+            className="px-3 py-1.5 bg-rose-900 hover:bg-rose-800 text-white font-bold rounded-lg transition-colors whitespace-nowrap"
+          >
+            Sign In to Admin
+          </a>
+        </div>
+      )}
 
       {/* Customers Table */}
       <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">

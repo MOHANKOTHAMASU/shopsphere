@@ -233,10 +233,18 @@ export async function getProducts(
   // 2. Resilient local fallback filter & pagination over verified active memoryProducts
   const productSource = memoryProducts.length > 0 ? memoryProducts : DEVELOPMENT_SEED_PRODUCTS;
   const STABLE_BASE_EPOCH = 1760000000000;
-  let filtered = productSource.map((p, idx) => ({
-    ...p,
-    createdAt: p.createdAt || new Date(STABLE_BASE_EPOCH - idx * 86400000).toISOString(),
-  }));
+  let filtered = productSource
+    .filter((p) => {
+      // Customer website visibility rules: Only active, published, and non-deleted products are visible
+      if (p.isDeleted) return false;
+      if (p.status === 'draft' || p.status === 'inactive') return false;
+      if (p.visibility === 'unpublished') return false;
+      return true;
+    })
+    .map((p, idx) => ({
+      ...p,
+      createdAt: p.createdAt || new Date(STABLE_BASE_EPOCH - idx * 86400000).toISOString(),
+    }));
 
   if (categorySlug && categorySlug !== 'all') {
     const norm = categorySlug.toLowerCase().trim();
@@ -460,7 +468,10 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 
   const productSource = memoryProducts.length > 0 ? memoryProducts : DEVELOPMENT_SEED_PRODUCTS;
   const found = productSource.find((p) => p.slug === slug || p.id === slug);
-  return found || null;
+  if (!found || found.isDeleted || found.status === 'draft' || found.status === 'inactive' || found.visibility === 'unpublished') {
+    return null;
+  }
+  return found;
 }
 
 /**
@@ -495,6 +506,9 @@ export async function getCategories(): Promise<Category[]> {
   return memoryCategories.length > 0 ? memoryCategories : DEVELOPMENT_SEED_CATEGORIES;
 }
 
+const isProductVisibleToCustomer = (p: Product) =>
+  !p.isDeleted && p.status !== 'draft' && p.status !== 'inactive' && p.visibility !== 'unpublished';
+
 /**
  * Retrieve featured products
  */
@@ -502,7 +516,7 @@ export async function getFeaturedProducts(limit = 8): Promise<Product[]> {
   const result = await getProducts({ sortBy: 'featured', limit });
   if (result.items.length > 0) return result.items;
   const source = memoryProducts.length > 0 ? memoryProducts : DEVELOPMENT_SEED_PRODUCTS;
-  return source.filter((p) => p.isFeatured).slice(0, limit);
+  return source.filter((p) => isProductVisibleToCustomer(p) && p.isFeatured).slice(0, limit);
 }
 
 /**
@@ -512,7 +526,7 @@ export async function getDealProducts(limit = 4): Promise<Product[]> {
   const result = await getProducts({ dealsOnly: true, limit });
   if (result.items.length > 0) return result.items;
   const source = memoryProducts.length > 0 ? memoryProducts : DEVELOPMENT_SEED_PRODUCTS;
-  return source.filter((p) => p.isDealOfTheDay || p.discountPercent >= 15).slice(0, limit);
+  return source.filter((p) => isProductVisibleToCustomer(p) && (p.isDealOfTheDay || p.discountPercent >= 15)).slice(0, limit);
 }
 
 /**
@@ -522,7 +536,7 @@ export async function getBestSellerProducts(limit = 8): Promise<Product[]> {
   const result = await getProducts({ sortBy: 'rating', limit });
   if (result.items.length > 0) return result.items;
   const source = memoryProducts.length > 0 ? memoryProducts : DEVELOPMENT_SEED_PRODUCTS;
-  return source.filter((p) => p.isBestSeller).slice(0, limit);
+  return source.filter((p) => isProductVisibleToCustomer(p) && p.isBestSeller).slice(0, limit);
 }
 
 /**
@@ -565,6 +579,9 @@ export async function getSearchSuggestions(query: string): Promise<{
 
   const matchingProducts = productPool
     .filter((p) => {
+      if (p.isDeleted || p.status === 'draft' || p.status === 'inactive' || p.visibility === 'unpublished') {
+        return false;
+      }
       const productCorpus = (
         p.title + ' ' +
         p.brand + ' ' +

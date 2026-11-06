@@ -64,6 +64,9 @@ export interface Product {
   specifications: ProductSpecification[];
   reviews?: ProductReview[];
   variants?: ProductVariant[];
+  status?: 'active' | 'draft' | 'inactive';
+  visibility?: 'published' | 'unpublished';
+  isDeleted?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -394,6 +397,9 @@ export interface CreateProductInput {
   isFeatured?: boolean;
   isBestSeller?: boolean;
   isDealOfTheDay?: boolean;
+  status?: 'active' | 'draft' | 'inactive';
+  visibility?: 'published' | 'unpublished';
+  isDeleted?: boolean;
 }
 
 export interface CreateCategoryInput {

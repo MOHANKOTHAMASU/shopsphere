@@ -69,6 +69,23 @@ export default function AdminNewProductPage() {
   const [isFeatured, setIsFeatured] = useState(false);
   const [isBestSeller, setIsBestSeller] = useState(false);
   const [isDealOfTheDay, setIsDealOfTheDay] = useState(false);
+  const [status, setStatus] = useState<'active' | 'draft' | 'inactive'>('active');
+  const [visibility, setVisibility] = useState<'published' | 'unpublished'>('published');
+
+  // Auto-calculate discount %
+  const handlePriceChange = (val: number | '') => {
+    setPrice(val);
+    if (typeof val === 'number' && typeof compareAtPrice === 'number' && compareAtPrice > val) {
+      setDiscountPercent(Math.round(((compareAtPrice - val) / compareAtPrice) * 100));
+    }
+  };
+
+  const handleCompareAtPriceChange = (val: number | '') => {
+    setCompareAtPrice(val);
+    if (typeof val === 'number' && typeof price === 'number' && val > price) {
+      setDiscountPercent(Math.round(((val - price) / val) * 100));
+    }
+  };
 
   // 1. Fetch categories
   useEffect(() => {
@@ -214,8 +231,8 @@ export default function AdminNewProductPage() {
     setImageUrls(imageUrls.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent, overrideStatus?: 'active' | 'draft', overrideVisibility?: 'published' | 'unpublished') => {
+    if (e) e.preventDefault();
     setErrorMessage(null);
 
     if (!title.trim() || title.trim().length < 3) {
@@ -236,6 +253,9 @@ export default function AdminNewProductPage() {
     }
 
     setIsSubmitting(true);
+
+    const targetStatus = overrideStatus || status;
+    const targetVisibility = overrideVisibility || visibility;
 
     const selectedCat = categories.find((c) => c.slug === categorySlug);
     const categoryName = selectedCat ? selectedCat.name : 'Electronics & Gadgets';
@@ -258,6 +278,9 @@ export default function AdminNewProductPage() {
       isFeatured,
       isBestSeller,
       isDealOfTheDay,
+      status: targetStatus,
+      visibility: targetVisibility,
+      isDeleted: false,
     };
 
     const res = await createProductAction(input);
@@ -417,7 +440,7 @@ export default function AdminNewProductPage() {
                 min="1"
                 placeholder="e.g. 19999"
                 value={price}
-                onChange={(e) => setPrice(e.target.value ? Number(e.target.value) : '')}
+                onChange={(e) => handlePriceChange(e.target.value ? Number(e.target.value) : '')}
                 className="w-full h-11 px-4 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 font-mono"
               />
               <p className="text-[10px] text-slate-500 mt-1">Actual price customer pays</p>
@@ -432,7 +455,7 @@ export default function AdminNewProductPage() {
                 min="1"
                 placeholder="e.g. 24999"
                 value={compareAtPrice}
-                onChange={(e) => setCompareAtPrice(e.target.value ? Number(e.target.value) : '')}
+                onChange={(e) => handleCompareAtPriceChange(e.target.value ? Number(e.target.value) : '')}
                 className="w-full h-11 px-4 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 font-mono"
               />
               <p className="text-[10px] text-slate-500 mt-1">Crossed-out original price</p>
@@ -651,17 +674,72 @@ export default function AdminNewProductPage() {
           </div>
         </div>
 
-        {/* Submit Button */}
-        <div className="flex items-center justify-end gap-3 pt-2">
+        {/* Section 5: Status & Catalog Visibility */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-4">
+          <h2 className="text-sm font-black uppercase tracking-wider text-amber-400">
+            5. Status & Customer Catalog Visibility
+          </h2>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                Product Status *
+              </label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value as 'active' | 'draft' | 'inactive')}
+                className="w-full h-11 px-3 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+              >
+                <option value="active">Active (Ready for Sale)</option>
+                <option value="draft">Draft (Work in Progress)</option>
+                <option value="inactive">Inactive (Archived)</option>
+              </select>
+              <p className="text-[10px] text-slate-500 mt-1">
+                Draft products are never visible on the public website.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                Customer Website Visibility *
+              </label>
+              <select
+                value={visibility}
+                onChange={(e) => setVisibility(e.target.value as 'published' | 'unpublished')}
+                className="w-full h-11 px-3 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+              >
+                <option value="published">Published (Visible on Customer Website)</option>
+                <option value="unpublished">Unpublished (Hidden from Store & Search)</option>
+              </select>
+              <p className="text-[10px] text-slate-500 mt-1">
+                Only published products can be seen by customers.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Submit Actions */}
+        <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
           <Link
             href="/admin/products"
             className="py-3 px-5 rounded-xl text-xs font-bold text-slate-400 hover:text-white bg-slate-900 border border-slate-800 transition-colors"
           >
             Cancel
           </Link>
+
           <button
-            type="submit"
+            type="button"
             disabled={isSubmitting}
+            onClick={() => handleSubmit(undefined, 'draft', 'unpublished')}
+            className="py-3.5 px-5 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-all cursor-pointer active:scale-[0.98] disabled:opacity-50"
+          >
+            Save as Draft
+          </button>
+
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={() => handleSubmit(undefined, 'active', 'published')}
             className="py-3.5 px-6 rounded-xl font-black text-xs uppercase tracking-wider text-slate-950 bg-amber-400 hover:bg-amber-300 transition-all shadow-lg shadow-amber-500/20 flex items-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-50"
           >
             {isSubmitting ? (

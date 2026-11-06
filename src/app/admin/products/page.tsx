@@ -15,7 +15,12 @@ import {
   CheckCircle,
   FileSpreadsheet,
 } from 'lucide-react';
-import { getAdminProductsAction, deleteProductAction, getAdminCategoriesAction } from '@/lib/admin/actions';
+import {
+  getAdminProductsAction,
+  deleteProductAction,
+  getAdminCategoriesAction,
+  toggleProductVisibilityAction,
+} from '@/lib/admin/actions';
 import { Product, Category } from '@/types/ecommerce';
 import { formatCurrency } from '@/lib/utils';
 
@@ -76,6 +81,18 @@ export default function AdminProductsPage() {
     }
     setDeletingId(null);
     setTimeout(() => setStatusMessage(null), 4000);
+  };
+
+  const handleToggleVisibility = async (productId: string, currentVisibility?: string) => {
+    const nextVisibility = currentVisibility === 'unpublished' ? 'published' : 'unpublished';
+    const res = await toggleProductVisibilityAction(productId, nextVisibility);
+    if (res.success) {
+      setStatusMessage({ type: 'success', text: res.message || 'Product visibility updated.' });
+      loadData(searchQuery, selectedCategory);
+    } else {
+      setStatusMessage({ type: 'error', text: res.error || 'Failed to update visibility.' });
+    }
+    setTimeout(() => setStatusMessage(null), 3000);
   };
 
   return (
@@ -239,15 +256,31 @@ export default function AdminProductsPage() {
                         </span>
                       </td>
                       <td className="py-3 px-3">
-                        <span
-                          className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            product.isAvailable
-                              ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800'
-                              : 'bg-slate-800 text-slate-400'
-                          }`}
-                        >
-                          {product.isAvailable ? 'Active' : 'Draft'}
-                        </span>
+                        <div className="flex flex-col gap-1 items-start">
+                          <span
+                            className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              product.status === 'draft'
+                                ? 'bg-amber-950/80 text-amber-400 border border-amber-800'
+                                : product.status === 'inactive'
+                                ? 'bg-slate-800 text-slate-400'
+                                : 'bg-emerald-950/80 text-emerald-400 border border-emerald-800'
+                            }`}
+                          >
+                            {product.status ? product.status.toUpperCase() : (product.isAvailable ? 'ACTIVE' : 'DRAFT')}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleVisibility(product.id, product.visibility)}
+                            title="Click to toggle store visibility"
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold cursor-pointer transition-colors ${
+                              product.visibility === 'unpublished'
+                                ? 'bg-rose-950/80 text-rose-300 border border-rose-800 hover:bg-rose-900'
+                                : 'bg-sky-950/80 text-sky-300 border border-sky-800 hover:bg-sky-900'
+                            }`}
+                          >
+                            <span>{product.visibility === 'unpublished' ? 'Hidden (Unpublished)' : 'Live (Published)'}</span>
+                          </button>
+                        </div>
                       </td>
                       <td className="py-3 px-4 text-right">
                         <div className="flex items-center justify-end gap-2">

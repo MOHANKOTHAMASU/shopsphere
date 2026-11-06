@@ -236,6 +236,9 @@ export async function createProductAction(input: CreateProductInput): Promise<{
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '') + `-${Date.now().toString().slice(-4)}`;
 
+    const status = input.status || 'active';
+    const visibility = input.visibility || (status === 'draft' ? 'unpublished' : 'published');
+
     const newProduct: Product = {
       id: `prod-${Date.now()}`,
       slug,
@@ -251,10 +254,13 @@ export async function createProductAction(input: CreateProductInput): Promise<{
       rating: 5.0,
       reviewCount: 0,
       stockQuantity: Number(input.stockQuantity || 0),
-      isAvailable: input.stockQuantity > 0,
+      isAvailable: Number(input.stockQuantity || 0) > 0,
       isFeatured: Boolean(input.isFeatured),
       isBestSeller: Boolean(input.isBestSeller),
       isDealOfTheDay: Boolean(input.isDealOfTheDay),
+      status,
+      visibility,
+      isDeleted: false,
       sku: cleanSku,
       thumbnail: input.thumbnail || input.images[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80',
       images: input.images && input.images.length > 0 ? input.images : ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80'],
@@ -368,6 +374,9 @@ export async function updateProductAction(
       isFeatured: input.isFeatured !== undefined ? Boolean(input.isFeatured) : existing.isFeatured,
       isBestSeller: input.isBestSeller !== undefined ? Boolean(input.isBestSeller) : existing.isBestSeller,
       isDealOfTheDay: input.isDealOfTheDay !== undefined ? Boolean(input.isDealOfTheDay) : existing.isDealOfTheDay,
+      status: input.status !== undefined ? input.status : existing.status,
+      visibility: input.visibility !== undefined ? input.visibility : existing.visibility,
+      isDeleted: input.isDeleted !== undefined ? input.isDeleted : existing.isDeleted,
       images: input.images && input.images.length > 0 ? input.images : existing.images,
       thumbnail: input.thumbnail || (input.images && input.images[0]) || existing.thumbnail,
     };
@@ -425,6 +434,46 @@ export async function deleteProductAction(productId: string): Promise<{
     safeRevalidate('/');
 
     return { success: true, message: `Product "${removed.title}" has been successfully removed.` };
+  } catch (err: unknown) {
+    return { success: false, error: (err as Error).message };
+  }
+}
+
+export async function toggleProductVisibilityAction(
+  productId: string,
+  visibility: 'published' | 'unpublished'
+): Promise<{ success: boolean; message?: string; error?: string }> {
+  try {
+    const admin = await assertAdmin();
+
+    const product = memoryProducts.find((p) => p.id === productId);
+    if (!product) {
+      return { success: false, error: 'Product not found in catalog.' };
+    }
+
+    product.visibility = visibility;
+    if (visibility === 'published' && product.status === 'draft') {
+      product.status = 'active';
+    }
+
+    await logAdminAuditAction({
+      adminEmail: admin.adminEmail,
+      action: 'PRODUCT_VISIBILITY_TOGGLE',
+      resourceType: 'product',
+      resourceId: productId,
+      details: { title: product.title, visibility },
+    });
+
+    safeRevalidate('/admin/products');
+    safeRevalidate('/admin/inventory');
+    safeRevalidate('/products');
+    safeRevalidate(`/products/${product.slug}`);
+    safeRevalidate('/');
+
+    return {
+      success: true,
+      message: `Product "${product.title}" is now ${visibility === 'published' ? 'Published to Customer Website' : 'Unpublished (Hidden from Store)'}.`,
+    };
   } catch (err: unknown) {
     return { success: false, error: (err as Error).message };
   }
@@ -1069,43 +1118,117 @@ export async function getAdminCustomersAction(
 
     let rawList: CustomerSummary[] = [...memoryCustomers];
 
+    // 1. Ingest customers who made purchases in inMemoryOrders
+    for (const order of inMemoryOrders) {
+      const orderEmail = (order as unknown as { customerEmail?: string }).customerEmail || order.shippingAddress?.phone || order.userId;
+      const orderPhone = order.shippingAddress?.phone;
+      const orderName = order.shippingAddress?.fullName || 'Verified Customer';
+
+      const existingIdx = rawList.findIndex(
+        (c) => c.id === order.userId || (orderPhone && c.phone === orderPhone) || (orderEmail && c.email.toLowerCase() === orderEmail.toLowerCase())
+      );
+
+      if (existingIdx === -1) {
+        rawList.unshift({
+          id: order.userId || `usr-order-${Date.now()}`,
+          fullName: orderName,
+          email: orderEmail && orderEmail.includes('@') ? orderEmail : 'customer@shopsphere.dev',
+          maskedEmail: orderEmail && orderEmail.includes('@') ? maskEmail(orderEmail) : 'c*****@shopsphere.dev',
+          phone: orderPhone,
+          role: 'customer',
+          ordersCount: 1,
+          totalSpent: order.totalAmount || 0,
+          status: 'active',
+          isVerified: true,
+          lastOrderDate: order.createdAt,
+          createdAt: order.createdAt,
+        });
+      }
+    }
+
+    // 2. Fetch customers from Supabase (Service Role or client)
     if (isSupabaseConfigured()) {
       try {
-        const supabase = await createClient();
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id, full_name, phone, role, created_at, updated_at')
-          .eq('role', 'customer')
-          .order('created_at', { ascending: false });
+        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-        if (!error && data && data.length > 0) {
-          const dbCustomers: CustomerSummary[] = data.map((p) => ({
-            id: p.id,
-            fullName: p.full_name || 'Customer',
-            email: 'customer@hidden.supabase',
-            maskedEmail: 'c*****@hidden.auth',
-            phone: p.phone || undefined,
-            role: 'customer',
-            ordersCount: 0,
-            totalSpent: 0,
-            status: 'active',
-            isVerified: true,
-            createdAt: p.created_at,
-          }));
+        if (serviceKey && !serviceKey.includes('placeholder') && supabaseUrl) {
+          const { createClient: createSupabaseJsClient } = await import('@supabase/supabase-js');
+          const adminClient = createSupabaseJsClient(supabaseUrl, serviceKey, {
+            auth: { autoRefreshToken: false, persistSession: false },
+          });
 
-          // Merge database customers with memory store (avoid duplicates)
-          for (const dbC of dbCustomers) {
-            const existingIdx = rawList.findIndex(
-              (m) => m.id === dbC.id || (m.phone && m.phone === dbC.phone)
-            );
-            if (existingIdx >= 0) {
-              rawList[existingIdx] = {
-                ...rawList[existingIdx],
-                ...dbC,
-                fullName: dbC.fullName || rawList[existingIdx].fullName,
-              };
-            } else {
-              rawList.unshift(dbC);
+          const { data, error } = await adminClient
+            .from('profiles')
+            .select('id, full_name, phone, role, created_at, updated_at')
+            .order('created_at', { ascending: false });
+
+          if (!error && data && data.length > 0) {
+            const dbCustomers: CustomerSummary[] = data.map((p) => ({
+              id: p.id,
+              fullName: p.full_name || 'Customer',
+              email: 'customer@hidden.supabase',
+              maskedEmail: 'c*****@hidden.auth',
+              phone: p.phone || undefined,
+              role: 'customer',
+              ordersCount: 0,
+              totalSpent: 0,
+              status: 'active',
+              isVerified: true,
+              createdAt: p.created_at,
+            }));
+
+            for (const dbC of dbCustomers) {
+              const existingIdx = rawList.findIndex(
+                (m) => m.id === dbC.id || (m.phone && m.phone === dbC.phone)
+              );
+              if (existingIdx >= 0) {
+                rawList[existingIdx] = {
+                  ...rawList[existingIdx],
+                  ...dbC,
+                  fullName: dbC.fullName || rawList[existingIdx].fullName,
+                };
+              } else {
+                rawList.unshift(dbC);
+              }
+            }
+          }
+        } else {
+          const supabase = await createClient();
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('id, full_name, phone, role, created_at, updated_at')
+            .eq('role', 'customer')
+            .order('created_at', { ascending: false });
+
+          if (!error && data && data.length > 0) {
+            const dbCustomers: CustomerSummary[] = data.map((p) => ({
+              id: p.id,
+              fullName: p.full_name || 'Customer',
+              email: 'customer@hidden.supabase',
+              maskedEmail: 'c*****@hidden.auth',
+              phone: p.phone || undefined,
+              role: 'customer',
+              ordersCount: 0,
+              totalSpent: 0,
+              status: 'active',
+              isVerified: true,
+              createdAt: p.created_at,
+            }));
+
+            for (const dbC of dbCustomers) {
+              const existingIdx = rawList.findIndex(
+                (m) => m.id === dbC.id || (m.phone && m.phone === dbC.phone)
+              );
+              if (existingIdx >= 0) {
+                rawList[existingIdx] = {
+                  ...rawList[existingIdx],
+                  ...dbC,
+                  fullName: dbC.fullName || rawList[existingIdx].fullName,
+                };
+              } else {
+                rawList.unshift(dbC);
+              }
             }
           }
         }

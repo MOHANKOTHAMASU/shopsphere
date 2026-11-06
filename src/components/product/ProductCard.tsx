@@ -66,10 +66,16 @@ export function ProductCard({ product, priority = false }: ProductCardProps) {
       <div className="relative aspect-square w-full overflow-hidden bg-slate-50">
         <Link href={`/products/${product.slug}`} className="block w-full h-full">
           <img
-            src={product.thumbnail}
+            src={product.thumbnail || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80'}
             alt={product.title}
             className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out"
             loading={priority ? 'eager' : 'lazy'}
+            onError={(e) => {
+              const target = e.currentTarget;
+              if (!target.src.includes('photo-1523275335684')) {
+                target.src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80';
+              }
+            }}
           />
         </Link>
 

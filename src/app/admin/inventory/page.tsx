@@ -25,6 +25,7 @@ export default function AdminInventoryPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isBulkSaving, setIsBulkSaving] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [justSavedId, setJustSavedId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [customBulkAmount, setCustomBulkAmount] = useState<number>(25);
 
@@ -81,13 +82,54 @@ export default function AdminInventoryPage() {
 
     const res = await updateInventoryAction(productId, newStock);
     if (res.success) {
+      setJustSavedId(productId);
       setStatusMessage(`Stock updated to ${newStock} units.`);
       setProducts((prev) =>
         prev.map((p) => (p.id === productId ? { ...p, stockQuantity: newStock, isAvailable: newStock > 0 } : p))
       );
+      setTimeout(() => setJustSavedId(null), 2500);
     }
     setUpdatingId(null);
     setTimeout(() => setStatusMessage(null), 3000);
+  };
+
+  // Instant Restock Actions
+  const handleInstantRestockOutOfStock = async (delta = 25) => {
+    const outItems = products.filter((p) => p.stockQuantity === 0);
+    if (outItems.length === 0) {
+      setStatusMessage('No products currently out of stock.');
+      setTimeout(() => setStatusMessage(null), 3000);
+      return;
+    }
+    setIsBulkSaving(true);
+    let count = 0;
+    for (const p of outItems) {
+      const res = await updateInventoryAction(p.id, delta);
+      if (res.success) count++;
+    }
+    loadProducts();
+    setIsBulkSaving(false);
+    setStatusMessage(`Restocked all ${count} out-of-stock items with +${delta} units!`);
+    setTimeout(() => setStatusMessage(null), 4000);
+  };
+
+  const handleInstantRestockLowStock = async (delta = 20) => {
+    const lowItems = products.filter((p) => p.stockQuantity <= 10 && p.stockQuantity > 0);
+    if (lowItems.length === 0) {
+      setStatusMessage('No products currently low on stock.');
+      setTimeout(() => setStatusMessage(null), 3000);
+      return;
+    }
+    setIsBulkSaving(true);
+    let count = 0;
+    for (const p of lowItems) {
+      const res = await updateInventoryAction(p.id, p.stockQuantity + delta);
+      if (res.success) count++;
+    }
+    loadProducts();
+    setIsBulkSaving(false);
+    setStatusMessage(`Restocked all ${count} low stock items with +${delta} units!`);
+    setTimeout(() => setStatusMessage(null), 4000);
   };
 
   // Bulk Actions
@@ -264,13 +306,26 @@ export default function AdminInventoryPage() {
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-amber-400">Low Stock Alert (&le;10)</span>
             <p className="text-2xl font-black text-amber-300 mt-1">{lowStockCount}</p>
-            <button
-              type="button"
-              onClick={handleSelectLowStock}
-              className="text-[10px] font-bold text-amber-400 hover:underline mt-1 cursor-pointer block"
-            >
-              Select All Low Stock &rarr;
-            </button>
+            <div className="flex items-center gap-3 mt-1.5">
+              <button
+                type="button"
+                onClick={handleSelectLowStock}
+                className="text-[10px] font-bold text-amber-400 hover:underline cursor-pointer"
+              >
+                Select Low Stock &rarr;
+              </button>
+              {lowStockCount > 0 && (
+                <button
+                  type="button"
+                  disabled={isBulkSaving}
+                  onClick={() => handleInstantRestockLowStock(20)}
+                  className="px-2 py-0.5 rounded-md bg-amber-500/20 hover:bg-amber-500/30 text-[10px] font-bold text-amber-300 border border-amber-500/40 cursor-pointer disabled:opacity-50"
+                  title="Instantly add +20 units to all low stock items"
+                >
+                  +20 to All
+                </button>
+              )}
+            </div>
           </div>
           <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
             <AlertTriangle className="w-5 h-5" />
@@ -281,13 +336,26 @@ export default function AdminInventoryPage() {
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-rose-400">Out of Stock (0)</span>
             <p className="text-2xl font-black text-rose-300 mt-1">{outOfStockCount}</p>
-            <button
-              type="button"
-              onClick={handleSelectOutOfStock}
-              className="text-[10px] font-bold text-rose-400 hover:underline mt-1 cursor-pointer block"
-            >
-              Select All Out of Stock &rarr;
-            </button>
+            <div className="flex items-center gap-3 mt-1.5">
+              <button
+                type="button"
+                onClick={handleSelectOutOfStock}
+                className="text-[10px] font-bold text-rose-400 hover:underline cursor-pointer"
+              >
+                Select Out of Stock &rarr;
+              </button>
+              {outOfStockCount > 0 && (
+                <button
+                  type="button"
+                  disabled={isBulkSaving}
+                  onClick={() => handleInstantRestockOutOfStock(25)}
+                  className="px-2 py-0.5 rounded-md bg-rose-500/20 hover:bg-rose-500/30 text-[10px] font-bold text-rose-300 border border-rose-500/40 cursor-pointer disabled:opacity-50"
+                  title="Instantly restock all out-of-stock items with 25 units"
+                >
+                  Restock All (+25)
+                </button>
+              )}
+            </div>
           </div>
           <div className="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center">
             <AlertTriangle className="w-5 h-5" />
@@ -596,16 +664,27 @@ export default function AdminInventoryPage() {
                       <td className="py-3 px-4 text-right">
                         <button
                           type="button"
-                          disabled={updatingId === p.id || !hasChanged}
+                          disabled={updatingId === p.id}
                           onClick={() => handleSaveStock(p.id)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-30 ${
-                            hasChanged
-                              ? 'bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-md shadow-amber-500/20 font-black'
-                              : 'bg-slate-800 text-slate-500'
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 ${
+                            justSavedId === p.id
+                              ? 'bg-emerald-500 text-slate-950 font-black shadow-md shadow-emerald-500/20'
+                              : hasChanged
+                              ? 'bg-amber-400 hover:bg-amber-300 text-slate-950 shadow-md shadow-amber-500/20 font-black animate-pulse'
+                              : 'bg-slate-800 hover:bg-slate-700 text-slate-300'
                           }`}
                         >
-                          <Save className="w-3.5 h-3.5" />
-                          <span>{updatingId === p.id ? 'Saving...' : 'Save'}</span>
+                          {justSavedId === p.id ? (
+                            <>
+                              <CheckCircle className="w-3.5 h-3.5" />
+                              <span>Saved!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Save className="w-3.5 h-3.5" />
+                              <span>{updatingId === p.id ? 'Saving...' : hasChanged ? 'Save Stock' : 'Saved'}</span>
+                            </>
+                          )}
                         </button>
                       </td>
                     </tr>
@@ -616,6 +695,34 @@ export default function AdminInventoryPage() {
           </div>
         )}
       </div>
+
+      {/* Sticky Floating Save Bar for Multiple Pending Modifications */}
+      {modifiedProducts.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 border-2 border-amber-400 rounded-2xl p-4 shadow-2xl backdrop-blur-md flex items-center gap-4 animate-in slide-in-from-bottom-4">
+          <div className="flex items-center gap-2">
+            <span className="w-6 h-6 rounded-lg bg-amber-400 text-slate-950 font-black text-xs flex items-center justify-center">
+              {modifiedProducts.length}
+            </span>
+            <span className="text-xs font-bold text-white">
+              Product(s) have uncommitted stock changes
+            </span>
+          </div>
+
+          <button
+            type="button"
+            disabled={isBulkSaving}
+            onClick={handleSaveAllModified}
+            className="py-2 px-4 rounded-xl text-xs font-black bg-amber-400 hover:bg-amber-300 text-slate-950 transition-all flex items-center gap-1.5 shadow-md shadow-amber-500/20 cursor-pointer disabled:opacity-50"
+          >
+            {isBulkSaving ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Save className="w-3.5 h-3.5" />
+            )}
+            <span>Save All ({modifiedProducts.length}) Now</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 }
