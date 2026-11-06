@@ -53,9 +53,89 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const refreshUser = useCallback(async () => {
-    if (!configured) {
+    // 1. If Supabase is configured, try Supabase Auth first
+    if (configured) {
+      try {
+        const supabase = createClient();
+        const {
+          data: { user: currentUser },
+        } = await supabase.auth.getUser();
+
+        if (currentUser) {
+          setUser(currentUser);
+          await fetchProfile(currentUser.id);
+          setIsLoading(false);
+          return;
+        }
+      } catch {
+        // Supabase unreachable or no Supabase session; fall through to signed cookie session
+      }
+    }
+
+    // 2. Resilient Fallback to cryptographic signed session cookie (Email OTP / Admin / Mohan Kothamasu)
+    try {
+      const demoUser = await getDemoUserAction();
+      if (demoUser) {
+        setUser({
+          id: demoUser.id,
+          email: demoUser.email,
+          user_metadata: {
+            full_name: demoUser.full_name,
+            role: demoUser.role,
+            phone: demoUser.phone,
+          },
+          app_metadata: { role: demoUser.role },
+          aud: 'authenticated',
+          created_at: new Date().toISOString(),
+        } as unknown as User);
+
+        setProfile({
+          id: demoUser.id,
+          full_name: demoUser.full_name,
+          role: demoUser.role,
+          phone: demoUser.phone || null,
+          avatar_url: null,
+        });
+      } else {
+        setUser(null);
+        setProfile(null);
+      }
+    } catch {
+      setUser(null);
+      setProfile(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [configured, fetchProfile]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const initAuth = async () => {
+      // 1. Try Supabase first if configured
+      if (configured) {
+        try {
+          const supabase = createClient();
+          const {
+            data: { user: currentUser },
+          } = await supabase.auth.getUser();
+
+          if (!isMounted) return;
+          if (currentUser) {
+            setUser(currentUser);
+            await fetchProfile(currentUser.id);
+            setIsLoading(false);
+            return;
+          }
+        } catch {
+          // Supabase unreachable; fall through to signed session cookie
+        }
+      }
+
+      // 2. Check signed session cookie (Email OTP, Admin login, Mohan Kothamasu)
       try {
         const demoUser = await getDemoUserAction();
+        if (!isMounted) return;
         if (demoUser) {
           setUser({
             id: demoUser.id,
@@ -79,94 +159,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           });
         } else {
           setUser(null);
-          setProfile(null);
-        }
-      } catch {
-        setUser(null);
-        setProfile(null);
-      } finally {
-        setIsLoading(false);
-      }
-      return;
-    }
-
-    try {
-      const supabase = createClient();
-      const {
-        data: { user: currentUser },
-      } = await supabase.auth.getUser();
-
-      setUser(currentUser);
-      if (currentUser) {
-        await fetchProfile(currentUser.id);
-      } else {
-        setProfile(null);
-      }
-    } catch {
-      setUser(null);
-      setProfile(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [configured, fetchProfile]);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const initAuth = async () => {
-      if (!configured) {
-        try {
-          const demoUser = await getDemoUserAction();
-          if (!isMounted) return;
-          if (demoUser) {
-            setUser({
-              id: demoUser.id,
-              email: demoUser.email,
-              user_metadata: {
-                full_name: demoUser.full_name,
-                role: demoUser.role,
-                phone: demoUser.phone,
-              },
-              app_metadata: { role: demoUser.role },
-              aud: 'authenticated',
-              created_at: new Date().toISOString(),
-            } as unknown as User);
-
-            setProfile({
-              id: demoUser.id,
-              full_name: demoUser.full_name,
-              role: demoUser.role,
-              phone: demoUser.phone || null,
-              avatar_url: null,
-            });
-          } else {
-            setUser(null);
-            setProfile(null);
-          }
-        } catch {
-          if (isMounted) {
-            setUser(null);
-            setProfile(null);
-          }
-        } finally {
-          if (isMounted) {
-            setIsLoading(false);
-          }
-        }
-        return;
-      }
-
-      try {
-        const supabase = createClient();
-        const {
-          data: { user: currentUser },
-        } = await supabase.auth.getUser();
-
-        if (!isMounted) return;
-        setUser(currentUser);
-        if (currentUser) {
-          await fetchProfile(currentUser.id);
-        } else {
           setProfile(null);
         }
       } catch {

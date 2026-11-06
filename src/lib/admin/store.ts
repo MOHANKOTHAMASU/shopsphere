@@ -69,6 +69,20 @@ export const memoryCoupons: CouponRecord[] = [
 // Active Customers repository (with status and verification details)
 export const memoryCustomers: CustomerSummary[] = [
   {
+    id: 'usr-owner-mohan',
+    fullName: 'Mohan Kothamasu',
+    email: 'kmvsubbarao28@gmail.com',
+    maskedEmail: 'k***8@gmail.com',
+    phone: '+91 98765 43210',
+    role: 'admin',
+    ordersCount: 3,
+    totalSpent: 60979,
+    status: 'active',
+    isVerified: true,
+    lastOrderDate: new Date().toISOString(),
+    createdAt: new Date(Date.now() - 3600000 * 24 * 30).toISOString(),
+  },
+  {
     id: 'usr-customer-01',
     fullName: 'Rahul Sharma',
     email: 'rahul.sharma@example.com',
@@ -142,6 +156,20 @@ export const memoryCustomers: CustomerSummary[] = [
 
 // Active Customer Delivery Addresses repository
 export const memoryAddresses: Address[] = [
+  {
+    id: 'addr-mohan-primary',
+    userId: 'usr-owner-mohan',
+    fullName: 'Mohan Kothamasu',
+    phone: '+91 98765 43210',
+    street: '#42, Prestige Tech Park, Marathahalli-Sarjapur Outer Ring Road',
+    apartment: 'Tower C, Executive Suite 402',
+    city: 'Bengaluru',
+    state: 'Karnataka',
+    postalCode: '560103',
+    country: 'India',
+    isDefault: true,
+    type: 'Home',
+  },
   {
     id: 'addr-default-mock',
     userId: 'usr-demo-customer',

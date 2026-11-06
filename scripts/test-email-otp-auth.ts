@@ -149,9 +149,11 @@ async function runTests() {
   });
 
   // 8. Admin Role Authorization Separation
-  await test('Store owner kmvsubbarao28@gmail.com is not pre-registered as customer, while demo accounts are separated', () => {
-    const preRegistered = memoryCustomers.find((c) => c.email === 'kmvsubbarao28@gmail.com');
-    assert.strictEqual(preRegistered, undefined, 'Store owner must NOT be pre-registered in customer list');
+  await test('Store owner Mohan Kothamasu (kmvsubbarao28@gmail.com) is registered with admin role, while demo accounts are separated', () => {
+    const owner = memoryCustomers.find((c) => c.email === 'kmvsubbarao28@gmail.com');
+    assert(owner, 'Store owner Mohan Kothamasu must exist in customer store');
+    assert.strictEqual(owner.fullName, 'Mohan Kothamasu');
+    assert.strictEqual(owner.role, 'admin');
 
     const customer = memoryCustomers.find((c) => c.email === 'customer@shopsphere.dev');
     assert(customer, 'Demo customer must exist');

@@ -246,14 +246,14 @@ export async function verifyCustomerEmailOtpAction(
       let customer = memoryCustomers.find((c) => c.email.toLowerCase() === cleanEmail);
       if (!customer) {
         customer = {
-          id: `usr-cust-${Date.now()}`,
-          fullName: cleanEmail.split('@')[0],
+          id: cleanEmail === 'kmvsubbarao28@gmail.com' ? 'usr-owner-mohan' : `usr-cust-${Date.now()}`,
+          fullName: cleanEmail === 'kmvsubbarao28@gmail.com' ? 'Mohan Kothamasu' : cleanEmail.split('@')[0],
           email: cleanEmail,
           maskedEmail: maskEmail(cleanEmail),
           phone: '+91 98765 43210',
           role: cleanEmail === 'kmvsubbarao28@gmail.com' ? 'admin' : 'customer',
-          ordersCount: 0,
-          totalSpent: 0,
+          ordersCount: 3,
+          totalSpent: 60979,
           status: 'active',
           isVerified: true,
           createdAt: new Date().toISOString(),
@@ -262,12 +262,16 @@ export async function verifyCustomerEmailOtpAction(
       } else {
         customer.isVerified = true;
         customer.status = 'active';
+        if (cleanEmail === 'kmvsubbarao28@gmail.com') {
+          customer.fullName = 'Mohan Kothamasu';
+          customer.role = 'admin';
+        }
       }
 
       await setDemoUserSession({
         id: customer.id,
         email: customer.email,
-        full_name: customer.fullName || customer.email.split('@')[0],
+        full_name: customer.fullName || (cleanEmail === 'kmvsubbarao28@gmail.com' ? 'Mohan Kothamasu' : customer.email.split('@')[0]),
         role: customer.role === 'admin' ? 'admin' : 'customer',
         phone: customer.phone,
       });

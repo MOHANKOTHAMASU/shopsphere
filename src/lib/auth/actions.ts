@@ -79,8 +79,8 @@ async function performFallbackSignIn(
     id: isStoreAdmin ? DEMO_USERS.admin.id : (foundCustomer?.id || `usr-cust-${Date.now()}`),
     email: cleanEmail,
     full_name: isStoreAdmin
-      ? (cleanEmail === 'kmvsubbarao28@gmail.com' ? 'K.M.V. Subbarao (Admin)' : DEMO_USERS.admin.full_name)
-      : (foundCustomer?.fullName || cleanEmail.split('@')[0].replace(/[._-]/g, ' ') || 'Customer'),
+      ? (cleanEmail === 'kmvsubbarao28@gmail.com' ? 'Mohan Kothamasu' : DEMO_USERS.admin.full_name)
+      : (foundCustomer?.fullName || (cleanEmail === 'kmvsubbarao28@gmail.com' ? 'Mohan Kothamasu' : cleanEmail.split('@')[0].replace(/[._-]/g, ' ')) || 'Customer'),
     role: isStoreAdmin ? 'admin' : 'customer',
     phone: foundCustomer?.phone || (isStoreAdmin ? DEMO_USERS.admin.phone : '+91 98765 43210'),
   };

@@ -22,10 +22,10 @@ export const DEMO_USERS = {
     phone: '+91 98765 43210',
   },
   admin: {
-    id: 'usr-demo-admin',
-    email: 'admin@shopsphere.dev',
-    full_name: 'Store Admin',
+    id: 'usr-owner-mohan',
+    email: 'kmvsubbarao28@gmail.com',
+    full_name: 'Mohan Kothamasu',
     role: 'admin' as const,
-    phone: '+91 98765 00001',
+    phone: '+91 98765 43210',
   },
 };
