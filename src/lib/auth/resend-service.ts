@@ -105,3 +105,4 @@ export async function sendOtpEmailViaResend(
     return { success: false, error: msg };
   }
 }
+

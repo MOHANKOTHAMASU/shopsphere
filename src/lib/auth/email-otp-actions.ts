@@ -63,7 +63,7 @@ export async function sendCustomerEmailOtpAction(email: string): Promise<EmailOt
 
   // 1. Verify that the customer is actually registered
   const customer = memoryCustomers.find((c) => c.email.toLowerCase() === cleanEmail);
-  const isDemoAccount = cleanEmail === 'customer@shopsphere.dev' || cleanEmail === 'kmvsubbarao28@gmail.com';
+  const isDemoAccount = cleanEmail === 'customer@shopsphere.dev';
 
   if (!customer && !isDemoAccount) {
     // Check Supabase if configured with shouldCreateUser: false
