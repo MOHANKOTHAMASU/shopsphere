@@ -39,7 +39,8 @@ async function runTests() {
     const samsung = SUPPLEMENTARY_SEED_PRODUCTS.find((p) => p.sku === 'SAM-REF-236L-INX');
     assert(samsung, 'Samsung refrigerator product must exist');
     assert(!samsung.thumbnail.includes('photo-1584269600464-37b1b58a9fe7'), 'Must not use fried rice image');
-    assert(samsung.thumbnail.includes('photo-1571175443880'), 'Must use verified refrigerator photo');
+    assert(!samsung.thumbnail.includes('photo-1571175443880-49e1d25b2bc5'), 'Must not use food rice photo');
+    assert(samsung.thumbnail.includes('photo-1484154218962'), 'Must use verified refrigerator photo');
 
     const lg = SUPPLEMENTARY_SEED_PRODUCTS.find((p) => p.sku === 'LG-REF-242L-SS');
     assert(lg, 'LG refrigerator product must exist');
@@ -52,12 +53,12 @@ async function runTests() {
     const greenSoul = SUPPLEMENTARY_SEED_PRODUCTS.find((p) => p.sku === 'GS-MOC-GRY-01');
     assert(greenSoul, 'Green Soul chair must exist');
     assert(!greenSoul.thumbnail.includes('photo-1580481077195'), 'Must not use broken 404 image');
-    assert(greenSoul.thumbnail.includes('photo-1505797149'), 'Must use working ergonomic chair image');
+    assert(greenSoul.thumbnail.includes('photo-1580480055273'), 'Must use working ergonomic chair image');
 
     const wakefit = SUPPLEMENTARY_SEED_PRODUCTS.find((p) => p.sku === 'WKF-MDC-BLK-01');
     assert(wakefit, 'Wakefit chair must exist');
     assert(!wakefit.thumbnail.includes('photo-1580481077195'), 'Must not use broken 404 image');
-    assert(wakefit.thumbnail.includes('photo-1589384267710'), 'Must use working office chair image');
+    assert(wakefit.thumbnail.includes('photo-1517705008128'), 'Must use working office chair image');
   });
 
   // 2. Draft & Catalog Visibility Tests

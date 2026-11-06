@@ -76,14 +76,29 @@ function normalizeProductCategory(p: Product): Product {
 
 const normalizedBase = COMPLETE_SEED_PRODUCTS_400.map(normalizeProductCategory);
 
-// Dedup supplementary + base by id & slug
+// Dedup supplementary + base by id, slug, and verified unique image key
 const seenIds = new Set<string>();
+const seenImages = new Set<string>();
 const unifiedProducts: Product[] = [];
 
 for (const p of [...SUPPLEMENTARY_SEED_PRODUCTS, ...normalizedBase]) {
-  if (!seenIds.has(p.id) && !seenIds.has(p.slug)) {
+  // Discard any legacy product containing known mismatched/broken images
+  if (
+    p.thumbnail &&
+    (p.thumbnail.includes('photo-1584269600464') ||
+      p.thumbnail.includes('photo-1580481077195') ||
+      (p.categorySlug === 'home-appliances' && p.thumbnail.includes('photo-1571175443880')))
+  ) {
+    continue;
+  }
+
+  const imgMatch = p.thumbnail ? p.thumbnail.match(/photo-([a-zA-Z0-9-]+)/) : null;
+  const imgKey = imgMatch ? imgMatch[1] : (p.thumbnail || p.id);
+
+  if (!seenIds.has(p.id) && !seenIds.has(p.slug) && !seenImages.has(imgKey)) {
     seenIds.add(p.id);
     seenIds.add(p.slug);
+    seenImages.add(imgKey);
     unifiedProducts.push(p);
   }
 }
