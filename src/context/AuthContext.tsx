@@ -215,6 +215,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     setIsLoading(true);
+    try {
+      localStorage.removeItem('shopsphere_cart_items');
+      localStorage.removeItem('shopsphere_wishlist');
+    } catch {
+      // Non-fatal
+    }
     await signOutAction();
     setUser(null);
     setProfile(null);

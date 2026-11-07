@@ -52,6 +52,18 @@ export default function CheckoutPage() {
   const [newPin, setNewPin] = useState('');
   const [newAddressType, setNewAddressType] = useState<'Home' | 'Work' | 'Other'>('Home');
 
+  // Sync profile info once loaded
+  useEffect(() => {
+    if (profile?.full_name && !newFullName) {
+      setNewFullName(profile.full_name);
+    } else if (user?.user_metadata?.full_name && !newFullName) {
+      setNewFullName(user.user_metadata.full_name);
+    }
+    if (profile?.phone && !newPhone) {
+      setNewPhone(profile.phone);
+    }
+  }, [profile, user, newFullName, newPhone]);
+
   // Payment method state
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cod');
 
@@ -78,6 +90,11 @@ export default function CheckoutPage() {
         setAddresses(res.addresses);
         const defaultAddr = res.addresses.find((a) => a.isDefault) || res.addresses[0];
         setSelectedAddressId(defaultAddr.id);
+        setIsAddingAddress(false);
+      } else {
+        setAddresses([]);
+        setSelectedAddressId('');
+        setIsAddingAddress(true); // Open address form immediately for new users
       }
     }
     loadAddresses();
@@ -88,7 +105,7 @@ export default function CheckoutPage() {
     if (!newStreet || !newCity || !newPin || !newPhone) return;
 
     const res = await saveAddressAction({
-      fullName: newFullName || profile?.full_name || 'Customer',
+      fullName: newFullName || profile?.full_name || user?.user_metadata?.full_name || 'Customer',
       phone: newPhone,
       street: newStreet,
       apartment: newApartment,
@@ -482,6 +499,25 @@ export default function CheckoutPage() {
             )}
 
             {/* Saved Addresses List */}
+            {addresses.length === 0 && !isAddingAddress && (
+              <div className="p-5 rounded-2xl bg-amber-50 border border-amber-200 text-center space-y-2">
+                <p className="text-xs font-bold text-amber-900">
+                  No delivery address saved on your account.
+                </p>
+                <p className="text-[11px] text-amber-700">
+                  Please add your delivery address so we can ship your items to your doorstep.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setIsAddingAddress(true)}
+                  className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold text-xs hover:bg-indigo-700 cursor-pointer shadow-xs inline-flex items-center gap-1.5"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Delivery Address</span>
+                </button>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {addresses.map((addr) => {
                 const isSelected = selectedAddressId === addr.id;

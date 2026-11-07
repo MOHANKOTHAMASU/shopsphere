@@ -82,13 +82,8 @@ const seenImages = new Set<string>();
 const unifiedProducts: Product[] = [];
 
 for (const p of [...SUPPLEMENTARY_SEED_PRODUCTS, ...normalizedBase]) {
-  // Discard any legacy product containing known mismatched/broken images
-  if (
-    p.thumbnail &&
-    (p.thumbnail.includes('photo-1584269600464') ||
-      p.thumbnail.includes('photo-1580481077195') ||
-      (p.categorySlug === 'home-appliances' && p.thumbnail.includes('photo-1571175443880')))
-  ) {
+  // Discard any legacy product containing known mismatched/broken fried rice photos
+  if (p.thumbnail && p.thumbnail.includes('photo-1584269600464')) {
     continue;
   }
 

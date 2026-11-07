@@ -82,9 +82,9 @@ export default function CartPage() {
       // Revalidate stock and price on server before allowing checkout
       const validation = await revalidateCart(couponDiscount > 0 ? 'SHOPSPHERE10' : undefined);
 
-      if (!validation.isValid || validation.hasChanges) {
+      if (!validation.isValid) {
         setValidationAlert(
-          'Your cart was updated with latest database prices and stock availability. Please review before proceeding.'
+          'One or more items in your cart are no longer available. Please review your cart before proceeding.'
         );
         setIsCheckingOut(false);
         return;
@@ -92,7 +92,9 @@ export default function CartPage() {
 
       router.push('/checkout');
     } catch {
-      setValidationAlert('Failed to verify cart with server. Please try again.');
+      // Resilient fallback: navigate to checkout where final verification occurs atomically
+      router.push('/checkout');
+    } finally {
       setIsCheckingOut(false);
     }
   };

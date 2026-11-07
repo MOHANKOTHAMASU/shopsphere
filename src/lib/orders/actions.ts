@@ -458,8 +458,11 @@ export async function createOrderAction(payload: {
   // Record/update customer in memoryCustomers so Admin Users & Customers directory tracks the purchase
   try {
     const cleanCustomerPhone = shippingAddress.phone?.trim();
+    const cleanCallerEmail = caller.email?.trim().toLowerCase();
     const existingCust = memoryCustomers.find(
-      (c) => (userId && userId !== 'guest-customer' && c.id === userId) || (cleanCustomerPhone && c.phone === cleanCustomerPhone)
+      (c) =>
+        (userId && userId !== 'guest-customer' && c.id === userId) ||
+        (cleanCallerEmail && c.email.toLowerCase() === cleanCallerEmail)
     );
     if (existingCust) {
       existingCust.ordersCount = (existingCust.ordersCount || 0) + 1;
@@ -469,11 +472,16 @@ export async function createOrderAction(payload: {
         existingCust.fullName = shippingAddress.fullName.trim();
       }
     } else {
+      const customerEmail = cleanCallerEmail || 'customer@shopsphere.in';
+      const maskedEmail = cleanCallerEmail
+        ? `${cleanCallerEmail[0]}***${cleanCallerEmail.slice(cleanCallerEmail.indexOf('@'))}`
+        : 'c*****@shopsphere.in';
+
       memoryCustomers.unshift({
         id: userId && userId !== 'guest-customer' ? userId : `usr-cust-${Date.now()}`,
-        fullName: shippingAddress.fullName?.trim() || 'Valued Customer',
-        email: 'customer@shopsphere.in',
-        maskedEmail: 'c*****@shopsphere.in',
+        fullName: shippingAddress.fullName?.trim() || caller.name || 'Valued Customer',
+        email: customerEmail,
+        maskedEmail,
         phone: cleanCustomerPhone || '+91 98765 43210',
         role: 'customer',
         ordersCount: 1,

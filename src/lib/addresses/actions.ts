@@ -22,7 +22,7 @@ export async function getAddressesAction(): Promise<{
     const userAddresses = memoryAddresses.filter(
       (a) => a.userId === caller.userId || (caller.email === 'kmvsubbarao28@gmail.com' && a.userId === 'usr-owner-mohan')
     );
-    return { success: true, addresses: userAddresses.length > 0 ? userAddresses : memoryAddresses.slice(0, 1) };
+    return { success: true, addresses: userAddresses };
   }
 
   try {
@@ -39,7 +39,7 @@ export async function getAddressesAction(): Promise<{
       const userAddresses = memoryAddresses.filter(
         (a) => a.userId === caller.userId || (caller.email === 'kmvsubbarao28@gmail.com' && a.userId === 'usr-owner-mohan')
       );
-      return { success: true, addresses: userAddresses.length > 0 ? userAddresses : memoryAddresses.slice(0, 1) };
+      return { success: true, addresses: userAddresses };
     }
 
     const addresses: Address[] = data.map((row) => ({
@@ -62,7 +62,7 @@ export async function getAddressesAction(): Promise<{
     const userAddresses = memoryAddresses.filter(
       (a) => a.userId === caller.userId || (caller.email === 'kmvsubbarao28@gmail.com' && a.userId === 'usr-owner-mohan')
     );
-    return { success: true, addresses: userAddresses.length > 0 ? userAddresses : memoryAddresses.slice(0, 1) };
+    return { success: true, addresses: userAddresses };
   }
 }
 

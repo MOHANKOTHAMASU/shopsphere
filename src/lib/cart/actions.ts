@@ -19,6 +19,13 @@ interface RawCartRow extends CartItemRow {
 /**
  * Helper to fetch database-backed product and variant with accurate price and stock
  */
+async function withTimeout<T>(promise: PromiseLike<T> | Promise<T>, ms: number = 1500): Promise<T> {
+  return Promise.race([
+    Promise.resolve(promise),
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Operation timed out')), ms)),
+  ]);
+}
+
 async function getVerifiedProductAndVariant(
   productId: string,
   variantId?: string | null
@@ -35,12 +42,15 @@ async function getVerifiedProductAndVariant(
   if (isSupabaseConfigured()) {
     try {
       const supabase = await createClient();
-      const { data: prodData } = await supabase
+      const prodPromise = supabase
         .from('products')
         .select('*, categories(*), product_images(*)')
         .eq('id', productId)
         .eq('is_active', true)
         .single();
+
+      const prodRes = await withTimeout(prodPromise, 1500);
+      const prodData = prodRes && typeof prodRes === 'object' && 'data' in prodRes ? (prodRes as { data: unknown }).data : null;
 
       if (prodData) {
         const p = prodData as unknown as ProductRow & {
@@ -50,13 +60,16 @@ async function getVerifiedProductAndVariant(
 
         let variantData: ProductVariantRow | null = null;
         if (variantId) {
-          const { data: vData } = await supabase
+          const vPromise = supabase
             .from('product_variants')
             .select('*')
             .eq('id', variantId)
             .eq('product_id', productId)
             .eq('is_active', true)
             .single();
+
+          const vRes = await withTimeout(vPromise, 1000).catch(() => ({ data: null }));
+          const vData = vRes && typeof vRes === 'object' && 'data' in vRes ? (vRes as { data: unknown }).data : null;
 
           if (vData) {
             variantData = vData as ProductVariantRow;
@@ -484,9 +497,15 @@ export async function revalidateCartAction(
   let hasChanges = false;
   const verifiedItems: CartItem[] = [];
 
-  for (const clientItem of clientItems) {
-    const verified = await getVerifiedProductAndVariant(clientItem.productId, clientItem.variantId);
+  // Parallel verification of all cart items
+  const verificationResults = await Promise.all(
+    clientItems.map(async (clientItem) => {
+      const verified = await getVerifiedProductAndVariant(clientItem.productId, clientItem.variantId);
+      return { clientItem, verified };
+    })
+  );
 
+  for (const { clientItem, verified } of verificationResults) {
     // 1. Missing or inactive product
     if (!verified.product) {
       warnings.push(`One of the items in your cart is no longer available.`);
