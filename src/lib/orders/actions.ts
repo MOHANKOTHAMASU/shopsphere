@@ -26,6 +26,7 @@ interface OrderWithItemsRow extends OrderRow {
 
 import { idempotencyStore, inMemoryOrders } from '@/lib/orders/store';
 import { getAuthenticatedCaller } from '@/lib/auth/admin-guard';
+import { logCustomerActivity } from '@/lib/security/activity-logger';
 import { revalidatePath } from 'next/cache';
 
 function safeRevalidate(path: string, type: 'page' | 'layout' = 'page') {
@@ -505,6 +506,31 @@ export async function createOrderAction(payload: {
         p.isAvailable = p.stockQuantity > 0;
       }
     }
+  }
+
+  // Log customer purchase activity (what they bought with date & time)
+  try {
+    await logCustomerActivity({
+      userId: userId && userId !== 'guest-customer' ? userId : 'guest-customer',
+      userEmail: caller.email?.trim().toLowerCase() || 'customer@shopsphere.in',
+      action: 'ORDER_PLACED',
+      details: {
+        orderId,
+        orderNumber,
+        totalAmount: finalTotal,
+        paymentMethod,
+        itemsCount: verifiedLineItems.length,
+        items: verifiedLineItems.map((item) => ({
+          title: item.title,
+          sku: item.sku,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          subtotal: item.subtotal,
+        })),
+      },
+    });
+  } catch {
+    // Non-fatal
   }
 
   return { success: true, order: finalOrder };

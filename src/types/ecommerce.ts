@@ -335,10 +335,23 @@ export interface CustomerSummary {
   totalSpent: number;
   lastOrderDate?: string;
   createdAt: string;
+  lastLoginAt?: string;
+  lastLogoutAt?: string;
   status?: 'active' | 'suspended' | 'pending';
   isVerified?: boolean;
   gender?: string;
   dateOfBirth?: string;
+}
+
+export interface CustomerActivityLog {
+  id: string;
+  userId: string;
+  userEmail: string;
+  action: 'ACCOUNT_CREATED' | 'LOGIN' | 'LOGOUT' | 'ORDER_PLACED' | 'PROFILE_UPDATED' | 'ADDRESS_SAVED' | 'PASSWORD_RESET';
+  details: Record<string, unknown>;
+  ipAddress?: string;
+  userAgent?: string;
+  createdAt: string;
 }
 
 export interface AdminUserMetrics {

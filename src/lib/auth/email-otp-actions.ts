@@ -10,6 +10,7 @@ import { checkRateLimit } from '@/lib/security/rate-limit';
 import { memoryCustomers, memoryVerificationTokens } from '@/lib/admin/store';
 import { isResendConfigured, sendOtpEmailViaResend } from '@/lib/auth/resend-service';
 import { setDemoUserSession } from '@/lib/auth/actions';
+import { logCustomerActivity } from '@/lib/security/activity-logger';
 import crypto from 'crypto';
 
 function maskEmail(email: string): string {
@@ -276,6 +277,14 @@ export async function verifyCustomerEmailOtpAction(
         phone: customer.phone,
       });
 
+      // Log customer login event with timestamp
+      await logCustomerActivity({
+        userId: customer.id,
+        userEmail: customer.email,
+        action: 'LOGIN',
+        details: { method: 'email-otp', role: customer.role },
+      });
+
       safeRevalidate('/', 'layout');
       safeRevalidate('/account', 'page');
       safeRevalidate('/checkout', 'page');
@@ -305,12 +314,19 @@ export async function verifyCustomerEmailOtpAction(
           customer.isVerified = true;
           customer.status = 'active';
           await setDemoUserSession({
-        id: customer.id,
-        email: customer.email,
-        full_name: customer.fullName || customer.email.split('@')[0],
-        role: customer.role === 'admin' ? 'admin' : 'customer',
-        phone: customer.phone,
-      });
+            id: customer.id,
+            email: customer.email,
+            full_name: customer.fullName || customer.email.split('@')[0],
+            role: customer.role === 'admin' ? 'admin' : 'customer',
+            phone: customer.phone,
+          });
+
+          await logCustomerActivity({
+            userId: customer.id,
+            userEmail: customer.email,
+            action: 'LOGIN',
+            details: { method: 'supabase-otp', role: customer.role },
+          });
         }
 
         safeRevalidate('/', 'layout');

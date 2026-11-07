@@ -24,6 +24,7 @@ import {
   CustomerSummary,
   ReviewRecord,
   AdminAuditLog,
+  CustomerActivityLog,
   CreateProductInput,
   CreateCategoryInput,
   AdminUserMetrics,
@@ -1575,5 +1576,24 @@ export async function getAdminAuditLogsAction(limit: number = 50): Promise<{
     return { success: true, logs: memoryAuditLogs.slice(0, limit) };
   } catch (err: unknown) {
     return { success: false, logs: [], error: (err as Error).message };
+  }
+}
+
+/**
+ * 9. CUSTOMER ACTIVITY & LIFECYCLE AUDIT TRAIL
+ * Fetch timestamped history of Customer Account Creation, Login, Logout, and Orders
+ */
+export async function getCustomerActivityLogsAction(userId?: string): Promise<{
+  success: boolean;
+  activities: CustomerActivityLog[];
+  error?: string;
+}> {
+  try {
+    await assertAdmin();
+    const { getCustomerActivities } = await import('@/lib/security/activity-logger');
+    const activities = await getCustomerActivities(userId);
+    return { success: true, activities };
+  } catch (err: unknown) {
+    return { success: false, activities: [], error: (err as Error).message };
   }
 }

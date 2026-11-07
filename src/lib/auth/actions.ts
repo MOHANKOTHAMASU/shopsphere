@@ -18,6 +18,7 @@ import {
   memoryVerificationTokens,
 } from '@/lib/admin/store';
 import { CustomerSummary } from '@/types/ecommerce';
+import { logCustomerActivity } from '@/lib/security/activity-logger';
 
 export type { DemoUserSession };
 
@@ -276,6 +277,18 @@ export async function signUpAction(formData: FormData): Promise<AuthActionResult
     };
     memoryCustomers.unshift(newCustomer);
     memoryCredentials.set(cleanEmail, password);
+
+    // Log account creation activity with date and time
+    await logCustomerActivity({
+      userId: newUserId,
+      userEmail: cleanEmail,
+      action: 'ACCOUNT_CREATED',
+      details: {
+        fullName: fullName.trim(),
+        phone: phone.trim(),
+        city: city.trim() || 'Bengaluru',
+      },
+    });
 
     // Save initial delivery address into memory store
     if (street.trim() || city.trim()) {
@@ -853,6 +866,20 @@ export async function verifyAccountEmailTokenAction(
  * Server Action: Customer Logout (Sign Out)
  */
 export async function signOutAction(): Promise<void> {
+  try {
+    const user = await getDemoUserAction();
+    if (user && user.email) {
+      await logCustomerActivity({
+        userId: user.id,
+        userEmail: user.email,
+        action: 'LOGOUT',
+        details: { reason: 'User clicked Sign Out' },
+      });
+    }
+  } catch {
+    // Non-fatal
+  }
+
   await clearDemoUserSession();
   if (isSupabaseConfigured()) {
     try {

@@ -13,9 +13,15 @@ import {
   ChevronRight,
   Filter,
   RefreshCw,
+  History,
+  X,
+  ShoppingBag,
+  LogIn,
+  LogOut,
+  MapPin,
 } from 'lucide-react';
-import { getAdminCustomersAction } from '@/lib/admin/actions';
-import { CustomerSummary, AdminUserMetrics } from '@/types/ecommerce';
+import { getAdminCustomersAction, getCustomerActivityLogsAction } from '@/lib/admin/actions';
+import { CustomerSummary, AdminUserMetrics, CustomerActivityLog } from '@/types/ecommerce';
 import { formatCurrency } from '@/lib/utils';
 
 export default function AdminUsersPage() {
@@ -37,6 +43,23 @@ export default function AdminUsersPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Customer Activity History Modal State
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerSummary | null>(null);
+  const [activities, setActivities] = useState<CustomerActivityLog[]>([]);
+  const [isLoadingActivities, setIsLoadingActivities] = useState(false);
+
+  const handleOpenActivity = async (customer: CustomerSummary) => {
+    setSelectedCustomer(customer);
+    setIsLoadingActivities(true);
+    const res = await getCustomerActivityLogsAction(customer.id);
+    if (res.success && res.activities) {
+      setActivities(res.activities);
+    } else {
+      setActivities([]);
+    }
+    setIsLoadingActivities(false);
+  };
 
   const fetchUsers = (page: number, q: string, status: string) => {
     setIsLoading(true);
@@ -245,7 +268,8 @@ export default function AdminUsersPage() {
                   <th className="py-3.5 px-3">Verified</th>
                   <th className="py-3.5 px-3">Orders</th>
                   <th className="py-3.5 px-3">Total Spend</th>
-                  <th className="py-3.5 px-4 text-right">Registration Date</th>
+                  <th className="py-3.5 px-4 text-center">Registration Date</th>
+                  <th className="py-3.5 px-4 text-right">Activity & History</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800 text-slate-300">
@@ -292,12 +316,22 @@ export default function AdminUsersPage() {
                     <td className="py-3.5 px-3 font-mono text-emerald-400 font-bold">
                       {formatCurrency(c.totalSpent)}
                     </td>
-                    <td className="py-3.5 px-4 text-right text-slate-400">
+                    <td className="py-3.5 px-4 text-center text-slate-400">
                       {new Date(c.createdAt).toLocaleDateString('en-IN', {
                         day: 'numeric',
                         month: 'short',
                         year: 'numeric',
                       })}
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <button
+                        onClick={() => handleOpenActivity(c)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 font-bold text-[11px] transition-colors cursor-pointer"
+                        title="View Login, Logout & Purchase History"
+                      >
+                        <History className="w-3.5 h-3.5" />
+                        <span>Timeline</span>
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -347,6 +381,183 @@ export default function AdminUsersPage() {
           </p>
         </div>
       </div>
+
+      {/* Customer Activity Timeline Modal */}
+      {selectedCustomer && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="p-5 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/20 text-amber-400 font-black text-sm flex items-center justify-center uppercase border border-amber-500/30">
+                  {selectedCustomer.fullName[0] || 'C'}
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <span>{selectedCustomer.fullName}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono">
+                      {selectedCustomer.id.slice(0, 16)}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400 font-mono">{selectedCustomer.maskedEmail}</p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setSelectedCustomer(null)}
+                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Quick Metrics */}
+            <div className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-950/40 border-b border-slate-800/80 text-xs">
+              <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800">
+                <span className="text-[10px] uppercase font-bold text-slate-500 block">Created On</span>
+                <span className="font-bold text-slate-200">
+                  {new Date(selectedCustomer.createdAt).toLocaleDateString('en-IN', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
+                </span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800">
+                <span className="text-[10px] uppercase font-bold text-slate-500 block">Orders</span>
+                <span className="font-bold text-white">{selectedCustomer.ordersCount}</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800">
+                <span className="text-[10px] uppercase font-bold text-slate-500 block">Total Spent</span>
+                <span className="font-bold text-emerald-400 font-mono">{formatCurrency(selectedCustomer.totalSpent)}</span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800">
+                <span className="text-[10px] uppercase font-bold text-slate-500 block">Status</span>
+                <span className="font-bold text-emerald-400 uppercase text-[11px]">{selectedCustomer.status || 'Active'}</span>
+              </div>
+            </div>
+
+            {/* Activity Timeline List */}
+            <div className="p-5 overflow-y-auto space-y-4 flex-1">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <History className="w-3.5 h-3.5 text-amber-400" />
+                <span>Lifecycle & Event Audit Trail</span>
+              </h4>
+
+              {isLoadingActivities ? (
+                <div className="py-12 text-center space-y-2">
+                  <div className="inline-block w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                  <p className="text-xs text-slate-400">Loading activity timeline...</p>
+                </div>
+              ) : activities.length === 0 ? (
+                <div className="py-12 text-center space-y-2 text-slate-500 text-xs">
+                  <History className="w-8 h-8 mx-auto text-slate-700" />
+                  <p>No historical events logged yet for this account.</p>
+                </div>
+              ) : (
+                <div className="relative pl-6 space-y-4 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-800">
+                  {activities.map((act) => {
+                    const isOrder = act.action === 'ORDER_PLACED';
+                    const isLogin = act.action === 'LOGIN';
+                    const isLogout = act.action === 'LOGOUT';
+                    const isCreated = act.action === 'ACCOUNT_CREATED';
+
+                    return (
+                      <div key={act.id} className="relative group">
+                        <div
+                          className={`absolute -left-6 top-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] border ${
+                            isOrder
+                              ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400'
+                              : isLogin
+                              ? 'bg-blue-500/20 border-blue-500 text-blue-400'
+                              : isLogout
+                              ? 'bg-rose-500/20 border-rose-500 text-rose-400'
+                              : 'bg-amber-500/20 border-amber-500 text-amber-400'
+                          }`}
+                        >
+                          {isOrder ? (
+                            <ShoppingBag className="w-2.5 h-2.5" />
+                          ) : isLogin ? (
+                            <LogIn className="w-2.5 h-2.5" />
+                          ) : isLogout ? (
+                            <LogOut className="w-2.5 h-2.5" />
+                          ) : (
+                            <UserPlus className="w-2.5 h-2.5" />
+                          )}
+                        </div>
+
+                        <div className="p-3 bg-slate-950/60 rounded-xl border border-slate-800/80 text-xs space-y-1.5">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-bold text-white text-[12px] flex items-center gap-1.5">
+                              {act.action.replace('_', ' ')}
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-mono">
+                              {new Date(act.createdAt).toLocaleString('en-IN', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit',
+                              })}
+                            </span>
+                          </div>
+
+                          {/* Order Details Breakdown */}
+                          {isOrder && act.details && (
+                            <div className="p-2.5 bg-slate-900 rounded-lg border border-slate-800 text-[11px] space-y-1 text-slate-300">
+                              <div className="flex justify-between font-bold text-slate-200">
+                                <span>Order Number:</span>
+                                <span className="font-mono text-amber-400">{(act.details.orderNumber as string) || 'N/A'}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Amount:</span>
+                                <span className="font-mono text-emerald-400 font-bold">
+                                  {formatCurrency(Number(act.details.totalAmount || 0))}
+                                </span>
+                              </div>
+                              {Array.isArray(act.details.items) && (
+                                <div className="mt-1 pt-1 border-t border-slate-800 space-y-0.5">
+                                  <span className="text-[10px] text-slate-400 uppercase font-bold">Items Purchased:</span>
+                                  {(act.details.items as Array<{ title: string; quantity: number; unitPrice: number }>).map(
+                                    (it, idx) => (
+                                      <div key={idx} className="flex justify-between text-[10px] text-slate-300">
+                                        <span className="truncate max-w-[260px]">• {it.title} (x{it.quantity})</span>
+                                        <span className="font-mono text-slate-400">{formatCurrency(it.unitPrice)}</span>
+                                      </div>
+                                    )
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Login / Created details */}
+                          {!isOrder && act.details && Object.keys(act.details).length > 0 && (
+                            <p className="text-[11px] text-slate-400 font-mono">
+                              {JSON.stringify(act.details)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 bg-slate-950/80 border-t border-slate-800 flex justify-end">
+              <button
+                onClick={() => setSelectedCustomer(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer"
+              >
+                Close History
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

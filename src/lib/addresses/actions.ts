@@ -4,6 +4,7 @@ import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { Address } from '@/types/ecommerce';
 import { memoryAddresses } from '@/lib/admin/store';
 import { getAuthenticatedCaller } from '@/lib/auth/admin-guard';
+import { logCustomerActivity } from '@/lib/security/activity-logger';
 
 /**
  * Fetch saved delivery addresses for the authenticated customer
@@ -262,6 +263,22 @@ export async function saveAddressAction(addressData: {
   };
 
   memoryAddresses.push(newAddress);
+
+  try {
+    await logCustomerActivity({
+      userId: currentUserId,
+      userEmail: caller.email,
+      action: 'ADDRESS_SAVED',
+      details: {
+        city: newAddress.city,
+        state: newAddress.state,
+        type: newAddress.type,
+      },
+    });
+  } catch {
+    // Non-fatal
+  }
+
   return { success: true, address: newAddress };
 }
 

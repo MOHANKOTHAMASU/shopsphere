@@ -64,3 +64,4 @@ In older versions, if a customer checked out without an address, the system prev
 * **Never Share Admin Credentials:** The ShopSphere Admin Console (`/admin/login`) is strictly restricted to authorized staff.
 * **Master Admin vs Customer Accounts:** Customer accounts use passwordless Email OTP verification. The Admin Console uses Master Admin authentication protected by the server environment variables.
 * **Multi-Tab Testing:** When testing customer workflows, use one standard browser window for Customer A, an Incognito window for Customer B, and a separate window for Admin.
+

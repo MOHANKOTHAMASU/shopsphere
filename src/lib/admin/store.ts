@@ -12,6 +12,7 @@ import {
   CustomerSummary,
   Address,
   AdminAuditLog,
+  CustomerActivityLog,
 } from '@/types/ecommerce';
 
 // Active Products repository (deep copy of seed products)
@@ -196,6 +197,42 @@ export const memoryAuditLogs: AdminAuditLog[] = [
     resourceType: 'customers',
     details: { reason: 'System initialization and compliance verification' },
     createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+  },
+];
+
+// Active Customer Activity & Lifecycle Logs repository (Account Created, Login, Logout, Purchases)
+export const memoryCustomerActivities: CustomerActivityLog[] = [
+  {
+    id: 'act-seed-001',
+    userId: 'usr-owner-mohan',
+    userEmail: 'kmvsubbarao28@gmail.com',
+    action: 'ACCOUNT_CREATED',
+    details: { note: 'Store Owner Account Initialized' },
+    createdAt: new Date(Date.now() - 3600000 * 24 * 30).toISOString(),
+  },
+  {
+    id: 'act-seed-002',
+    userId: 'usr-owner-mohan',
+    userEmail: 'kmvsubbarao28@gmail.com',
+    action: 'LOGIN',
+    details: { method: 'admin-master', role: 'admin' },
+    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+  },
+  {
+    id: 'act-seed-003',
+    userId: 'usr-customer-01',
+    userEmail: 'rahul.sharma@example.com',
+    action: 'ACCOUNT_CREATED',
+    details: { note: 'Self-registered customer' },
+    createdAt: new Date(Date.now() - 3600000 * 24 * 60).toISOString(),
+  },
+  {
+    id: 'act-seed-004',
+    userId: 'usr-customer-01',
+    userEmail: 'rahul.sharma@example.com',
+    action: 'ORDER_PLACED',
+    details: { orderNumber: 'ORD-20261020-10928', totalAmount: 26990, itemsCount: 1 },
+    createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
   },
 ];
 

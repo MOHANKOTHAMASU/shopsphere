@@ -65,3 +65,4 @@ This audit details the exact root causes, technical mechanisms, and security rem
 
 ## Conclusion
 The security flaws were not caused by database schema flaws or Supabase Auth service bugs, but by **missing client-side synchronization and un-scoped browser storage**. By implementing `BroadcastChannel` synchronization, user-scoped storage partitions, and strict server-side caller validation, multi-account isolation is completely secured.
+

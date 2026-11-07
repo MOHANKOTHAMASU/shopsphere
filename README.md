@@ -12,6 +12,29 @@
 
 ---
 
+## ⚡ Quick Start: Install & Run in 3 Commands
+
+Get the complete ShopSphere platform running on your local machine in under 2 minutes:
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/MOHANKOTHAMASU/shopsphere.git
+cd shopsphere
+
+# 2. Install all dependencies
+npm install
+
+# 3. Start the Next.js Turbopack development server
+npm run dev
+```
+
+- **Customer Storefront:** [`http://localhost:3000`](http://localhost:3000)
+- **Store Administration Console:** [`http://localhost:3000/admin/login`](http://localhost:3000/admin/login)  
+  *Admin Email:* `kmvsubbarao28@gmail.com` | *Master Password:* `Admin@123`
+- **Cloud Production Website:** [`https://shopsphere-xi-gilt.vercel.app`](https://shopsphere-xi-gilt.vercel.app)
+
+---
+
 ## Table of Contents
 
 1. [Live Host Links](#live-host-links)
@@ -107,6 +130,8 @@ Customer authentication uses passwordless **Email + Genuine 6-Digit OTP**:
 - **Authoritative Catalog**: 10 official retail categories (Fashion, Mobiles, Electronics, Beauty, Home Appliances, Food & Health, Automotive, Sports, Furniture, Books) populated with 445+ products.
 - **Checkout & Payments**: Multi-step checkout with Indian 6-digit PIN code delivery checks, Razorpay payment gateway integration, Cash on Delivery (COD), and automated invoice generation.
 - **Customer Account Ecosystem**: Saved delivery address book, real-time package delivery tracking, order history, rewards club (SuperCoins), and active promotional coupons.
+- **Cross-Tab Session Synchronization**: Built with HTML5 `BroadcastChannel` and storage bus so multi-tab logins immediately synchronize without state bleeding or account confusion.
+- **Customer Lifecycle & Activity Audit Trail**: Tracks and stores customer account creation, login, logout, and order placements (complete product titles, quantities, SKUs, and amounts) with precise ISO timestamps in PostgreSQL / Supabase, complete with interactive timeline exploration in the Admin Console.
 - **Administrative Control Suite**: Real-time KPI dashboard, catalog CRUD, CSV bulk import, inventory restock alerts, competitor pricing intelligence, and order fulfillment controls.
 - **Zero-Trust Security**: Row Level Security (RLS) on all database tables, default-deny route middleware, HMAC-SHA256 signature verification on webhooks, and zero plain-text token exposure.
 
