@@ -26,13 +26,25 @@ import { updateProfileAction, updatePasswordAction } from '@/lib/auth/actions';
 export default function ProfileSettingsPage() {
   const { user, profile, refreshUser } = useAuth();
 
-  const [fullName, setFullName] = useState(
-    profile?.full_name || user?.user_metadata?.full_name || ''
-  );
-  const [phone, setPhone] = useState(profile?.phone || '');
+  const activeProfile = profile && user && profile.id === user.id ? profile : null;
+  const initialName = activeProfile?.full_name || user?.user_metadata?.full_name || '';
+  const initialPhone = activeProfile?.phone || user?.user_metadata?.phone || '';
+
+  const [fullName, setFullName] = useState(initialName);
+  const [phone, setPhone] = useState(initialPhone);
   const [gender, setGender] = useState('Prefer not to say');
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+
+  // Synchronize form state immediately upon account switch
+  React.useEffect(() => {
+    const currentName = activeProfile?.full_name || user?.user_metadata?.full_name || '';
+    const currentPhone = activeProfile?.phone || user?.user_metadata?.phone || '';
+    setFullName(currentName);
+    setPhone(currentPhone);
+    setProfileFeedback(null);
+    setPasswordFeedback(null);
+  }, [user?.id, activeProfile?.id, activeProfile?.full_name, activeProfile?.phone, user?.user_metadata]);
 
   const [profileFeedback, setProfileFeedback] = useState<{
     type: 'success' | 'error';

@@ -41,19 +41,28 @@ export default function AccountOverviewPage() {
   const { totalWishlistItems } = useWishlist();
 
   const [ordersCount, setOrdersCount] = useState<number>(0);
-  const [addressCount, setAddressCount] = useState<number>(1);
+  const [addressCount, setAddressCount] = useState<number>(0);
   const [rewards, setRewards] = useState<RewardsSummary | null>(null);
   const [isSigningOut, setIsSigningOut] = useState<boolean>(false);
 
-  const fullName = profile?.full_name || user?.user_metadata?.full_name || 'Valued Customer';
+  // Strictly verify profile matches authenticated user ID
+  const activeProfile = profile && user && profile.id === user.id ? profile : null;
+  const fullName = activeProfile?.full_name || user?.user_metadata?.full_name || (user?.email ? user.email.split('@')[0] : 'Valued Customer');
   const email = user?.email || 'N/A';
-  const phone = profile?.phone || user?.user_metadata?.phone || '+91 98765 43210';
+  const phone = activeProfile?.phone || user?.user_metadata?.phone || '+91 98765 43210';
   const isEmailVerified = Boolean(
     (user as unknown as { email_confirmed_at?: string })?.email_confirmed_at || !isConfigured
   );
 
   useEffect(() => {
     let isMounted = true;
+
+    if (!user) {
+      setOrdersCount(0);
+      setAddressCount(0);
+      setRewards(null);
+      return;
+    }
 
     getCustomerOrdersAction().then((res) => {
       if (isMounted && res.success && res.orders) {
@@ -76,7 +85,7 @@ export default function AccountOverviewPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [user?.id]);
 
   const handleSignOut = async () => {
     setIsSigningOut(true);

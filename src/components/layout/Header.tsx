@@ -23,6 +23,7 @@ import {
   Award,
   Tag,
   LifeBuoy,
+  RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
@@ -43,8 +44,9 @@ export function Header() {
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
-  const firstName = displayName.split(' ')[0];
+  const activeProfile = profile && user && profile.id === user.id ? profile : null;
+  const displayName = activeProfile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
+  const firstName = displayName ? displayName.split(' ')[0] : 'Sign In';
 
   const handleSignOut = async () => {
     setIsAccountOpen(false);
@@ -196,10 +198,20 @@ export function Header() {
                           </Link>
                         </div>
 
-                        <div className="pt-2 border-t border-slate-100 px-4">
+                        <div className="pt-2 border-t border-slate-100 px-4 space-y-1">
+                          <Link
+                            href="/auth/login?switch=true"
+                            onClick={() => setIsAccountOpen(false)}
+                            className="w-full flex items-center justify-between text-xs text-indigo-600 font-bold hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <span className="flex items-center gap-2">
+                              <RefreshCw className="w-3.5 h-3.5" />
+                              Switch Account
+                            </span>
+                          </Link>
                           <button
                             onClick={handleSignOut}
-                            className="w-full flex items-center justify-between text-xs text-rose-600 font-bold hover:bg-rose-50 px-3 py-2 rounded-lg transition-colors cursor-pointer"
+                            className="w-full flex items-center justify-between text-xs text-rose-600 font-bold hover:bg-rose-50 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
                           >
                             <span className="flex items-center gap-2">
                               <LogOut className="w-3.5 h-3.5" />

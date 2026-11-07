@@ -42,7 +42,8 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const LOCAL_STORAGE_KEY = 'shopsphere_cart';
+const getCartStorageKey = (userId?: string | null) =>
+  userId ? `shopsphere_cart_${userId}` : 'shopsphere_cart_guest';
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -51,88 +52,72 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [warnings, setWarnings] = useState<string[]>([]);
-  const hasMergedUserRef = useRef<string | null>(null);
+  const activeUserIdRef = useRef<string | null>(null);
 
-  // Hydration-safe initial load from localStorage
+  // Load cart from user-scoped localStorage upon mount or user change
   useEffect(() => {
+    const currentKey = getCartStorageKey(user?.id);
+    activeUserIdRef.current = user?.id || null;
+
     try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      const saved = localStorage.getItem(currentKey);
       if (saved) {
         const parsed = JSON.parse(saved);
-        queueMicrotask(() => setItems(parsed));
+        setItems(Array.isArray(parsed) ? parsed : []);
+      } else {
+        setItems([]);
       }
     } catch {
-      // ignore JSON parse error
+      setItems([]);
     }
     isLoadedRef.current = true;
-  }, []);
+  }, [user?.id]);
 
-  // Sync to localStorage whenever items change
+  // Sync to user-scoped localStorage whenever items change
   useEffect(() => {
     if (!isLoadedRef.current) return;
+    const currentKey = getCartStorageKey(user?.id);
     try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(items));
+      localStorage.setItem(currentKey, JSON.stringify(items));
     } catch {
       // ignore storage errors
     }
-  }, [items]);
+  }, [items, user?.id]);
 
-  // Handle Authentication / Session cart loading & merging
+  // Handle Authentication / Session cart loading
   useEffect(() => {
+    let isMounted = true;
+
     async function syncSessionCart() {
       if (!user) {
-        hasMergedUserRef.current = null;
+        setItems([]);
         return;
       }
 
-      // Prevent duplicate merge runs for the same user session
-      if (hasMergedUserRef.current === user.id) return;
-      hasMergedUserRef.current = user.id;
-
       setIsLoading(true);
       try {
-        // Check if there are local anonymous items to merge
-        let localItems: CartItem[] = [];
-        try {
-          const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
-          if (raw) localItems = JSON.parse(raw);
-        } catch {
-          // ignore
-        }
-
-        if (localItems.length > 0) {
-          const payload = localItems.map((i) => ({
-            productId: i.productId,
-            variantId: i.variantId,
-            quantity: i.quantity,
-          }));
-
-          const mergeRes = await mergeCartAction(payload);
-          if (mergeRes.success && mergeRes.items) {
-            setItems(mergeRes.items);
-            if (mergeRes.warnings && mergeRes.warnings.length > 0) {
-              setWarnings((prev) => [...prev, ...mergeRes.warnings]);
-            }
-          }
-        } else {
-          // Fetch existing server cart
-          const serverRes = await getServerCartAction();
-          if (serverRes.success && serverRes.items) {
-            setItems(serverRes.items);
-            if (serverRes.warnings && serverRes.warnings.length > 0) {
-              setWarnings((prev) => [...prev, ...serverRes.warnings]);
-            }
+        const serverRes = await getServerCartAction();
+        if (isMounted && serverRes.success && serverRes.items) {
+          setItems(serverRes.items);
+          if (serverRes.warnings && serverRes.warnings.length > 0) {
+            setWarnings((prev) => [...prev, ...serverRes.warnings]);
           }
         }
       } catch {
         // fallback to existing items
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     }
 
     syncSessionCart();
-  }, [user]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id]);
 
   /**
    * Add a product to cart (with optional variant selection)

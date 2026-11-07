@@ -17,66 +17,56 @@ interface WishlistContextType {
 
 const WishlistContext = createContext<WishlistContextType | undefined>(undefined);
 
-const LOCAL_STORAGE_KEY = 'shopsphere_wishlist';
+const getWishlistStorageKey = (userId?: string | null) =>
+  userId ? `shopsphere_wishlist_${userId}` : 'shopsphere_wishlist_guest';
 
 export function WishlistProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [items, setItems] = useState<Product[]>([]);
   const isLoadedRef = useRef(false);
-  const syncedUserRef = useRef<string | null>(null);
 
-  // Hydration-safe initial load from localStorage
+  // Load wishlist from account-scoped localStorage upon mount or user change
   useEffect(() => {
+    const key = getWishlistStorageKey(user?.id);
     try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      const saved = localStorage.getItem(key);
       if (saved) {
         const parsed = JSON.parse(saved);
-        queueMicrotask(() => setItems(parsed));
+        setItems(Array.isArray(parsed) ? parsed : []);
+      } else {
+        setItems([]);
       }
     } catch {
-      // ignore JSON errors
+      setItems([]);
     }
     isLoadedRef.current = true;
-  }, []);
+  }, [user?.id]);
 
-  // Sync to localStorage
+  // Sync to account-scoped localStorage whenever items change
   useEffect(() => {
     if (!isLoadedRef.current) return;
+    const key = getWishlistStorageKey(user?.id);
     try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(items));
+      localStorage.setItem(key, JSON.stringify(items));
     } catch {
       // ignore errors
     }
-  }, [items]);
+  }, [items, user?.id]);
 
   // Sync with database when user logs in
   useEffect(() => {
+    let isMounted = true;
+
     async function syncWishlist() {
       if (!user) {
-        syncedUserRef.current = null;
+        setItems([]);
         return;
       }
 
-      if (syncedUserRef.current === user.id) return;
-      syncedUserRef.current = user.id;
-
       try {
         const res = await getServerWishlistAction();
-        if (res.success && res.products) {
-          setItems((prev) => {
-            const combinedMap = new Map<string, Product>();
-            // Add server items first
-            res.products.forEach((p) => combinedMap.set(p.id, p));
-            // Add any local items
-            prev.forEach((p) => {
-              if (!combinedMap.has(p.id)) {
-                combinedMap.set(p.id, p);
-                // Also persist to server in background
-                toggleWishlistItemAction(p.id).catch(() => {});
-              }
-            });
-            return Array.from(combinedMap.values());
-          });
+        if (isMounted && res.success && res.products) {
+          setItems(res.products);
         }
       } catch {
         // fallback
@@ -84,7 +74,11 @@ export function WishlistProvider({ children }: { children: React.ReactNode }) {
     }
 
     syncWishlist();
-  }, [user]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id]);
 
   const toggleWishlist = (product: Product) => {
     setItems((prev) => {

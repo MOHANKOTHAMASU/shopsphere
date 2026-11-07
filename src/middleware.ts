@@ -158,8 +158,9 @@ export async function middleware(request: NextRequest) {
     pathname === '/auth/reset-password';
 
   if (isAuthPage) {
-    // If already authenticated customer visits /auth/login or /auth/register, redirect to destination or home
-    if (authenticatedUser) {
+    const isSwitchingAccount = searchParams.get('switch') === 'true' || searchParams.get('logout') === 'success';
+    // If already authenticated customer visits /auth/login without switch flag, redirect to destination
+    if (authenticatedUser && !isSwitchingAccount) {
       const redirectParam = searchParams.get('redirect');
       const destination = sanitizeRedirectPath(redirectParam, '/');
       const redirectResponse = NextResponse.redirect(new URL(destination, request.url));
@@ -167,7 +168,7 @@ export async function middleware(request: NextRequest) {
       return redirectResponse;
     }
 
-    // Unauthenticated visitors are allowed to access auth pages
+    // Visitors switching accounts or unauthenticated visitors are allowed to access auth pages
     applySecurityHeaders(response);
     return response;
   }

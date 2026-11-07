@@ -53,3 +53,4 @@ for (const [id, count] of idCounts.entries()) {
   }
 }
 console.log('Duplicate IDs count:', dupIdCount);
+

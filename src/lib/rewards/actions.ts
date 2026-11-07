@@ -5,7 +5,7 @@
 // ShopSphere Rewards & Loyalty Program Server Actions
 // -----------------------------------------------------------------------------
 
-import { getDemoUserAction } from '@/lib/auth/actions';
+import { getAuthenticatedCaller } from '@/lib/auth/admin-guard';
 
 export interface RewardTransaction {
   id: string;
@@ -62,10 +62,10 @@ export async function getRewardsSummaryAction(): Promise<{
   success: boolean;
   rewards: RewardsSummary;
 }> {
-  const user = await getDemoUserAction();
-  const userId = user?.id || 'guest';
+  const caller = await getAuthenticatedCaller();
+  const userId = caller?.userId || 'guest';
 
-  // Seed default welcome bonus if new user
+  // Seed default welcome bonus if authenticated new user
   if (!memoryRewardsStore.has(userId) && userId !== 'guest') {
     memoryRewardsStore.set(userId, [
       {
@@ -134,8 +134,8 @@ export async function redeemRewardPointsAction(pointsToRedeem: number): Promise<
   voucherCode?: string;
   newBalance?: number;
 }> {
-  const user = await getDemoUserAction();
-  if (!user) {
+  const caller = await getAuthenticatedCaller();
+  if (!caller) {
     return { success: false, message: 'Please sign in to redeem reward points.' };
   }
 
@@ -155,16 +155,16 @@ export async function redeemRewardPointsAction(pointsToRedeem: number): Promise<
 
   const tx: RewardTransaction = {
     id: `tx-rew-${Date.now()}`,
-    userId: user.id,
+    userId: caller.userId,
     title: `Redeemed for ${voucherCode} (₹${pointsToRedeem} Voucher)`,
     type: 'redeemed',
     points: -pointsToRedeem,
     createdAt: new Date().toISOString(),
   };
 
-  const userTxs = memoryRewardsStore.get(user.id) || [];
+  const userTxs = memoryRewardsStore.get(caller.userId) || [];
   userTxs.unshift(tx);
-  memoryRewardsStore.set(user.id, userTxs);
+  memoryRewardsStore.set(caller.userId, userTxs);
 
   return {
     success: true,

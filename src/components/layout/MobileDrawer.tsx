@@ -55,7 +55,8 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
 
   if (!isOpen) return null;
 
-  const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
+  const activeProfile = profile && user && profile.id === user.id ? profile : null;
+  const displayName = activeProfile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
 
   const handleSignOut = async () => {
     onClose();
