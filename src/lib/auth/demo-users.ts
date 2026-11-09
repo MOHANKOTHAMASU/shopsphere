@@ -11,7 +11,10 @@ export interface DemoUserSession {
   phone?: string;
 }
 
-export const DEMO_COOKIE_NAME = 'shopsphere_demo_session';
+export const CUSTOMER_SESSION_COOKIE = 'shopsphere_customer_session';
+export const ADMIN_SESSION_COOKIE = 'shopsphere_admin_session';
+// Backward-compatible alias
+export const DEMO_COOKIE_NAME = 'shopsphere_customer_session';
 
 export const DEMO_USERS = {
   customer: {

@@ -8,7 +8,13 @@ import { validateSignupData, validateLoginData, isValidEmail, isValidPassword } 
 import { sanitizeRedirectPath } from '@/lib/security/redirects';
 import { checkRateLimit } from '@/lib/security/rate-limit';
 
-import { DEMO_USERS, DEMO_COOKIE_NAME, type DemoUserSession } from './demo-users';
+import {
+  DEMO_USERS,
+  DEMO_COOKIE_NAME,
+  CUSTOMER_SESSION_COOKIE,
+  ADMIN_SESSION_COOKIE,
+  type DemoUserSession,
+} from './demo-users';
 import { createSignedSessionToken, verifySignedSessionToken } from './session-security';
 import {
   memoryCustomers,
@@ -108,56 +114,113 @@ function safeRevalidate(path: string, type?: 'page' | 'layout') {
 }
 
 // Isolated in-memory holder strictly for CLI test runner scripts where cookies() has no HTTP request scope
-let testRunnerFallbackSession: DemoUserSession | null = null;
+let testRunnerCustomerSession: DemoUserSession | null = null;
+let testRunnerAdminSession: DemoUserSession | null = null;
 
 /**
  * Retrieve the active user session from cryptographically signed cookie
+ * Supports role targeting ('customer' or 'admin') for strict session isolation
  */
-export async function getDemoUserAction(): Promise<DemoUserSession | null> {
+export async function getDemoUserAction(role?: 'customer' | 'admin'): Promise<DemoUserSession | null> {
   try {
     const cookieStore = await cookies();
-    const cookie = cookieStore.get(DEMO_COOKIE_NAME);
-    if (!cookie?.value) return null;
-    return verifySignedSessionToken(cookie.value);
+
+    // 1. Admin session check
+    if (role === 'admin') {
+      const adminCookie = cookieStore.get(ADMIN_SESSION_COOKIE);
+      if (adminCookie?.value) {
+        const verified = verifySignedSessionToken(adminCookie.value);
+        if (verified && verified.role === 'admin') return verified;
+      }
+      return null;
+    }
+
+    // 2. Customer session check (default)
+    const customerCookie = cookieStore.get(CUSTOMER_SESSION_COOKIE);
+    if (customerCookie?.value) {
+      const verified = verifySignedSessionToken(customerCookie.value);
+      if (verified) return verified;
+    }
+
+    // 3. Fallback to legacy cookie name if present
+    const legacyCookie = cookieStore.get('shopsphere_demo_session');
+    if (legacyCookie?.value) {
+      const verified = verifySignedSessionToken(legacyCookie.value);
+      if (verified) return verified;
+    }
+
+    return null;
   } catch {
     // Fallback strictly for non-HTTP CLI test runners (e.g. tsx scripts)
-    return testRunnerFallbackSession;
+    if (role === 'admin') return testRunnerAdminSession;
+    return testRunnerCustomerSession || testRunnerAdminSession;
   }
 }
 
 /**
+ * Convenience helper to get active admin session
+ */
+export async function getAdminUserSessionAction(): Promise<DemoUserSession | null> {
+  return getDemoUserAction('admin');
+}
+
+/**
  * Set cryptographically signed session cookie
+ * Isolates admin sessions (ADMIN_SESSION_COOKIE) from customer sessions (CUSTOMER_SESSION_COOKIE)
  */
 export async function setDemoUserSession(
   user: DemoUserSession,
   rememberMe: boolean = true
 ): Promise<void> {
-  testRunnerFallbackSession = user;
+  if (user.role === 'admin') {
+    testRunnerAdminSession = user;
+  } else {
+    testRunnerCustomerSession = user;
+  }
+
   try {
     const cookieStore = await cookies();
     // 30 days if rememberMe is enabled, 24 hours otherwise
     const maxAge = rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 24;
     const signedToken = createSignedSessionToken(user, maxAge);
-    cookieStore.set(DEMO_COOKIE_NAME, signedToken, {
+    const cookieOptions = {
       path: '/',
       maxAge,
-      sameSite: 'lax',
+      sameSite: 'lax' as const,
       secure: process.env.NODE_ENV === 'production' && !process.env.NEXT_PUBLIC_APP_URL?.startsWith('http://localhost'),
       httpOnly: true,
-    });
+    };
+
+    if (user.role === 'admin') {
+      cookieStore.set(ADMIN_SESSION_COOKIE, signedToken, cookieOptions);
+    } else {
+      cookieStore.set(CUSTOMER_SESSION_COOKIE, signedToken, cookieOptions);
+    }
   } catch {
     // Safe in standalone test scripts
   }
 }
 
 /**
- * Clear session cookie
+ * Clear session cookie with scope isolation
  */
-export async function clearDemoUserSession(): Promise<void> {
-  testRunnerFallbackSession = null;
+export async function clearDemoUserSession(scope: 'customer' | 'admin' | 'all' = 'customer'): Promise<void> {
+  if (scope === 'customer' || scope === 'all') {
+    testRunnerCustomerSession = null;
+  }
+  if (scope === 'admin' || scope === 'all') {
+    testRunnerAdminSession = null;
+  }
+
   try {
     const cookieStore = await cookies();
-    cookieStore.delete(DEMO_COOKIE_NAME);
+    if (scope === 'customer' || scope === 'all') {
+      cookieStore.delete(CUSTOMER_SESSION_COOKIE);
+      cookieStore.delete('shopsphere_demo_session');
+    }
+    if (scope === 'admin' || scope === 'all') {
+      cookieStore.delete(ADMIN_SESSION_COOKIE);
+    }
   } catch {
     // Safe in standalone test scripts
   }
@@ -864,23 +927,24 @@ export async function verifyAccountEmailTokenAction(
 
 /**
  * Server Action: Customer Logout (Sign Out)
+ * Clears customer session cookie while strictly preserving any active admin session
  */
 export async function signOutAction(): Promise<void> {
   try {
-    const user = await getDemoUserAction();
+    const user = await getDemoUserAction('customer');
     if (user && user.email) {
       await logCustomerActivity({
         userId: user.id,
         userEmail: user.email,
         action: 'LOGOUT',
-        details: { reason: 'User clicked Sign Out' },
+        details: { reason: 'Customer clicked Sign Out' },
       });
     }
   } catch {
     // Non-fatal
   }
 
-  await clearDemoUserSession();
+  await clearDemoUserSession('customer');
   if (isSupabaseConfigured()) {
     try {
       const supabase = await createClient();
@@ -890,8 +954,38 @@ export async function signOutAction(): Promise<void> {
     }
   }
   safeRevalidate('/', 'layout');
+  safeRevalidate('/account', 'page');
   try {
     redirect('/auth/login?logout=success');
+  } catch {
+    // Next.js redirect throws special control error
+  }
+}
+
+/**
+ * Server Action: Store Administrator Logout
+ * Strictly clears the admin console session cookie WITHOUT wiping the customer session
+ */
+export async function adminSignOutAction(): Promise<void> {
+  try {
+    const admin = await getDemoUserAction('admin');
+    if (admin && admin.email) {
+      await logCustomerActivity({
+        userId: admin.id,
+        userEmail: admin.email,
+        action: 'LOGOUT',
+        details: { reason: 'Administrator logged out of console' },
+      });
+    }
+  } catch {
+    // Non-fatal
+  }
+
+  await clearDemoUserSession('admin');
+  safeRevalidate('/admin', 'layout');
+  safeRevalidate('/admin/dashboard', 'page');
+  try {
+    redirect('/admin/login?logout=success');
   } catch {
     // Next.js redirect throws special control error
   }

@@ -22,3 +22,4 @@
 * `c1c87de` — `feat: budget catalog (₹49-₹499), fix brand imagery, calibrate price filters, instant email OTP registration & clean account switching`
 * `e667cce` — `feat(security): implement customer activity and lifecycle audit logging (creation, login, logout, purchases with timestamps), admin timeline modal, and updated documentation`
 * `851eb86` — `fix(auth): implement cross-tab session synchronization, race-condition protected profile fetching, account-scoped cart/wishlist, and customer data isolation`
+

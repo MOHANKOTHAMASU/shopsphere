@@ -76,16 +76,30 @@ export async function getAuthenticatedCaller(): Promise<AuthenticatedCaller | nu
     }
   }
 
-  const demo = await getDemoUserAction();
-  if (demo && demo.id) {
+  // 2. Check isolated Admin session cookie first
+  const adminSession = await getDemoUserAction('admin');
+  if (adminSession && adminSession.id) {
+    return {
+      userId: adminSession.id,
+      email: adminSession.email,
+      name: adminSession.full_name,
+      role: 'admin',
+      status: 'active',
+      isVerified: true,
+    };
+  }
+
+  // 3. Fallback to customer session cookie
+  const customerSession = await getDemoUserAction('customer');
+  if (customerSession && customerSession.id) {
     const memoryCust = memoryCustomers.find(
-      (c) => c.id === demo.id || c.email.toLowerCase() === demo.email.toLowerCase()
+      (c) => c.id === customerSession.id || c.email.toLowerCase() === customerSession.email.toLowerCase()
     );
     return {
-      userId: demo.id,
-      email: demo.email,
-      name: demo.full_name,
-      role: demo.role,
+      userId: customerSession.id,
+      email: customerSession.email,
+      name: customerSession.full_name,
+      role: customerSession.role,
       status: memoryCust?.status || 'active',
       isVerified: memoryCust ? (memoryCust.isVerified ?? true) : true,
     };

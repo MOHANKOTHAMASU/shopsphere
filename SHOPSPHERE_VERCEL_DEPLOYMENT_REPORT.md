@@ -34,3 +34,4 @@ The following variables must remain configured in the Vercel Project Settings (`
 * `RAZORPAY_KEY_SECRET`: Razorpay secret key (Server-only)
 * `ADMIN_PASSWORD`: Strong master password for the admin console (Server-only)
 * `NEXT_PUBLIC_APP_URL`: `https://shopsphere-xi-gilt.vercel.app`
+

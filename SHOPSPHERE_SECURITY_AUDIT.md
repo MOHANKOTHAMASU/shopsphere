@@ -27,3 +27,4 @@
 1. **Whitelisted Owner Access:** Only authorized store owner emails (`kmvsubbarao28@gmail.com` and `admin@shopsphere.dev`) are permitted to access administrative capabilities.
 2. **Autofill Decoy Traps:** The admin login portal incorporates form decoy traps preventing Chrome and Edge password managers from automatically prefilling credentials.
 3. **Production Password Hardening:** Default passwords such as `Admin@123` are rejected in production environments, requiring the environment-configured `ADMIN_PASSWORD`.
+

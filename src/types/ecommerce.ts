@@ -24,6 +24,18 @@ export interface ProductSpecification {
   attributes: { name: string; value: string }[];
 }
 
+export interface ProductMediaItem {
+  id: string;
+  productId: string;
+  mediaType: 'image' | 'video';
+  mediaUrl: string;
+  thumbnailUrl?: string;
+  title?: string;
+  description?: string;
+  sortOrder?: number;
+  createdAt?: string;
+}
+
 export interface ProductVariant {
   id: string;
   productId: string;
@@ -62,6 +74,11 @@ export interface Product {
   tags: string[];
   features: string[];
   specifications: ProductSpecification[];
+  videoUrl?: string;
+  videoType?: 'youtube' | 'vimeo' | 'mp4';
+  videoTitle?: string;
+  videoThumbnail?: string;
+  media?: ProductMediaItem[];
   reviews?: ProductReview[];
   variants?: ProductVariant[];
   status?: 'active' | 'draft' | 'inactive';
@@ -410,6 +427,10 @@ export interface CreateProductInput {
   isFeatured?: boolean;
   isBestSeller?: boolean;
   isDealOfTheDay?: boolean;
+  videoUrl?: string;
+  videoType?: 'youtube' | 'vimeo' | 'mp4';
+  videoTitle?: string;
+  videoThumbnail?: string;
   status?: 'active' | 'draft' | 'inactive';
   visibility?: 'published' | 'unpublished';
   isDeleted?: boolean;

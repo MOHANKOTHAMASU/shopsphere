@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getProductBySlug, getProducts } from '@/lib/products/queries';
 import { ProductGallery } from '@/components/product/ProductGallery';
+import { ProductVideoSection } from '@/components/product/ProductVideoSection';
 import { ProductDetailsActions } from './ProductDetailsActions';
 import { PriceDisplay } from '@/components/common/PriceDisplay';
 import { RatingStars } from '@/components/common/RatingStars';
@@ -120,7 +121,11 @@ export default async function ProductDetailsPage({ params }: PageProps) {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs">
         {/* Left Column: Image Gallery (5 cols on lg) */}
         <div className="lg:col-span-6">
-          <ProductGallery images={product.images} title={product.title} />
+          <ProductGallery
+            images={product.images}
+            title={product.title}
+            videoUrl={product.videoUrl}
+          />
         </div>
 
         {/* Right Column: Information, Pricing & Purchase Actions (7 cols on lg) */}
@@ -223,6 +228,18 @@ export default async function ProductDetailsPage({ params }: PageProps) {
           </div>
         </div>
       </div>
+
+      {/* Product Demonstration Video Section */}
+      {product.videoUrl && (
+        <ProductVideoSection
+          videoUrl={product.videoUrl}
+          videoTitle={product.videoTitle}
+          videoThumbnail={product.videoThumbnail}
+          productTitle={product.title}
+          category={product.category}
+          features={product.features}
+        />
+      )}
 
       {/* Verified Competitor Benchmarks & Compare Alternatives Section */}
       {comparisonResult.success && comparisonResult.comparison && (

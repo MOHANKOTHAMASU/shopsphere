@@ -38,3 +38,4 @@
 ### 2.4 CSS & Bundle Optimization
 * Upgraded to **Tailwind CSS v4** with Turbopack CSS rules (`@tailwindcss/turbopack`), eliminating heavy PostCSS parsing overhead.
 * Tree-shaking enabled on `lucide-react`, ensuring only referenced SVG icons are bundled into client chunks.
+

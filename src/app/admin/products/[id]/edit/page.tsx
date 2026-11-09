@@ -14,6 +14,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Plus,
+  Film,
+  Play,
 } from 'lucide-react';
 import {
   getAdminProductsAction,
@@ -23,6 +25,7 @@ import {
   toggleProductVisibilityAction,
 } from '@/lib/admin/actions';
 import { Product, Category, CreateProductInput } from '@/types/ecommerce';
+import { parseVideoUrl } from '@/lib/utils/video';
 
 interface EditProductPageProps {
   params: Promise<{ id: string }>;
@@ -54,6 +57,8 @@ export default function AdminEditProductPage({ params }: EditProductPageProps) {
   const [shortDescription, setShortDescription] = useState('');
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [newImageUrl, setNewImageUrl] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
+  const [videoTitle, setVideoTitle] = useState('');
   const [isFeatured, setIsFeatured] = useState(false);
   const [isBestSeller, setIsBestSeller] = useState(false);
   const [isDealOfTheDay, setIsDealOfTheDay] = useState(false);
@@ -84,6 +89,8 @@ export default function AdminEditProductPage({ params }: EditProductPageProps) {
           setDescription(found.description);
           setShortDescription(found.shortDescription || found.description.slice(0, 120));
           setImageUrls(found.images && found.images.length > 0 ? found.images : [found.thumbnail]);
+          setVideoUrl(found.videoUrl || '');
+          setVideoTitle(found.videoTitle || '');
           setIsFeatured(Boolean(found.isFeatured));
           setIsBestSeller(Boolean(found.isBestSeller));
           setIsDealOfTheDay(Boolean(found.isDealOfTheDay));
@@ -179,6 +186,8 @@ export default function AdminEditProductPage({ params }: EditProductPageProps) {
       shortDescription: shortDescription.trim() || description.slice(0, 120),
       images: imageUrls,
       thumbnail: imageUrls[0],
+      videoUrl: videoUrl.trim() || undefined,
+      videoTitle: videoTitle.trim() || undefined,
       isAvailable: Number(stockQuantity) > 0,
       isFeatured,
       isBestSeller,
@@ -493,10 +502,86 @@ export default function AdminEditProductPage({ params }: EditProductPageProps) {
           </div>
         </div>
 
-        {/* Section 4: Merchandising */}
+        {/* Section 4: Product Demonstration Video */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-black uppercase tracking-wider text-amber-400 flex items-center gap-2">
+              <Film className="w-4 h-4" />
+              <span>4. Product Demonstration Video (Optional)</span>
+            </h2>
+            <span className="text-[10px] text-slate-400 bg-slate-800 px-2.5 py-0.5 rounded-full font-mono">
+              YouTube, Shorts, Vimeo, or MP4
+            </span>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                Demonstration / Tutorial Video URL
+              </label>
+              <input
+                type="url"
+                placeholder="e.g. https://www.youtube.com/watch?v=... or https://youtube.com/shorts/..."
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+                className="w-full h-11 px-4 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 font-mono"
+              />
+              <p className="text-[11px] text-slate-400 mt-1">
+                Enter an authentic product demonstration, installation guide, or usage walkthrough video.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                Video Title / Usage Overview
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. How to install and operate the device safely"
+                value={videoTitle}
+                onChange={(e) => setVideoTitle(e.target.value)}
+                className="w-full h-11 px-4 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400"
+              />
+            </div>
+
+            {/* Live Video Preview if URL is valid */}
+            {videoUrl && parseVideoUrl(videoUrl).isValid && (
+              <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-2">
+                <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Play className="w-3.5 h-3.5" />
+                  Live Video Player Preview
+                </span>
+                <div className="aspect-video w-full max-w-md rounded-xl overflow-hidden border border-slate-800 bg-black">
+                  {parseVideoUrl(videoUrl).type === 'youtube' && (
+                    <iframe
+                      src={parseVideoUrl(videoUrl).embedUrl}
+                      title="Admin Video Preview"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full border-0"
+                    />
+                  )}
+                  {parseVideoUrl(videoUrl).type === 'vimeo' && (
+                    <iframe
+                      src={parseVideoUrl(videoUrl).embedUrl}
+                      title="Admin Video Preview"
+                      allowFullScreen
+                      className="w-full h-full border-0"
+                    />
+                  )}
+                  {parseVideoUrl(videoUrl).type === 'mp4' && (
+                    <video src={parseVideoUrl(videoUrl).embedUrl} controls className="w-full h-full" />
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Section 5: Merchandising */}
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-4">
           <h2 className="text-sm font-black uppercase tracking-wider text-amber-400">
-            4. Merchandising Badges
+            5. Merchandising Badges
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

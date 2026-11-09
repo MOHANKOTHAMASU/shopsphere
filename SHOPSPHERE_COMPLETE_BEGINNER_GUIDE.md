@@ -137,3 +137,4 @@ Because ShopSphere uses static pre-rendering, edge CDN caching, and serverless d
 2. Test signing in with your email using the 6-digit verification code.
 3. Browse the new budget products (under ₹500 and ₹1,000 in Furniture, Mobiles, and Electronics).
 4. Log into the Admin Console at [`/admin/login`](https://shopsphere-xi-gilt.vercel.app/admin/login) using your master credentials to view the live dashboard and customer activity timeline.
+

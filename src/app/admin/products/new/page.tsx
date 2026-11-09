@@ -15,9 +15,12 @@ import {
   CheckCircle2,
   HelpCircle,
   Image as ImageIcon,
+  Film,
+  Play,
 } from 'lucide-react';
 import { createProductAction, getAdminCategoriesAction } from '@/lib/admin/actions';
 import { Category, CreateProductInput } from '@/types/ecommerce';
+import { parseVideoUrl } from '@/lib/utils/video';
 
 const DRAFT_STORAGE_KEY = 'shopsphere_admin_new_product_draft_v1';
 
@@ -66,6 +69,8 @@ export default function AdminNewProductPage() {
     'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80',
   ]);
   const [newImageUrl, setNewImageUrl] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
+  const [videoTitle, setVideoTitle] = useState('');
   const [isFeatured, setIsFeatured] = useState(false);
   const [isBestSeller, setIsBestSeller] = useState(false);
   const [isDealOfTheDay, setIsDealOfTheDay] = useState(false);
@@ -185,6 +190,8 @@ export default function AdminNewProductPage() {
     setShortDescription('');
     setImageUrls(['https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80']);
     setNewImageUrl('');
+    setVideoUrl('');
+    setVideoTitle('');
     setIsFeatured(false);
     setIsBestSeller(false);
     setIsDealOfTheDay(false);
@@ -212,6 +219,8 @@ export default function AdminNewProductPage() {
     ]);
     setIsFeatured(true);
     setIsBestSeller(true);
+    setVideoUrl('https://www.youtube.com/watch?v=sM9X_zT4mXo');
+    setVideoTitle('Boat Rockerz 450 Official Audio & Controls Demonstration');
     setErrorMessage(null);
   };
 
@@ -274,6 +283,8 @@ export default function AdminNewProductPage() {
       shortDescription: shortDescription.trim() || description.slice(0, 120),
       images: imageUrls,
       thumbnail: imageUrls[0],
+      videoUrl: videoUrl.trim() || undefined,
+      videoTitle: videoTitle.trim() || undefined,
       isAvailable: Number(stockQuantity) > 0,
       isFeatured,
       isBestSeller,
@@ -635,10 +646,86 @@ export default function AdminNewProductPage() {
           </div>
         </div>
 
+        {/* 4. Product Demonstration Video */}
+        <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-black uppercase tracking-wider text-amber-400 flex items-center gap-2">
+              <Film className="w-4 h-4" />
+              <span>4. Product Demonstration Video (Optional)</span>
+            </h2>
+            <span className="text-[10px] text-slate-400 bg-slate-800 px-2.5 py-0.5 rounded-full font-mono">
+              YouTube, Shorts, Vimeo, or MP4
+            </span>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                Demonstration / Tutorial Video URL
+              </label>
+              <input
+                type="url"
+                placeholder="e.g. https://www.youtube.com/watch?v=... or https://youtube.com/shorts/..."
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+                className="w-full h-11 px-4 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 font-mono"
+              />
+              <p className="text-[11px] text-slate-400 mt-1">
+                Enter an authentic product demonstration, installation guide, or usage walkthrough video.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                Video Title / Usage Overview
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. How to install and operate the device safely"
+                value={videoTitle}
+                onChange={(e) => setVideoTitle(e.target.value)}
+                className="w-full h-11 px-4 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-600 focus:outline-none focus:border-amber-400"
+              />
+            </div>
+
+            {/* Live Video Preview if URL is valid */}
+            {videoUrl && parseVideoUrl(videoUrl).isValid && (
+              <div className="p-4 bg-slate-950 rounded-2xl border border-slate-800 space-y-2">
+                <span className="text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Play className="w-3.5 h-3.5" />
+                  Live Video Player Preview
+                </span>
+                <div className="aspect-video w-full max-w-md rounded-xl overflow-hidden border border-slate-800 bg-black">
+                  {parseVideoUrl(videoUrl).type === 'youtube' && (
+                    <iframe
+                      src={parseVideoUrl(videoUrl).embedUrl}
+                      title="Admin Video Preview"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full border-0"
+                    />
+                  )}
+                  {parseVideoUrl(videoUrl).type === 'vimeo' && (
+                    <iframe
+                      src={parseVideoUrl(videoUrl).embedUrl}
+                      title="Admin Video Preview"
+                      allowFullScreen
+                      className="w-full h-full border-0"
+                    />
+                  )}
+                  {parseVideoUrl(videoUrl).type === 'mp4' && (
+                    <video src={parseVideoUrl(videoUrl).embedUrl} controls className="w-full h-full" />
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Visibility Flags */}
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-4">
           <h2 className="text-sm font-black uppercase tracking-wider text-amber-400">
-            4. Merchandising Badges
+            5. Merchandising Badges
           </h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

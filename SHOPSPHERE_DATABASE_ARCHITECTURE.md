@@ -96,3 +96,4 @@ To ensure sub-50ms query response times under high concurrency:
 5. `orders(order_number)`: Instant tracking and checkout success lookup.
 6. `addresses(user_id, is_default)`: Quick address selection during checkout.
 7. `customer_activity_logs(user_id, created_at)`: Ordered timeline rendering in Admin Console.
+

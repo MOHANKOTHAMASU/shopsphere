@@ -41,3 +41,4 @@ Every single dependency in `package.json` is strictly vetted for maintenance sta
 1. **Zero High/Critical Vulnerabilities:** Vetted and patched via `npm audit fix`.
 2. **Lockfile Integrity:** `package-lock.json` is fully committed and synchronized with `package.json`.
 3. **No Unused Bloat:** Excluded heavy legacy libraries (such as Moment.js, Lodash, jQuery, or unoptimized carousel plugins) in favor of native standard Web APIs (`crypto`, `Date`, `fetch`).
+

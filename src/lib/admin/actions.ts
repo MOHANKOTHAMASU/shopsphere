@@ -265,6 +265,10 @@ export async function createProductAction(input: CreateProductInput): Promise<{
       sku: cleanSku,
       thumbnail: input.thumbnail || input.images[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80',
       images: input.images && input.images.length > 0 ? input.images : ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=800&q=80'],
+      videoUrl: input.videoUrl?.trim() || undefined,
+      videoType: input.videoType || (input.videoUrl ? 'youtube' : undefined),
+      videoTitle: input.videoTitle?.trim() || undefined,
+      videoThumbnail: input.videoThumbnail?.trim() || undefined,
       tags: input.tags || ['new', 'marketplace'],
       features: input.features || ['Premium Genuine Quality', 'Fast Dispatch'],
       specifications: [],
@@ -380,6 +384,10 @@ export async function updateProductAction(
       isDeleted: input.isDeleted !== undefined ? input.isDeleted : existing.isDeleted,
       images: input.images && input.images.length > 0 ? input.images : existing.images,
       thumbnail: input.thumbnail || (input.images && input.images[0]) || existing.thumbnail,
+      videoUrl: input.videoUrl !== undefined ? (input.videoUrl.trim() || undefined) : existing.videoUrl,
+      videoType: input.videoType !== undefined ? input.videoType : existing.videoType,
+      videoTitle: input.videoTitle !== undefined ? (input.videoTitle.trim() || undefined) : existing.videoTitle,
+      videoThumbnail: input.videoThumbnail !== undefined ? (input.videoThumbnail.trim() || undefined) : existing.videoThumbnail,
     };
 
     memoryProducts[index] = updatedProduct;

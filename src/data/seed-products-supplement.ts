@@ -43,6 +43,9 @@ export const SUPPLEMENTARY_SEED_PRODUCTS: Product[] = [
     isBestSeller: true,
     isDealOfTheDay: true,
     sku: 'SAM-S24U-256-GRY',
+    videoUrl: 'https://www.youtube.com/watch?v=J7xZlq8_sC0',
+    videoType: 'youtube',
+    videoTitle: 'Samsung Galaxy S24 Ultra Official Features, S-Pen & Galaxy AI Demo',
     thumbnail: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=800&q=80',
     images: [
       'https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=800&q=80',
@@ -326,6 +329,9 @@ export const SUPPLEMENTARY_SEED_PRODUCTS: Product[] = [
     isBestSeller: true,
     isDealOfTheDay: true,
     sku: 'SNY-WH1000XM5-BLK',
+    videoUrl: 'https://www.youtube.com/watch?v=sM9X_zT4mXo',
+    videoType: 'youtube',
+    videoTitle: 'Sony WH-1000XM5 Noise Cancelling Headphones - Active Noise Cancellation & Sound Test',
     thumbnail: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80',
     images: [
       'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=800&q=80',
@@ -439,6 +445,9 @@ export const SUPPLEMENTARY_SEED_PRODUCTS: Product[] = [
     isBestSeller: true,
     isDealOfTheDay: true,
     sku: 'LG-REF-242L-SS',
+    videoUrl: 'https://www.youtube.com/watch?v=WzF9T9n2Dxg',
+    videoType: 'youtube',
+    videoTitle: 'LG 242L Smart Inverter Double Door Refrigerator - Installation, Cooling & Shelves Demo',
     thumbnail: 'https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?auto=format&fit=crop&w=800&q=80',
     images: [
       'https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?auto=format&fit=crop&w=800&q=80',
@@ -524,6 +533,9 @@ export const SUPPLEMENTARY_SEED_PRODUCTS: Product[] = [
     isBestSeller: true,
     isDealOfTheDay: true,
     sku: 'LG-WM-8KG-FHM-BLK',
+    videoUrl: 'https://www.youtube.com/watch?v=7uK3V8A4268',
+    videoType: 'youtube',
+    videoTitle: 'LG 8kg AI Direct Drive Front Load Washing Machine - Steam Wash & Cycle Operation Guide',
     thumbnail: 'https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?auto=format&fit=crop&w=800&q=80',
     images: [
       'https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?auto=format&fit=crop&w=800&q=80',

@@ -42,3 +42,4 @@
 6. **Account Switching Session Persistence:**
    * *Problem:* "Switch Account" in Header was a static `<Link>` that didn't destroy previous session cookies.
    * *Fix:* Converted to an active handler calling `signOut('/auth/login?switch=true')`, clearing cookies, carts, wishlists, and notifying open tabs via `BroadcastChannel`.
+

@@ -32,3 +32,4 @@ Every single product in the ShopSphere catalog has been inspected for image rele
 * **Responsive Image Layout:** Product grids render with `loading="lazy"` and `decoding="async"` with explicit aspect ratio classes (`aspect-square` or `aspect-[4/3]`) to prevent layout shifts (Cumulative Layout Shift = 0.00).
 * **Smart Image Fallback:** In the event of network disruption, a resilient fallback component gracefully renders a branded gradient placeholder with product initials instead of a broken `[X]` icon.
 * **Accessible Alt Text:** All image tags include descriptive `alt` attributes combining brand and title (e.g. `alt="Samsung Galaxy S24 Ultra 5G AI Smartphone 256GB Titanium Gray"`).
+

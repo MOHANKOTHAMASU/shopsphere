@@ -55,3 +55,4 @@ If ShopSphere expands beyond 100,000 product images:
 1. Enable **Cloudflare R2** or **AWS S3** as an external S3-compatible backend.
 2. Maintain existing URL paths in `public.product_images`.
 3. Add Cloudflare Images for on-the-fly resizing and AVIF transformations.
+

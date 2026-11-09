@@ -4,13 +4,13 @@ import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { LogOut, ExternalLink, ShieldCheck } from 'lucide-react';
-import { signOutAction } from '@/lib/auth/actions';
+import { adminSignOutAction } from '@/lib/auth/actions';
 
 export function AdminHeader() {
   const router = useRouter();
 
   const handleLogout = async () => {
-    await signOutAction();
+    await adminSignOutAction();
     router.push('/admin/login');
     router.refresh();
   };

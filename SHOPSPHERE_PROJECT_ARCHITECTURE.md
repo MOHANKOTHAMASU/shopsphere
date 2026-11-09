@@ -116,3 +116,4 @@ ShopSphere utilizes Next.js Server Actions (`'use server'`) rather than generic 
    *Mitigation:* All server actions feature resilient fallback stores (`memoryCustomers`, `inMemoryOrders`, `memoryProducts`) and strict 2,000ms timeouts on external calls, guaranteeing that the storefront never hangs or crashes.
 2. **Transactional SMS Costs:** SMS OTPs in India incur high DLT registration costs and carrier fees.  
    *Mitigation:* The system enforces Passwordless Email OTP as the primary authentication authority, eliminating Twilio/SMS operational costs while keeping SMS routes as an optional addon.
+

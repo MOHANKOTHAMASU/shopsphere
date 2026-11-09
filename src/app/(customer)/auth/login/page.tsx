@@ -29,7 +29,7 @@ function LoginFormContent() {
   const isLoggedOut = searchParams.get('logout') === 'success';
   const isSwitching = searchParams.get('switch') === 'true';
 
-  const { refreshUser } = useAuth();
+  const { user, profile, signOut, refreshUser } = useAuth();
 
   // Step: 'request_otp' -> 'verify_otp'
   const [otpStep, setOtpStep] = useState<'request_otp' | 'verify_otp'>('request_otp');
@@ -151,6 +151,42 @@ function LoginFormContent() {
             Sign in with your email address using a secure 6-digit verification code
           </p>
         </div>
+
+        {/* Active Session Detected Banner */}
+        {user && !isSwitching && !isLoggedOut && (
+          <div className="p-5 bg-indigo-50/80 border border-indigo-200/80 rounded-2xl text-center space-y-4">
+            <div className="space-y-1">
+              <span className="text-[11px] font-bold text-indigo-700 uppercase tracking-widest bg-indigo-100 px-2.5 py-0.5 rounded-full">
+                Active Session Detected
+              </span>
+              <h3 className="text-sm font-black text-slate-900 pt-1">
+                You are currently signed in as
+              </h3>
+              <p className="text-xs font-mono font-bold text-indigo-600 truncate px-2">
+                {user.email || profile?.full_name || 'Verified Customer'}
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+              <Link
+                href={redirectUrl || '/account'}
+                className="w-full sm:flex-1 h-10 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md shadow-indigo-600/20 flex items-center justify-center gap-1.5"
+              >
+                <span>Go to Account</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+              <button
+                type="button"
+                onClick={async () => {
+                  await signOut('/auth/login?switch=true');
+                }}
+                className="w-full sm:flex-1 h-10 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs uppercase tracking-wider rounded-xl border border-slate-300 transition-colors flex items-center justify-center cursor-pointer"
+              >
+                <span>Switch Account</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Feedback Alerts */}
         {errorMessage && (

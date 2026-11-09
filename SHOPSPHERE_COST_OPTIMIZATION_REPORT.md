@@ -23,3 +23,4 @@
 1. **Passwordless Email OTP over Mobile SMS:** By establishing Email OTP as the primary authentication engine, ShopSphere completely avoids carrier SMS surcharges and Indian DLT compliance fees.
 2. **Aggressive Image Compression (`auto=format`):** By requesting WebP/AVIF via CDN query parameters, image payloads are reduced by 70%, preventing Vercel and Supabase bandwidth overages.
 3. **Selective Static Generation (SSG) with Partial Prerendering:** Generating catalog pages at build time reduces dynamic serverless function invocations on Vercel by 85%.
+

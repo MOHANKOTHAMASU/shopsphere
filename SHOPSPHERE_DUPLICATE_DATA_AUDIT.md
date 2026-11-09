@@ -53,3 +53,4 @@ The following constraints are enforced in PostgreSQL migrations to mathematicall
 * **Zero real customer data deleted:** No existing customer profiles were dropped.
 * **Order history intact:** Existing confirmed orders and line-item snapshots are fully preserved.
 * **Schema stability:** All foreign key constraints and cascade rules remain valid.
+
