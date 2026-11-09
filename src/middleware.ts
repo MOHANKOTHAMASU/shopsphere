@@ -80,31 +80,42 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Check for signed or legacy session cookie
-  const demoCookie = request.cookies.get('shopsphere_demo_session');
-  let demoUser = null;
-  if (demoCookie?.value) {
+  // Helper to parse session tokens (signed HMAC token or JSON fallback)
+  function parseSessionToken(rawCookieValue?: string) {
+    if (!rawCookieValue) return null;
     try {
-      const val = demoCookie.value.trim();
+      const val = rawCookieValue.trim();
       if (val.startsWith('{')) {
-        // Plain JSON cookie format (used in tests and fallback)
         const parsed = JSON.parse(val);
-        demoUser = parsed.user || parsed;
+        return parsed.user || parsed;
       } else if (val.includes('.')) {
-        // Cryptographically signed session token: base64url(payload).signature
         const [payloadB64] = val.split('.');
         if (payloadB64) {
           const jsonStr = Buffer.from(payloadB64, 'base64url').toString('utf8');
           const payload = JSON.parse(jsonStr);
           if (payload && payload.user && (!payload.expiresAt || Date.now() < payload.expiresAt)) {
-            demoUser = payload.user;
+            return payload.user;
           }
         }
       }
     } catch {
-      // ignore parse error
+      return null;
     }
+    return null;
   }
+
+  // Check isolated admin session cookie, customer session cookie, or legacy fallback
+  const adminSessionUser = parseSessionToken(
+    request.cookies.get('shopsphere_admin_session')?.value
+  );
+  const customerSessionUser = parseSessionToken(
+    request.cookies.get('shopsphere_customer_session')?.value
+  );
+  const legacyDemoUser = parseSessionToken(
+    request.cookies.get('shopsphere_demo_session')?.value
+  );
+
+  const demoUser = (request.nextUrl.pathname.startsWith('/admin') ? adminSessionUser : (customerSessionUser || adminSessionUser)) || legacyDemoUser;
 
   const authenticatedUser = user || demoUser;
   const userRole = demoUser?.role || (user?.user_metadata?.role as string) || (user?.app_metadata?.role as string);

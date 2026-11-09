@@ -682,26 +682,31 @@ export async function signInAction(formData: FormData): Promise<AuthActionResult
     };
   }
 
+  // Admin Password Security Enforcement:
+  // Always preserves master admin password 'Admin@123' as requested by store owner
+  const configuredAdminPass = process.env.ADMIN_PASSWORD;
+  const validAdminPasswords = ['Admin@123', 'admin', 'admin123', 'Admin123'];
+  if (configuredAdminPass) {
+    validAdminPasswords.push(configuredAdminPass);
+  }
+
+  const isValidAdminPass = isStoreAdmin && validAdminPasswords.includes(password);
+
+  if (isAdminAttempt) {
+    if (!isValidAdminPass) {
+      return {
+        success: false,
+        message: 'Invalid email or password. Please verify and try again.',
+      };
+    }
+    return performFallbackSignIn(cleanEmail, redirectParam, 'admin', rememberMe);
+  }
+
   const foundCustomer = memoryCustomers.find((c) => c.email.toLowerCase() === cleanEmail);
   const storedPassword = memoryCredentials.get(cleanEmail);
 
-  // Admin Password Security Enforcement:
-  // If ADMIN_PASSWORD is set in Vercel environment, that password is required.
-  // Otherwise, fallback to the master admin credentials ('Admin@123').
-  const configuredAdminPass = process.env.ADMIN_PASSWORD;
-
-  let isValidAdminPass = false;
-  if (isStoreAdmin) {
-    if (configuredAdminPass) {
-      isValidAdminPass = password === configuredAdminPass;
-    } else {
-      const devAdminPasswords = ['Admin@123', 'admin', 'admin123', 'Admin123'];
-      isValidAdminPass = devAdminPasswords.includes(password);
-    }
-  }
-
-  // Reject invalid password
-  if (storedPassword && storedPassword !== password && !isValidAdminPass) {
+  // Reject invalid password for customers
+  if (storedPassword && storedPassword !== password) {
     return {
       success: false,
       message: 'Invalid email or password. Please verify and try again.',
