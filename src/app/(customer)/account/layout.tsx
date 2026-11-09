@@ -23,7 +23,17 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
   const pathname = usePathname();
   const { user, profile, signOut, isLoading } = useAuth();
 
-  const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Customer';
+  const rawFullName = (profile?.full_name || user?.user_metadata?.full_name || '').trim();
+  const userEmailPrefix = user?.email ? user.email.split('@')[0].toLowerCase() : '';
+
+  const hasValidName = Boolean(
+    rawFullName &&
+    rawFullName.length >= 2 &&
+    !rawFullName.includes('@') &&
+    (!userEmailPrefix || rawFullName.toLowerCase() !== userEmailPrefix)
+  );
+
+  const displayName = hasValidName ? rawFullName : 'Valued Customer';
   const email = user?.email || 'customer@shopsphere.in';
 
   const navLinks = [

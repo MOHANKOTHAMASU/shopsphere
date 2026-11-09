@@ -249,7 +249,7 @@ export async function verifyLoginSmsOtpAction(
   const sessionUser: DemoUserSession = {
     id: result.userId || foundCustomer?.id || `usr-cust-${Date.now()}`,
     email: cleanEmail,
-    full_name: foundCustomer?.fullName || cleanEmail.split('@')[0].replace(/[._-]/g, ' ') || 'Customer',
+    full_name: foundCustomer?.fullName?.trim() || '',
     role: 'customer',
     phone: result.phone || foundCustomer?.phone,
   };

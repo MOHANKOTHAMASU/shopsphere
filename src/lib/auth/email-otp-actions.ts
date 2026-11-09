@@ -59,7 +59,10 @@ export interface EmailOtpVerifyResult {
  * Strictly checks that the user is registered (shouldCreateUser: false).
  * Dispatches a genuine 6-digit OTP to the customer's email.
  */
-export async function sendCustomerEmailOtpAction(email: string): Promise<EmailOtpSendResult> {
+export async function sendCustomerEmailOtpAction(
+  email: string,
+  fullName?: string
+): Promise<EmailOtpSendResult> {
   const cleanEmail = email.trim().toLowerCase();
 
   if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
@@ -88,6 +91,7 @@ export async function sendCustomerEmailOtpAction(email: string): Promise<EmailOt
     expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
     email: cleanEmail,
     attempts: 0,
+    fullName: fullName?.trim() || undefined,
   });
 
   // 2. Fast timeout dispatch via Resend if configured (max 2000ms)
@@ -223,24 +227,23 @@ export async function verifyCustomerEmailOtpAction(
       // Successful verification
       memoryVerificationTokens.delete(cleanEmail);
 
-      const rawName = cleanEmail.split('@')[0];
-      const formattedName =
-        rawName
-          .replace(/[._-]/g, ' ')
-          .split(' ')
-          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-          .join(' ') || 'Customer';
-
+      // Check existing customer record in store
       let customer = memoryCustomers.find((c) => c.email.toLowerCase() === cleanEmail);
       const isNewUser = !customer;
+
+      // Determine genuine registered full name (NEVER silently use email username!)
+      const registeredName =
+        record.fullName?.trim() ||
+        customer?.fullName?.trim() ||
+        '';
 
       if (!customer) {
         customer = {
           id: `usr-cust-${Date.now()}`,
-          fullName: formattedName,
+          fullName: registeredName, // Genuine registered name or empty (never email username)
           email: cleanEmail,
           maskedEmail: maskEmail(cleanEmail),
-          phone: '+91 98765 43210',
+          phone: record.phone?.trim() || '+91 98765 43210',
           role: 'customer',
           ordersCount: 0,
           totalSpent: 0,
@@ -256,7 +259,7 @@ export async function verifyCustomerEmailOtpAction(
             const supabase = await createClient();
             await supabase.from('profiles').upsert({
               id: customer.id,
-              full_name: customer.fullName,
+              full_name: customer.fullName || null,
               role: 'customer',
               phone: customer.phone,
               updated_at: new Date().toISOString(),
@@ -269,17 +272,21 @@ export async function verifyCustomerEmailOtpAction(
           userId: customer.id,
           userEmail: customer.email,
           action: 'ACCOUNT_CREATED',
-          details: { method: 'email-otp-auto-provision' },
+          details: { method: 'email-otp-auto-provision', hasRegisteredName: Boolean(registeredName) },
         });
       } else {
         customer.isVerified = true;
         customer.status = 'active';
+        // If a new valid name was provided during registration, update it
+        if (record.fullName?.trim()) {
+          customer.fullName = record.fullName.trim();
+        }
       }
 
       await setDemoUserSession({
         id: customer.id,
         email: customer.email,
-        full_name: customer.fullName || formattedName,
+        full_name: customer.fullName || '',
         role: customer.role === 'admin' ? 'admin' : 'customer',
         phone: customer.phone,
       });
@@ -315,23 +322,37 @@ export async function verifyCustomerEmailOtpAction(
       });
 
       if (!error && data?.user) {
+        const storedRecord = memoryVerificationTokens.get(cleanEmail);
         memoryVerificationTokens.delete(cleanEmail);
         let customer = memoryCustomers.find((c) => c.email.toLowerCase() === cleanEmail);
-        const rawName = cleanEmail.split('@')[0];
-        const formattedName =
-          rawName
-            .replace(/[._-]/g, ' ')
-            .split(' ')
-            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-            .join(' ') || 'Customer';
+
+        // Fetch genuine profile name from Supabase profiles table
+        let dbFullName: string | null = null;
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('full_name, phone')
+            .eq('id', data.user.id)
+            .maybeSingle();
+          if (profile?.full_name) {
+            dbFullName = profile.full_name;
+          }
+        } catch {}
+
+        const realFullName =
+          dbFullName ||
+          (data.user.user_metadata?.full_name as string) ||
+          customer?.fullName ||
+          storedRecord?.fullName ||
+          '';
 
         if (!customer) {
           customer = {
-            id: data.user.id || `usr-cust-${Date.now()}`,
-            fullName: (data.user.user_metadata?.full_name as string) || formattedName,
+            id: data.user.id,
+            fullName: realFullName,
             email: cleanEmail,
             maskedEmail: maskEmail(cleanEmail),
-            phone: '+91 98765 43210',
+            phone: (data.user.user_metadata?.phone as string) || '+91 98765 43210',
             role: 'customer',
             ordersCount: 0,
             totalSpent: 0,
@@ -348,14 +369,16 @@ export async function verifyCustomerEmailOtpAction(
             details: { method: 'supabase-otp-provision' },
           });
         } else {
+          customer.id = data.user.id;
           customer.isVerified = true;
           customer.status = 'active';
+          if (realFullName) customer.fullName = realFullName;
         }
 
         await setDemoUserSession({
           id: customer.id,
           email: customer.email,
-          full_name: customer.fullName || formattedName,
+          full_name: customer.fullName || '',
           role: customer.role === 'admin' ? 'admin' : 'customer',
           phone: customer.phone,
         });

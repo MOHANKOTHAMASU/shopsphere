@@ -57,7 +57,17 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
   if (!isOpen) return null;
 
   const activeProfile = profile && user && profile.id === user.id ? profile : null;
-  const displayName = activeProfile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
+  const rawFullName = (activeProfile?.full_name || user?.user_metadata?.full_name || '').trim();
+  const userEmailPrefix = user?.email ? user.email.split('@')[0].toLowerCase() : '';
+
+  const hasValidName = Boolean(
+    rawFullName &&
+    rawFullName.length >= 2 &&
+    !rawFullName.includes('@') &&
+    (!userEmailPrefix || rawFullName.toLowerCase() !== userEmailPrefix)
+  );
+
+  const displayName = hasValidName ? rawFullName : '';
 
   const handleSignOut = async () => {
     onClose();

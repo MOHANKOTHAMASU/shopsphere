@@ -87,7 +87,7 @@ async function performFallbackSignIn(
     email: cleanEmail,
     full_name: isStoreAdmin
       ? DEMO_USERS.admin.full_name
-      : (foundCustomer?.fullName || cleanEmail.split('@')[0].replace(/[._-]/g, ' ') || 'Customer'),
+      : (foundCustomer?.fullName?.trim() || ''),
     role: isStoreAdmin ? 'admin' : 'customer',
     phone: foundCustomer?.phone || (isStoreAdmin ? DEMO_USERS.admin.phone : '+91 98765 43210'),
   };
@@ -1118,7 +1118,7 @@ export async function verifyOtpAndResetPasswordAction(formData: FormData): Promi
     const newUserId = `usr-cust-${Date.now()}`;
     memoryCustomers.unshift({
       id: newUserId,
-      fullName: cleanEmail.split('@')[0].replace(/[._-]/g, ' '),
+      fullName: '', // Do not derive fake name from email username
       email: cleanEmail,
       maskedEmail: maskEmail(cleanEmail),
       phone: '+91 98765 43210',

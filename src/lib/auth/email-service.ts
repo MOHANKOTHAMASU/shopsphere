@@ -239,10 +239,10 @@ export async function verifyEmailOtpToken(
       } else {
         customer = {
           id: `usr-cust-${Date.now()}`,
-          fullName: cleanEmail.split('@')[0],
+          fullName: record.fullName?.trim() || '',
           email: cleanEmail,
           maskedEmail: maskEmail(cleanEmail),
-          phone: '+91 98765 43210',
+          phone: record.phone?.trim() || '+91 98765 43210',
           role: 'customer',
           ordersCount: 0,
           totalSpent: 0,
@@ -256,7 +256,7 @@ export async function verifyEmailOtpToken(
       await setDemoUserSession({
         id: customer.id,
         email: customer.email,
-        full_name: customer.fullName || customer.email.split('@')[0],
+        full_name: customer.fullName || '',
         role: customer.role === 'admin' ? 'admin' : 'customer',
         phone: customer.phone,
       });
@@ -314,7 +314,7 @@ export async function instantVerifyEmailAction(email: string): Promise<EmailActi
   } else {
     customer = {
       id: `usr-cust-${Date.now()}`,
-      fullName: cleanEmail.split('@')[0],
+      fullName: '', // Genuine registered name or empty (never email username)
       email: cleanEmail,
       maskedEmail: maskEmail(cleanEmail),
       phone: '+91 98765 43210',
@@ -331,7 +331,7 @@ export async function instantVerifyEmailAction(email: string): Promise<EmailActi
   await setDemoUserSession({
     id: customer.id,
     email: customer.email,
-    full_name: customer.fullName || customer.email.split('@')[0],
+    full_name: customer.fullName || '',
     role: customer.role === 'admin' ? 'admin' : 'customer',
     phone: customer.phone,
   });

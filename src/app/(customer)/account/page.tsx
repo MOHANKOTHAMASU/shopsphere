@@ -47,7 +47,17 @@ export default function AccountOverviewPage() {
 
   // Strictly verify profile matches authenticated user ID
   const activeProfile = profile && user && profile.id === user.id ? profile : null;
-  const fullName = activeProfile?.full_name || user?.user_metadata?.full_name || (user?.email ? user.email.split('@')[0] : 'Valued Customer');
+  const rawFullName = (activeProfile?.full_name || user?.user_metadata?.full_name || '').trim();
+  const userEmailPrefix = user?.email ? user.email.split('@')[0].toLowerCase() : '';
+
+  const hasValidName = Boolean(
+    rawFullName &&
+    rawFullName.length >= 2 &&
+    !rawFullName.includes('@') &&
+    (!userEmailPrefix || rawFullName.toLowerCase() !== userEmailPrefix)
+  );
+
+  const fullName = hasValidName ? rawFullName : 'Valued Customer';
   const email = user?.email || 'N/A';
   const phone = activeProfile?.phone || user?.user_metadata?.phone || '+91 98765 43210';
   const isEmailVerified = Boolean(
@@ -268,7 +278,17 @@ export default function AccountOverviewPage() {
               <User className="w-3.5 h-3.5" />
               <span>Full Name</span>
             </div>
-            <p className="font-bold text-slate-900">{fullName}</p>
+            {hasValidName ? (
+              <p className="font-bold text-slate-900">{fullName}</p>
+            ) : (
+              <Link
+                href="/account/profile"
+                className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors"
+              >
+                <span>Complete Your Profile</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            )}
           </div>
 
           {/* Email Address & Verification */}

@@ -41,7 +41,6 @@ async function getCurrentCustomer(): Promise<{ id: string; email: string; name: 
           name:
             user.user_metadata?.full_name ||
             user.user_metadata?.name ||
-            user.email?.split('@')[0] ||
             'ShopSphere Customer',
         };
       }
@@ -61,7 +60,7 @@ async function getCurrentCustomer(): Promise<{ id: string; email: string; name: 
         return {
           id: parsed.id,
           email: parsed.email || '',
-          name: parsed.fullName || parsed.email?.split('@')[0] || 'Demo Customer',
+          name: parsed.fullName || 'ShopSphere Customer',
         };
       }
     }

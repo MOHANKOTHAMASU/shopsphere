@@ -70,6 +70,20 @@ export const memoryCoupons: CouponRecord[] = [
 // Active Customers repository (with status and verification details)
 export const memoryCustomers: CustomerSummary[] = [
   {
+    id: 'usr-customer-kmv',
+    fullName: 'Mohan Venkata Subbarao',
+    email: 'kmvsubbarao28@gmail.com',
+    maskedEmail: 'k***8@gmail.com',
+    phone: '+91 98765 43210',
+    role: 'customer',
+    ordersCount: 1,
+    totalSpent: 1380,
+    status: 'active',
+    isVerified: true,
+    lastOrderDate: new Date(Date.now() - 3600000 * 2).toISOString(),
+    createdAt: new Date(Date.now() - 3600000 * 24 * 30).toISOString(),
+  },
+  {
     id: 'usr-customer-01',
     fullName: 'Rahul Sharma',
     email: 'rahul.sharma@example.com',
@@ -227,6 +241,8 @@ export interface MemoryVerificationToken {
   expiresAt: number;
   email: string;
   attempts?: number;
+  fullName?: string;
+  phone?: string;
 }
 export const memoryVerificationTokens: Map<string, MemoryVerificationToken> = new Map();
 
