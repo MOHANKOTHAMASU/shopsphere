@@ -236,7 +236,7 @@ export function Header() {
                               href="/auth/login"
                               className="flex-1 text-center py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-lg transition-colors"
                             >
-                              Sign In (Mobile / Email)
+                              Sign In (Email OTP)
                             </Link>
                             <Link
                               href="/auth/register"
