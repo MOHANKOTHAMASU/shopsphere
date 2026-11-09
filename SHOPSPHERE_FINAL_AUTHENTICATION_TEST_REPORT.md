@@ -38,3 +38,4 @@
 4. **Customer Data Boundary:**
    * Addresses, orders, and cart items are strictly bound to `caller.userId`.
    * Unauthenticated or cross-account access attempts are strictly rejected with 401/403 errors.
+

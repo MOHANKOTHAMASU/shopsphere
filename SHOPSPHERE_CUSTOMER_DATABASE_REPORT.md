@@ -85,3 +85,4 @@ The Admin Management Console (`/admin/dashboard` and `/admin/users`) computes re
    * `ALL`: Restricted strictly to `auth.uid() = user_id`. No customer can view or update another customer's addresses.
 3. **Orders:**
    * `SELECT`: Customers can only query orders where `user_id = auth.uid()`. Administrators can query all orders.
+

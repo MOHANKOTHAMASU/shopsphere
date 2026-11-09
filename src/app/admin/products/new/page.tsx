@@ -219,8 +219,8 @@ export default function AdminNewProductPage() {
     ]);
     setIsFeatured(true);
     setIsBestSeller(true);
-    setVideoUrl('https://www.youtube.com/watch?v=sM9X_zT4mXo');
-    setVideoTitle('Boat Rockerz 450 Official Audio & Controls Demonstration');
+    setVideoUrl('');
+    setVideoTitle('');
     setErrorMessage(null);
   };
 

@@ -117,3 +117,4 @@ export function parseVideoUrl(url?: string | null): ParsedVideoInfo {
 export function isValidVideoUrl(url?: string | null): boolean {
   return parseVideoUrl(url).isValid;
 }
+

@@ -74,3 +74,4 @@ All identified session bleeding and state clobbering vulnerabilities have been p
 * Sign In: 5 requests per minute per IP/email.
 * OTP Resend: Strict 45-second cooldown timer.
 * OTP Brute-Force: Maximum 5 incorrect guesses before the token is invalidated.
+

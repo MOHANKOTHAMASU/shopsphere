@@ -64,3 +64,4 @@ The registration form collects:
 * Customer credentials **cannot** access the admin console.
 * Only pre-approved master administrator emails (e.g., `kmvsubbarao28@gmail.com`) can log in.
 * Admin sessions are stored in `shopsphere_admin_session`, completely separated from customer sessions.
+

@@ -71,3 +71,4 @@ Store administrators have full control over video assets across the catalog:
 | `LG-REF-242L-SS` | LG 242L Smart Inverter Double Door Refrigerator | Home Appliances | Smart Inverter cooling, Multi-Air Flow vents, and shelf organization |
 | `LG-WM-8KG-FHM-BLK` | LG 8kg AI Direct Drive Front Load Washing Machine | Home Appliances | AI Direct Drive fabric sensing and steam allergy care cycle demo |
 | `SNY-WH1000XM5-BLK` | Sony WH-1000XM5 Wireless Headphones | Electronics | Active noise cancellation benchmark and sound quality test |
+

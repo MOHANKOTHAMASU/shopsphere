@@ -89,42 +89,39 @@ async function runTestSuite() {
   assert(!emptyUrl.isValid, 'Empty URL safely handled');
 
   // ---------------------------------------------------------------------------
-  // 2. SEED PRODUCT DEMO VIDEO VERIFICATION
+  // 2. PRODUCT VIDEO CLEANUP & CAPABILITY VERIFICATION
   // ---------------------------------------------------------------------------
-  console.log('\n▶ TEST GROUP 2: Seed Product Video Metadata');
+  console.log('\n▶ TEST GROUP 2: Video Removal & Dynamic Support Verification');
 
-  // Amazon Basics Silicone Dashboard Gel Mat (Screenshot product)
+  // Amazon Basics Silicone Dashboard Gel Mat
   const dashMat = BUDGET_SEED_PRODUCTS.find((p) => p.sku === 'AB-DM-SL-BLK');
   assert(Boolean(dashMat), 'Found Amazon Basics Car Dashboard Gel Mat product');
   assert(
-    Boolean(dashMat?.videoUrl && isValidVideoUrl(dashMat?.videoUrl)),
-    'Car Dashboard Gel Mat has valid demonstration video URL'
-  );
-  assert(
-    Boolean(dashMat?.videoTitle && dashMat.videoTitle.includes('Silicone')),
-    'Car Dashboard Gel Mat has instructional video title'
+    dashMat?.videoUrl === undefined,
+    'Unwanted placeholder YouTube video was removed from Car Dashboard Gel Mat'
   );
 
-  // Samsung Galaxy S24 Ultra
+  // Dynamic Video Addition Check (simulating Admin adding an authentic video)
+  const productWithVideo = {
+    ...dashMat!,
+    videoUrl: 'https://cdn.shopsphere.dev/media/verified-gel-mat-demo.mp4',
+    videoType: 'mp4' as const,
+    videoTitle: 'Verified Demonstration of Dashboard Gel Mat',
+  };
+  assert(
+    isValidVideoUrl(productWithVideo.videoUrl),
+    'Custom product demonstration video validates cleanly when added by admin'
+  );
+
+  // Samsung Galaxy S24 Ultra & LG Products
   const s24 = SUPPLEMENTARY_SEED_PRODUCTS.find((p) => p.sku === 'SAM-S24U-256-GRY');
-  assert(
-    Boolean(s24?.videoUrl && s24?.videoTitle?.includes('Galaxy')),
-    'Samsung S24 Ultra has Galaxy AI demonstration video'
-  );
+  assert(s24?.videoUrl === undefined, 'Placeholder YouTube video removed from Samsung S24 Ultra');
 
-  // LG Refrigerator
   const lgFridge = SUPPLEMENTARY_SEED_PRODUCTS.find((p) => p.sku === 'LG-REF-242L-SS');
-  assert(
-    Boolean(lgFridge?.videoUrl && lgFridge?.videoTitle?.includes('LG')),
-    'LG Refrigerator has cooling & installation demonstration video'
-  );
+  assert(lgFridge?.videoUrl === undefined, 'Placeholder YouTube video removed from LG Refrigerator');
 
-  // LG Washing Machine
   const lgWm = SUPPLEMENTARY_SEED_PRODUCTS.find((p) => p.sku === 'LG-WM-8KG-FHM-BLK');
-  assert(
-    Boolean(lgWm?.videoUrl && lgWm?.videoTitle?.includes('AI Direct Drive')),
-    'LG Front Load Washing Machine has AI Direct Drive demonstration video'
-  );
+  assert(lgWm?.videoUrl === undefined, 'Placeholder YouTube video removed from LG Washing Machine');
 
   // ---------------------------------------------------------------------------
   // 3. ADMIN VS. CUSTOMER SESSION ISOLATION & COOKIE SEPARATION
@@ -224,3 +221,4 @@ runTestSuite().catch((err) => {
   console.error('Fatal test runner error:', err);
   process.exit(1);
 });
+

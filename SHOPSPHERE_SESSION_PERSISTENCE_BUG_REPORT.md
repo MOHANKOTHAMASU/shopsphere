@@ -70,3 +70,4 @@ Automated tests in `scripts/test-product-video-and-session-isolation.ts` verifie
 3. Customer session retrieved and confirmed intact.
 4. Admin logs out -> `ADMIN_SESSION_COOKIE` deleted.
 5. Customer session retrieved and confirmed **still 100% active and authenticated**.
+
