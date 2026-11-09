@@ -30,3 +30,4 @@ CREATE POLICY "Users can view own activity logs" ON public.customer_activity_log
 DROP POLICY IF EXISTS "System and users can insert activity logs" ON public.customer_activity_logs;
 CREATE POLICY "System and users can insert activity logs" ON public.customer_activity_logs
     FOR INSERT WITH CHECK (auth.uid() = user_id OR user_id IS NULL OR public.is_admin());
+

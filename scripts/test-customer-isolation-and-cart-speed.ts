@@ -26,9 +26,9 @@ async function runTests() {
     }
   }
 
-  // Ensure Mohan is in memoryCustomers
+  // Verify kmvsubbarao28@gmail.com is NOT pre-registered
   const mohanExists = memoryCustomers.some((c) => c.email === 'kmvsubbarao28@gmail.com');
-  assert(mohanExists, 'Store Owner Mohan Kothamasu is registered in memoryCustomers');
+  assert(!mohanExists, 'kmvsubbarao28@gmail.com is removed as pre-registered account as requested');
 
   // TEST 1: New customer (venkatesh) has 0 addresses and NEVER receives Mohan's address
   const mockVenkatesh = {
@@ -72,22 +72,34 @@ async function runTests() {
     'Venkatesh fetches addresses and receives only their own delivery address'
   );
 
-  // TEST 4: Store owner Mohan fetches addresses and sees only Mohan's address
-  const mockMohan = {
-    id: 'usr-owner-mohan',
-    email: 'kmvsubbarao28@gmail.com',
-    full_name: 'Mohan Kothamasu',
-    role: 'admin' as const,
-    phone: '+91 98765 43210',
+  // TEST 4: Another customer (Customer B) fetches addresses and sees only their own address
+  const mockCustomerB = {
+    id: 'usr-cust-b-456',
+    email: 'customer-b@example.com',
+    full_name: 'Customer B',
+    role: 'customer' as const,
+    phone: '+91 98765 00000',
   };
-  await setDemoUserSession(mockMohan);
+  await setDemoUserSession(mockCustomerB);
 
-  const mohanAddrs = await getAddressesAction();
+  await saveAddressAction({
+    fullName: 'Customer B',
+    phone: '+91 98765 00000',
+    street: '20, Indiranagar 100ft Road',
+    city: 'Bengaluru',
+    state: 'Karnataka',
+    postalCode: '560038',
+    country: 'India',
+    isDefault: true,
+    type: 'Home',
+  });
+
+  const bAddrs = await getAddressesAction();
   assert(
-    mohanAddrs.success &&
-      mohanAddrs.addresses.some((a) => a.fullName === 'Mohan Kothamasu') &&
-      !mohanAddrs.addresses.some((a) => a.fullName === 'Venkatesh'),
-    'Mohan sees only Mohan\'s primary addresses and not Venkatesh\'s address'
+    bAddrs.success &&
+      bAddrs.addresses.every((a) => a.userId === mockCustomerB.id) &&
+      !bAddrs.addresses.some((a) => a.fullName === 'Venkatesh'),
+    'Customer B sees only their own addresses and never Venkatesh\'s address'
   );
 
   // TEST 5: Venkatesh places an order with their own address

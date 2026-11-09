@@ -13,6 +13,8 @@ import {
 } from '@/types/ecommerce';
 import { DEVELOPMENT_SEED_PRODUCTS } from '@/data/seed-products';
 import { COMPLETE_SEED_PRODUCTS_400 } from '@/data/seed-products-data';
+import { SUPPLEMENTARY_SEED_PRODUCTS } from '@/data/seed-products-supplement';
+import { BUDGET_SEED_PRODUCTS } from '@/data/seed-products-budget';
 import { clearServerCartAction } from '@/lib/cart/actions';
 import { memoryProducts, memoryCustomers } from '@/lib/admin/store';
 
@@ -126,15 +128,16 @@ function findSeedProduct(idOrSlug: string) {
   );
   if (match) return match;
 
-  const baseMatch = COMPLETE_SEED_PRODUCTS_400.find(
+  const allSeed = [...SUPPLEMENTARY_SEED_PRODUCTS, ...BUDGET_SEED_PRODUCTS, ...COMPLETE_SEED_PRODUCTS_400];
+  const fallbackMatch = allSeed.find(
     (p) =>
       p.id.toLowerCase() === normalized ||
       p.slug.toLowerCase() === normalized ||
       p.id.replace(/-0+/, '-').toLowerCase() === normalized.replace(/-0+/, '-')
   );
-  if (baseMatch) {
-    const unified = source.find((p) => p.slug === baseMatch.slug);
-    return unified || baseMatch;
+  if (fallbackMatch) {
+    const unified = source.find((p) => p.slug === fallbackMatch.slug);
+    return unified || fallbackMatch;
   }
   return undefined;
 }
@@ -620,11 +623,7 @@ export async function getCustomerOrdersAction(): Promise<{
     }
   }
 
-  const filtered = inMemoryOrders.filter(
-    (o) =>
-      o.userId === caller.userId ||
-      (caller.email === 'kmvsubbarao28@gmail.com' && o.userId === 'usr-owner-mohan')
-  );
+  const filtered = inMemoryOrders.filter((o) => o.userId === caller.userId);
   return { success: true, orders: filtered };
 }
 

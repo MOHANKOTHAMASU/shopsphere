@@ -4,6 +4,9 @@ import { createClient, isSupabaseConfigured } from '@/lib/supabase/server';
 import { Database } from '@/lib/supabase/types';
 import { CartItem, CartValidationResult, OrderSummary, Product } from '@/types/ecommerce';
 import { DEVELOPMENT_SEED_PRODUCTS } from '@/data/seed-products';
+import { COMPLETE_SEED_PRODUCTS_400 } from '@/data/seed-products-data';
+import { SUPPLEMENTARY_SEED_PRODUCTS } from '@/data/seed-products-supplement';
+import { BUDGET_SEED_PRODUCTS } from '@/data/seed-products-budget';
 import { memoryProducts } from '@/lib/admin/store';
 
 type ProductRow = Database['public']['Tables']['products']['Row'];
@@ -130,7 +133,14 @@ async function getVerifiedProductAndVariant(
 
   // Resilient fallback over active memory products (or seed items)
   const productPool = memoryProducts.length > 0 ? memoryProducts : DEVELOPMENT_SEED_PRODUCTS;
-  const seed = productPool.find((p) => p.id === productId || p.slug === productId);
+  const allSeed = [...productPool, ...SUPPLEMENTARY_SEED_PRODUCTS, ...BUDGET_SEED_PRODUCTS, ...COMPLETE_SEED_PRODUCTS_400];
+  const seed = allSeed.find(
+    (p) =>
+      p.id === productId ||
+      p.slug === productId ||
+      p.id.toLowerCase() === productId.toLowerCase() ||
+      p.id.replace(/-0+/, '-').toLowerCase() === productId.replace(/-0+/, '-').toLowerCase()
+  );
   if (!seed) {
     return {
       product: null,

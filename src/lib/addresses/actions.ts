@@ -20,9 +20,7 @@ export async function getAddressesAction(): Promise<{
   }
 
   if (!isSupabaseConfigured()) {
-    const userAddresses = memoryAddresses.filter(
-      (a) => a.userId === caller.userId || (caller.email === 'kmvsubbarao28@gmail.com' && a.userId === 'usr-owner-mohan')
-    );
+    const userAddresses = memoryAddresses.filter((a) => a.userId === caller.userId);
     return { success: true, addresses: userAddresses };
   }
 
@@ -37,9 +35,7 @@ export async function getAddressesAction(): Promise<{
       .order('created_at', { ascending: false });
 
     if (error || !data || data.length === 0) {
-      const userAddresses = memoryAddresses.filter(
-        (a) => a.userId === caller.userId || (caller.email === 'kmvsubbarao28@gmail.com' && a.userId === 'usr-owner-mohan')
-      );
+      const userAddresses = memoryAddresses.filter((a) => a.userId === caller.userId);
       return { success: true, addresses: userAddresses };
     }
 
@@ -60,9 +56,7 @@ export async function getAddressesAction(): Promise<{
 
     return { success: true, addresses };
   } catch {
-    const userAddresses = memoryAddresses.filter(
-      (a) => a.userId === caller.userId || (caller.email === 'kmvsubbarao28@gmail.com' && a.userId === 'usr-owner-mohan')
-    );
+    const userAddresses = memoryAddresses.filter((a) => a.userId === caller.userId);
     return { success: true, addresses: userAddresses };
   }
 }

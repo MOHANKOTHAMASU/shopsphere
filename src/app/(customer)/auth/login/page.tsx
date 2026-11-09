@@ -27,6 +27,7 @@ function LoginFormContent() {
   const authErrorCode = searchParams.get('error');
   const isEmailJustVerified = searchParams.get('verified') === 'true';
   const isLoggedOut = searchParams.get('logout') === 'success';
+  const isSwitching = searchParams.get('switch') === 'true';
 
   const { refreshUser } = useAuth();
 
@@ -42,7 +43,9 @@ function LoginFormContent() {
   const [countdown, setCountdown] = useState(0);
   const [devOtpHint, setDevOtpHint] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(
-    isEmailJustVerified
+    isSwitching
+      ? 'Previous account signed out. Enter your email below to sign in or register.'
+      : isEmailJustVerified
       ? 'Your email address has been verified! You can now sign in.'
       : isLoggedOut
       ? 'You have been signed out successfully.'

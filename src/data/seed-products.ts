@@ -1,6 +1,7 @@
 import { Product } from '@/types/ecommerce';
 import { COMPLETE_SEED_PRODUCTS_400 } from './seed-products-data';
 import { SUPPLEMENTARY_SEED_PRODUCTS } from './seed-products-supplement';
+import { BUDGET_SEED_PRODUCTS } from './seed-products-budget';
 
 /**
  * -----------------------------------------------------------------------------
@@ -81,9 +82,14 @@ const seenIds = new Set<string>();
 const seenImages = new Set<string>();
 const unifiedProducts: Product[] = [];
 
-for (const p of [...SUPPLEMENTARY_SEED_PRODUCTS, ...normalizedBase]) {
-  // Discard any legacy product containing known mismatched/broken fried rice photos
-  if (p.thumbnail && p.thumbnail.includes('photo-1584269600464')) {
+for (const p of [...BUDGET_SEED_PRODUCTS, ...SUPPLEMENTARY_SEED_PRODUCTS, ...normalizedBase]) {
+  // Discard any legacy product containing known mismatched/broken fried rice or yarn photos on appliances
+  if (
+    p.thumbnail &&
+    (p.thumbnail.includes('photo-1584269600464') ||
+      (p.categorySlug === 'home-appliances' && p.thumbnail.includes('photo-1584992236310-6edddc08acff')) ||
+      (p.categorySlug === 'home-appliances' && p.thumbnail.includes('photo-1484154218962-a197022b5858')))
+  ) {
     continue;
   }
 

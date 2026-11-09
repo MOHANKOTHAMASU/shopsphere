@@ -1119,28 +1119,6 @@ export async function getAdminCustomersAction(
 
     let rawList: CustomerSummary[] = [...memoryCustomers];
 
-    // Ensure Mohan Kothamasu (Store Owner & Primary Account) is at the top of the directory
-    const mohanIdx = rawList.findIndex((c) => c.email.toLowerCase() === 'kmvsubbarao28@gmail.com');
-    if (mohanIdx > 0) {
-      const [mohan] = rawList.splice(mohanIdx, 1);
-      rawList.unshift(mohan);
-    } else if (mohanIdx === -1) {
-      rawList.unshift({
-        id: 'usr-owner-mohan',
-        fullName: 'Mohan Kothamasu',
-        email: 'kmvsubbarao28@gmail.com',
-        maskedEmail: 'k***8@gmail.com',
-        phone: '+91 98765 43210',
-        role: 'admin',
-        ordersCount: 3,
-        totalSpent: 60979,
-        status: 'active',
-        isVerified: true,
-        lastOrderDate: new Date().toISOString(),
-        createdAt: new Date(Date.now() - 3600000 * 24 * 30).toISOString(),
-      });
-    }
-
     // 1. Ingest customers who made purchases in inMemoryOrders
     for (const order of inMemoryOrders) {
       const orderEmail = (order as unknown as { customerEmail?: string }).customerEmail || order.shippingAddress?.phone || order.userId;

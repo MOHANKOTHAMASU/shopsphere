@@ -45,8 +45,15 @@ export function calculateMinPermittedPrice(
   minMarginPercent = DEFAULT_MIN_MARGIN_PERCENT
 ): number {
   if (supplierCost <= 0) return 0;
-  // Floor = Cost * (1 + minMargin) + handling/payment fee buffer
-  const rawFloor = Math.round(supplierCost * (1 + minMarginPercent / 100)) + HANDLING_AND_GATEWAY_FEE_INR;
+  // For budget items (< ₹300), scale operational fee proportionally so budget items (₹49, ₹89, ₹99) are permitted
+  const handlingFee =
+    supplierCost < 300
+      ? Math.round(supplierCost * 0.05)
+      : HANDLING_AND_GATEWAY_FEE_INR;
+  const rawFloor = Math.round(supplierCost * (1 + minMarginPercent / 100)) + handlingFee;
+  if (rawFloor < 100) {
+    return Math.ceil(rawFloor);
+  }
   // Round up to nearest ₹10 for clean Indian retail pricing
   return Math.ceil(rawFloor / 10) * 10;
 }

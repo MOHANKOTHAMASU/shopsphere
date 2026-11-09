@@ -53,6 +53,11 @@ export function Header() {
     await signOut();
   };
 
+  const handleSwitchAccount = async () => {
+    setIsAccountOpen(false);
+    await signOut('/auth/login?switch=true');
+  };
+
   return (
     <>
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
@@ -199,17 +204,18 @@ export function Header() {
                         </div>
 
                         <div className="pt-2 border-t border-slate-100 px-4 space-y-1">
-                          <Link
-                            href="/auth/login?switch=true"
-                            onClick={() => setIsAccountOpen(false)}
+                          <button
+                            type="button"
+                            onClick={handleSwitchAccount}
                             className="w-full flex items-center justify-between text-xs text-indigo-600 font-bold hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
                           >
                             <span className="flex items-center gap-2">
                               <RefreshCw className="w-3.5 h-3.5" />
                               Switch Account
                             </span>
-                          </Link>
+                          </button>
                           <button
+                            type="button"
                             onClick={handleSignOut}
                             className="w-full flex items-center justify-between text-xs text-rose-600 font-bold hover:bg-rose-50 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
                           >

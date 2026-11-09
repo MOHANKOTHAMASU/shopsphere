@@ -127,7 +127,10 @@ Customer authentication uses passwordless **Email + Genuine 6-Digit OTP**:
 
 ### Key Capabilities:
 - **Two-Factor Authentication (2FA)**: Verified Email + Password credentials backed by real mobile SMS OTP delivery and genuine email verification.
-- **Authoritative Catalog**: 10 official retail categories (Fashion, Mobiles, Electronics, Beauty, Home Appliances, Food & Health, Automotive, Sports, Furniture, Books) populated with 445+ products.
+- **Authoritative Catalog**: 10 official retail categories (Fashion, Mobiles, Electronics, Beauty, Home Appliances, Food & Health, Automotive, Sports, Furniture, Books) populated with calibrated high-resolution brand products including authentic budget selections (₹49, ₹89, ₹99, ₹149, ₹199, ₹299, ₹349, ₹399, ₹499) matching Amazon and Flipkart.
+- **Calibrated Price Filters & Sliders**: Quick-click filter presets ("Under ₹300", "Under ₹500", "Under ₹1,000", "Under ₹5,000") with interactive slider from ₹0 to ₹2,00,000 ensuring zero-result glitches never occur in Furniture or any category.
+- **Genuine Brand Imagery**: Accurate, authentic photography for all major appliances (LG AI Direct Drive front-load & Samsung EcoBubble top-load washing machines, LG InstaView frost-free refrigerators, Samsung Crystal 4K & LG OLED TVs) with zero mismatched stock photos.
+- **Instant Passwordless OTP Authentication & Seamless Account Switching**: Enter any email address to receive a secure 6-digit verification code. First-time users are auto-provisioned seamlessly into Supabase and PostgreSQL without delays. Clicking "Switch Account" immediately flushes prior sessions across all open browser tabs.
 - **Checkout & Payments**: Multi-step checkout with Indian 6-digit PIN code delivery checks, Razorpay payment gateway integration, Cash on Delivery (COD), and automated invoice generation.
 - **Customer Account Ecosystem**: Saved delivery address book, real-time package delivery tracking, order history, rewards club (SuperCoins), and active promotional coupons.
 - **Cross-Tab Session Synchronization**: Built with HTML5 `BroadcastChannel` and storage bus so multi-tab logins immediately synchronize without state bleeding or account confusion.

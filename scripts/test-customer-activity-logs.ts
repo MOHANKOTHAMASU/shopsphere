@@ -155,3 +155,4 @@ runActivityLoggingTests().catch((err) => {
   console.error('Error running activity logging tests:', err);
   process.exit(1);
 });
+

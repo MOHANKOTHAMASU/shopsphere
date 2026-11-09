@@ -20,7 +20,7 @@ interface AuthContextType {
   isLoading: boolean;
   isConfigured: boolean;
   isDemoMode: boolean;
-  signOut: () => Promise<void>;
+  signOut: (redirectUrl?: string) => Promise<void>;
   refreshUser: () => Promise<void>;
   signInDemo: (role?: 'customer' | 'admin') => Promise<void>;
 }
@@ -345,7 +345,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.refresh();
   };
 
-  const signOut = async () => {
+  const signOut = async (redirectUrl: string = '/auth/login?logout=success') => {
     setIsLoading(true);
     try {
       localStorage.removeItem('shopsphere_cart_guest');
@@ -362,7 +362,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setProfile(null);
     setIsLoading(false);
-    router.push('/auth/login?logout=success');
+    router.push(redirectUrl);
     router.refresh();
   };
 

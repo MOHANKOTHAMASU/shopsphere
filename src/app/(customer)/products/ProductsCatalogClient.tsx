@@ -606,31 +606,47 @@ export function ProductsCatalogClient({
             <div className="grid grid-cols-2 gap-1.5 text-xs">
               <button
                 type="button"
+                onClick={() => updateParams({ minPrice: null, maxPrice: 300, page: 1 })}
+                className={`px-2 py-1.5 rounded-lg text-left border transition-colors cursor-pointer font-medium ${
+                  activeMaxPrice === 300 && activeMinPrice === 0
+                    ? 'bg-indigo-600 text-white border-indigo-600 font-bold shadow-xs'
+                    : 'bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 border-slate-200/80'
+                }`}
+              >
+                Under ₹300
+              </button>
+              <button
+                type="button"
                 onClick={() => updateParams({ minPrice: null, maxPrice: 500, page: 1 })}
-                className="px-2 py-1.5 rounded-lg bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 text-left border border-slate-200/80 transition-colors cursor-pointer"
+                className={`px-2 py-1.5 rounded-lg text-left border transition-colors cursor-pointer font-medium ${
+                  activeMaxPrice === 500 && activeMinPrice === 0
+                    ? 'bg-indigo-600 text-white border-indigo-600 font-bold shadow-xs'
+                    : 'bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 border-slate-200/80'
+                }`}
               >
                 Under ₹500
               </button>
               <button
                 type="button"
                 onClick={() => updateParams({ minPrice: null, maxPrice: 1000, page: 1 })}
-                className="px-2 py-1.5 rounded-lg bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 text-left border border-slate-200/80 transition-colors cursor-pointer"
+                className={`px-2 py-1.5 rounded-lg text-left border transition-colors cursor-pointer font-medium ${
+                  activeMaxPrice === 1000 && activeMinPrice === 0
+                    ? 'bg-indigo-600 text-white border-indigo-600 font-bold shadow-xs'
+                    : 'bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 border-slate-200/80'
+                }`}
               >
                 Under ₹1,000
               </button>
               <button
                 type="button"
                 onClick={() => updateParams({ minPrice: null, maxPrice: 5000, page: 1 })}
-                className="px-2 py-1.5 rounded-lg bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 text-left border border-slate-200/80 transition-colors cursor-pointer"
+                className={`px-2 py-1.5 rounded-lg text-left border transition-colors cursor-pointer font-medium ${
+                  activeMaxPrice === 5000 && activeMinPrice === 0
+                    ? 'bg-indigo-600 text-white border-indigo-600 font-bold shadow-xs'
+                    : 'bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 border-slate-200/80'
+                }`}
               >
                 Under ₹5,000
-              </button>
-              <button
-                type="button"
-                onClick={() => updateParams({ minPrice: 5000, maxPrice: 15000, page: 1 })}
-                className="px-2 py-1.5 rounded-lg bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 text-left border border-slate-200/80 transition-colors cursor-pointer"
-              >
-                ₹5K – ₹15K
               </button>
             </div>
 
@@ -683,9 +699,9 @@ export function ProductsCatalogClient({
               </div>
               <input
                 type="range"
-                min="500"
+                min="0"
                 max="200000"
-                step="2500"
+                step="250"
                 value={localMaxPrice}
                 onChange={(e) => {
                   setLocalMaxPrice(Number(e.target.value));
@@ -696,7 +712,7 @@ export function ProductsCatalogClient({
                 className="w-full accent-indigo-600 cursor-pointer"
               />
               <div className="flex justify-between text-[10px] text-slate-400 mt-0.5 font-mono">
-                <span>₹500</span>
+                <span>₹0</span>
                 <span>₹2,00,000</span>
               </div>
             </div>
@@ -977,6 +993,53 @@ export function ProductsCatalogClient({
                 </div>
               </div>
 
+              {/* Quick Presets for Mobile */}
+              <div>
+                <h4 className="text-xs font-bold text-slate-800 mb-2">Quick Price Presets</h4>
+                <div className="grid grid-cols-2 gap-1.5 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateParams({ minPrice: null, maxPrice: 300, page: 1 });
+                      setIsMobileFilterOpen(false);
+                    }}
+                    className="px-2 py-1.5 rounded-lg bg-slate-50 text-slate-700 border border-slate-200 text-left font-medium"
+                  >
+                    Under ₹300
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateParams({ minPrice: null, maxPrice: 500, page: 1 });
+                      setIsMobileFilterOpen(false);
+                    }}
+                    className="px-2 py-1.5 rounded-lg bg-slate-50 text-slate-700 border border-slate-200 text-left font-medium"
+                  >
+                    Under ₹500
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateParams({ minPrice: null, maxPrice: 1000, page: 1 });
+                      setIsMobileFilterOpen(false);
+                    }}
+                    className="px-2 py-1.5 rounded-lg bg-slate-50 text-slate-700 border border-slate-200 text-left font-medium"
+                  >
+                    Under ₹1,000
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      updateParams({ minPrice: null, maxPrice: 5000, page: 1 });
+                      setIsMobileFilterOpen(false);
+                    }}
+                    className="px-2 py-1.5 rounded-lg bg-slate-50 text-slate-700 border border-slate-200 text-left font-medium"
+                  >
+                    Under ₹5,000
+                  </button>
+                </div>
+              </div>
+
               {/* Price Slider */}
               <div>
                 <div className="flex justify-between text-xs font-bold mb-1">
@@ -987,13 +1050,17 @@ export function ProductsCatalogClient({
                 </div>
                 <input
                   type="range"
-                  min="1000"
+                  min="0"
                   max="200000"
-                  step="2500"
+                  step="250"
                   value={localMaxPrice}
                   onChange={(e) => setLocalMaxPrice(Number(e.target.value))}
                   className="w-full accent-indigo-600"
                 />
+                <div className="flex justify-between text-[10px] text-slate-400 mt-0.5 font-mono">
+                  <span>₹0</span>
+                  <span>₹2,00,000</span>
+                </div>
               </div>
 
               {/* Rating */}

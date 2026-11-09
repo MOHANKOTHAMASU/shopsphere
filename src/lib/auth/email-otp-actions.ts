@@ -31,6 +31,14 @@ function safeRevalidate(path: string, type: 'page' | 'layout' = 'page') {
   }
 }
 
+async function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  let timer: NodeJS.Timeout;
+  const timeoutPromise = new Promise<T>((resolve) => {
+    timer = setTimeout(() => resolve(fallback), ms);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timer));
+}
+
 export interface EmailOtpSendResult {
   success: boolean;
   message: string;
@@ -62,47 +70,7 @@ export async function sendCustomerEmailOtpAction(email: string): Promise<EmailOt
     };
   }
 
-  // 1. Verify that the customer is actually registered
-  const customer = memoryCustomers.find((c) => c.email.toLowerCase() === cleanEmail);
-  const isDemoAccount = cleanEmail === 'customer@shopsphere.dev';
-
-  if (!customer && !isDemoAccount) {
-    // Check Supabase if configured with shouldCreateUser: false
-    if (isSupabaseConfigured()) {
-      try {
-        const supabase = await createClient();
-        const { error } = await supabase.auth.signInWithOtp({
-          email: cleanEmail,
-          options: {
-            shouldCreateUser: false,
-          },
-        });
-
-        if (
-          error &&
-          (error.message.toLowerCase().includes('signups not allowed') ||
-            error.message.toLowerCase().includes('user not found') ||
-            (error as unknown as { code?: string }).code === 'user_not_found')
-        ) {
-          return {
-            success: false,
-            message: 'No registered customer account found with this email. Please register first.',
-            error: 'UNREGISTERED_USER',
-          };
-        }
-      } catch {
-        // Fall back to registration check
-      }
-    }
-
-    return {
-      success: false,
-      message: 'No registered customer account found with this email address. Please create an account first.',
-      error: 'UNREGISTERED_USER',
-    };
-  }
-
-  // 2. 45-second cooldown rate limit per email
+  // 1. Rate limit check: 45-second cooldown per email
   const rateLimit = checkRateLimit(`email-otp:${cleanEmail}`, 1, 45);
   if (!rateLimit.allowed) {
     return {
@@ -122,35 +90,46 @@ export async function sendCustomerEmailOtpAction(email: string): Promise<EmailOt
     attempts: 0,
   });
 
-  // 3. Dispatch via Resend if configured
+  // 2. Fast timeout dispatch via Resend if configured (max 2000ms)
   if (isResendConfigured()) {
-    const resendRes = await sendOtpEmailViaResend(cleanEmail, secureOtp, 'login');
-    if (resendRes.success) {
-      return {
-        success: true,
-        message: `A genuine 6-digit login verification code has been dispatched to ${maskEmail(cleanEmail)}. Please check your inbox and spam folder.`,
-        cooldownSeconds: 45,
-      };
+    try {
+      const resendRes = await withTimeout(
+        sendOtpEmailViaResend(cleanEmail, secureOtp, 'login'),
+        2000,
+        { success: false, error: 'TIMEOUT' }
+      );
+      if (resendRes.success) {
+        return {
+          success: true,
+          message: `A genuine 6-digit verification code has been dispatched to ${maskEmail(cleanEmail)}. Please check your inbox and spam folder.`,
+          cooldownSeconds: 45,
+        };
+      }
+    } catch (resendErr) {
+      console.warn('[ShopSphere Email] Resend delivery error:', resendErr);
     }
-    console.warn('[ShopSphere Email] Resend delivery error:', resendRes.error);
   }
 
-  // 4. Dispatch via Supabase Auth if configured (shouldCreateUser: false)
+  // 3. Fast timeout dispatch via Supabase Auth if configured (max 2000ms)
   if (isSupabaseConfigured()) {
     try {
       const supabase = await createClient();
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
       const emailRedirectTo = `${appUrl}/auth/callback?next=/account`;
 
-      const { error } = await supabase.auth.signInWithOtp({
-        email: cleanEmail,
-        options: {
-          shouldCreateUser: false,
-          emailRedirectTo,
-        },
-      });
+      const supabaseRes = await withTimeout(
+        supabase.auth.signInWithOtp({
+          email: cleanEmail,
+          options: {
+            shouldCreateUser: true,
+            emailRedirectTo,
+          },
+        }),
+        2000,
+        { data: { user: null, session: null }, error: { message: 'TIMEOUT' } } as any
+      );
 
-      if (!error) {
+      if (!supabaseRes.error) {
         return {
           success: true,
           message: `A genuine 6-digit verification code has been dispatched to ${maskEmail(cleanEmail)}. Please check your inbox and spam folder.`,
@@ -162,15 +141,15 @@ export async function sendCustomerEmailOtpAction(email: string): Promise<EmailOt
     }
   }
 
-  // 5. Resilient Local / Unconfigured SMTP Fallback:
-  // When external email dispatch is not yet configured, surface the code transparently so the user can sign in
+  // 4. Instant Resilient Fallback:
+  // Surfaces the code transparently so customers are never blocked by SMTP delays
   const isDev = process.env.NODE_ENV !== 'production';
 
   return {
     success: true,
     message: `A 6-digit verification code has been generated for ${maskEmail(cleanEmail)}. ${
       isDev
-        ? `(Local Dev Code: ${secureOtp})`
+        ? `(Verification Code: ${secureOtp})`
         : `Verification code ready: ${secureOtp}. (Configure RESEND_API_KEY in Vercel for live inbox delivery)`
     }`,
     cooldownSeconds: 45,
@@ -244,45 +223,73 @@ export async function verifyCustomerEmailOtpAction(
       // Successful verification
       memoryVerificationTokens.delete(cleanEmail);
 
+      const rawName = cleanEmail.split('@')[0];
+      const formattedName =
+        rawName
+          .replace(/[._-]/g, ' ')
+          .split(' ')
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(' ') || 'Customer';
+
       let customer = memoryCustomers.find((c) => c.email.toLowerCase() === cleanEmail);
+      const isNewUser = !customer;
+
       if (!customer) {
         customer = {
-          id: cleanEmail === 'kmvsubbarao28@gmail.com' ? 'usr-owner-mohan' : `usr-cust-${Date.now()}`,
-          fullName: cleanEmail === 'kmvsubbarao28@gmail.com' ? 'Mohan Kothamasu' : cleanEmail.split('@')[0],
+          id: `usr-cust-${Date.now()}`,
+          fullName: formattedName,
           email: cleanEmail,
           maskedEmail: maskEmail(cleanEmail),
           phone: '+91 98765 43210',
-          role: cleanEmail === 'kmvsubbarao28@gmail.com' ? 'admin' : 'customer',
-          ordersCount: cleanEmail === 'kmvsubbarao28@gmail.com' ? 3 : 0,
-          totalSpent: cleanEmail === 'kmvsubbarao28@gmail.com' ? 60979 : 0,
+          role: 'customer',
+          ordersCount: 0,
+          totalSpent: 0,
           status: 'active',
           isVerified: true,
           createdAt: new Date().toISOString(),
         };
         memoryCustomers.unshift(customer);
+
+        // Persist to Supabase profiles table if available
+        if (isSupabaseConfigured()) {
+          try {
+            const supabase = await createClient();
+            await supabase.from('profiles').upsert({
+              id: customer.id,
+              full_name: customer.fullName,
+              role: 'customer',
+              phone: customer.phone,
+              updated_at: new Date().toISOString(),
+            });
+          } catch {}
+        }
+
+        // Log ACCOUNT_CREATED activity event with date & timestamp
+        await logCustomerActivity({
+          userId: customer.id,
+          userEmail: customer.email,
+          action: 'ACCOUNT_CREATED',
+          details: { method: 'email-otp-auto-provision' },
+        });
       } else {
         customer.isVerified = true;
         customer.status = 'active';
-        if (cleanEmail === 'kmvsubbarao28@gmail.com') {
-          customer.fullName = 'Mohan Kothamasu';
-          customer.role = 'admin';
-        }
       }
 
       await setDemoUserSession({
         id: customer.id,
         email: customer.email,
-        full_name: customer.fullName || (cleanEmail === 'kmvsubbarao28@gmail.com' ? 'Mohan Kothamasu' : customer.email.split('@')[0]),
+        full_name: customer.fullName || formattedName,
         role: customer.role === 'admin' ? 'admin' : 'customer',
         phone: customer.phone,
       });
 
-      // Log customer login event with timestamp
+      // Log LOGIN activity event with date & timestamp
       await logCustomerActivity({
         userId: customer.id,
         userEmail: customer.email,
         action: 'LOGIN',
-        details: { method: 'email-otp', role: customer.role },
+        details: { method: 'email-otp', role: customer.role, isNewUser },
       });
 
       safeRevalidate('/', 'layout');
@@ -310,24 +317,55 @@ export async function verifyCustomerEmailOtpAction(
       if (!error && data?.user) {
         memoryVerificationTokens.delete(cleanEmail);
         let customer = memoryCustomers.find((c) => c.email.toLowerCase() === cleanEmail);
-        if (customer) {
-          customer.isVerified = true;
-          customer.status = 'active';
-          await setDemoUserSession({
-            id: customer.id,
-            email: customer.email,
-            full_name: customer.fullName || customer.email.split('@')[0],
-            role: customer.role === 'admin' ? 'admin' : 'customer',
-            phone: customer.phone,
-          });
+        const rawName = cleanEmail.split('@')[0];
+        const formattedName =
+          rawName
+            .replace(/[._-]/g, ' ')
+            .split(' ')
+            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+            .join(' ') || 'Customer';
+
+        if (!customer) {
+          customer = {
+            id: data.user.id || `usr-cust-${Date.now()}`,
+            fullName: (data.user.user_metadata?.full_name as string) || formattedName,
+            email: cleanEmail,
+            maskedEmail: maskEmail(cleanEmail),
+            phone: '+91 98765 43210',
+            role: 'customer',
+            ordersCount: 0,
+            totalSpent: 0,
+            status: 'active',
+            isVerified: true,
+            createdAt: new Date().toISOString(),
+          };
+          memoryCustomers.unshift(customer);
 
           await logCustomerActivity({
             userId: customer.id,
             userEmail: customer.email,
-            action: 'LOGIN',
-            details: { method: 'supabase-otp', role: customer.role },
+            action: 'ACCOUNT_CREATED',
+            details: { method: 'supabase-otp-provision' },
           });
+        } else {
+          customer.isVerified = true;
+          customer.status = 'active';
         }
+
+        await setDemoUserSession({
+          id: customer.id,
+          email: customer.email,
+          full_name: customer.fullName || formattedName,
+          role: customer.role === 'admin' ? 'admin' : 'customer',
+          phone: customer.phone,
+        });
+
+        await logCustomerActivity({
+          userId: customer.id,
+          userEmail: customer.email,
+          action: 'LOGIN',
+          details: { method: 'supabase-otp', role: customer.role },
+        });
 
         safeRevalidate('/', 'layout');
         safeRevalidate('/account', 'page');

@@ -25,6 +25,7 @@ import {
   Smartphone,
   Car,
   Armchair,
+  RefreshCw,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { DEVELOPMENT_SEED_CATEGORIES } from '@/data/seed-categories';
@@ -61,6 +62,11 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
   const handleSignOut = async () => {
     onClose();
     await signOut();
+  };
+
+  const handleSwitchAccount = async () => {
+    onClose();
+    await signOut('/auth/login?switch=true');
   };
 
   return (
@@ -104,21 +110,30 @@ export function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
 
         {/* Auth Action Area */}
         {user ? (
-          <div className="p-3 bg-indigo-50/70 border-b border-indigo-100 flex items-center justify-between text-xs">
-            <Link
-              href="/account"
-              onClick={onClose}
-              className="font-bold text-indigo-700 hover:underline flex items-center gap-1"
-            >
-              <span>My Account & Orders</span>
-              <ChevronRight className="w-3.5 h-3.5" />
-            </Link>
+          <div className="p-3 bg-indigo-50/70 border-b border-indigo-100 flex flex-col gap-2 text-xs">
+            <div className="flex items-center justify-between">
+              <Link
+                href="/account"
+                onClick={onClose}
+                className="font-bold text-indigo-700 hover:underline flex items-center gap-1"
+              >
+                <span>My Account & Orders</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+              <button
+                onClick={handleSignOut}
+                className="text-rose-600 font-bold hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Logout</span>
+              </button>
+            </div>
             <button
-              onClick={handleSignOut}
-              className="text-rose-600 font-bold hover:underline flex items-center gap-1"
+              onClick={handleSwitchAccount}
+              className="text-left text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5 cursor-pointer pt-1 border-t border-indigo-100/70"
             >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Logout</span>
+              <RefreshCw className="w-3 h-3" />
+              <span>Switch to another account</span>
             </button>
           </div>
         ) : (
